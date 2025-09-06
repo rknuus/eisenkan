@@ -1,0 +1,33 @@
+@startmindmap
+* Kanban volatilities
+** notification customization, e.g. email
+*** affects: component Notification Manager
+** customize rules and triggers, e.g. Scrum, SAFe
+*** affects: component Rule Engine
+** automation, e.g. automated status transitions, external data ingestion
+*** affects: component Task Manager and Feed Manager
+** versioning incl. conflict resolution
+*** affects: component Rules Repo
+** schema migrations
+*** affects: component Task Manager and Tasks Repo
+** from local to distributed deployment
+*** affects: component Rules Access
+** integration into 3rd party systems like JIRA, GitHub, Slack
+*** affects: component Feed Manager and Notification Manager resp. Messaging
+** data customization, e.g. card type
+*** affects: UI
+** view customization, e.g. filtering/grouping or visual theming
+*** affects: UI
+** usage customization, e.g. keyboard shortcuts
+*** affects: UI
+** from single- to multi-user
+*** won't do
+** from single-board to multiboard with dependencies
+*** won't do
+** data volume grows
+*** keep limited by locally available resources (memory and latency)
+** scaling personal => team => enterprise
+*** won't do
+** turns into project management suite
+*** won't do
+@endmindmap

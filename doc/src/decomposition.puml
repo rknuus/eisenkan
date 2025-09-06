@@ -1,0 +1,57 @@
+@startuml
+
+' Clients - Bright Green Background
+component [API Client] #90EE90
+component [EisenKan Client] #90EE90
+component [EisenKan Admin Client] #90EE90
+
+' Managers - Bright Yellow Background
+component [Feed Manager] #FFFF99
+component [Task Manager] #FFFF99
+component [Notification Manager] #FFFF99
+
+' Engine - Orange Background
+component [Rule Engine] #FFA500
+component [Validation Engine] #FFA500
+
+' Access Components - Light-to-Middle Gray Background
+component [Files Access] #C0C0C0
+component [Tasks Access] #C0C0C0
+component [Rules Access] #C0C0C0
+
+' Databases - Light Cyan Background
+database [Storage API] #E0FFFF
+database [Tasks Repo] #E0FFFF
+database [Rules Repo] #E0FFFF
+
+' Utilities - some pinkish color
+component [Messaging] #F8BBD9
+
+[API Client] --> [Feed Manager]
+[Feed Manager] --> [Validation Engine]
+[Feed Manager] --> [Files Access]
+[Files Access] --> [Storage API]
+[Feed Manager] .> [Task Manager]
+[API Client] --> [Task Manager]
+[EisenKan Client] --> [Task Manager]
+[EisenKan Admin Client] --> [Task Manager]
+[Task Manager] --> [Validation Engine]
+[Task Manager] --> [Files Access]
+[Task Manager] --> [Tasks Access]
+[Tasks Access] --> [Tasks Repo]
+[Task Manager] --> [Rule Engine]
+[Rule Engine] --> [Rules Access]
+[Rules Access] --> [Rules Repo]
+[Task Manager] .> [Notification Manager]
+[Notification Manager] --> [Tasks Access]
+[Notification Manager] -> [Messaging]
+[Task Manager] .> [Feed Manager]
+
+' Position managers at the same level with the trick that they all depend on the Rule Engine
+[Notification Manager] -[hidden]- [Rule Engine]
+
+' Position accesses at the same level with the trick that Rules Engine depends on all of them
+[Rule Engine] -[hidden]- [Files Access]
+[Rule Engine] -[hidden]- [Tasks Access]
+
+@enduml
