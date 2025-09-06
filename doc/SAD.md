@@ -27,7 +27,7 @@ The following potential volatilities are not considered, because EisenKan covers
 (Urgent/Important combinations)
 2. Visualize Work Progress - View tasks flowing through workflow columns (typically: todo → doing → done) to understand work status at a glance
 3. Move Tasks Through Workflow - Transition tasks between columns to reflect changing work states and progress
-4. Manage Task Details - Create, read, update, and delete task information including descriptions, due dates, tags, and priorities
+4. Manage Task Details - Update and delete task information including descriptions, due dates, tags, and priorities
 
 ### Secondary Use Cases (Supporting Functionality)
 
@@ -35,6 +35,132 @@ The following potential volatilities are not considered, because EisenKan covers
 6. Search and Filter Tasks - Find specific tasks based on various criteria (tags, priority, assignee, due date, etc.)
 7. Manage extra task details - Add comments and attachments to tasks for enhanced communication
 8. Export/Import Data - Move task data between systems or create backups in various formats
+
+### Activity Diagrams for Core Use Cases
+
+#### Use Case 1: Organize Tasks by Eisenhower Priority
+
+```
+    (●) Start
+     │
+     ▼
+┌─────────────────┐
+│ Task creation   │
+│ requested       │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Priority matrix │
+│ assessment      │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Position task   │
+│ in todo based   │
+│ on priority     │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Task visible    │
+│ in board        │
+└─────┬───────────┘
+      │
+      ▼
+    (◉) End
+```
+
+#### Use Case 2: Visualize Work Progress
+
+```
+    (●) Start
+     │
+     ▼
+┌─────────────────┐
+│ Board view      │
+│ requested       │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Current state   │
+│ retrieved       │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Progress flow   │
+│ visualized      │
+└─────┬───────────┘
+      │
+      ▼
+    (◉) End
+```
+
+#### Use Case 3: Move Tasks Through Workflow
+
+```
+    (●) Start
+     │
+     ▼
+┌─────────────────┐
+│ Task movement   │
+│ initiated       │
+└─────┬───────────┘
+      │
+      ▼
+     ◊ Transition valid?
+    ╱ ╲
+   ╱   ╲
+  ╱     ╲
+No╱       ╲Yes
+ ╱         ╲
+▼           ▼
+┌─────────┐ ┌─────────────────┐
+│ Movement│ │ Task position   │
+│ rejected│ │ updated         │
+└─────┬───┘ └─────┬───────────┘
+      │           │
+      │           ▼
+      │     ┌─────────────────┐
+      │     │ Board state     │
+      │     │ refreshed       │
+      │     └─────┬───────────┘
+      │           │
+      └───────────┘
+                  │
+                  ▼
+                (◉) End
+```
+
+#### Use Case 4: Manage Task Details
+
+```
+    (●) Start
+     │
+     ▼
+┌─────────────────┐
+│ Task operation  │
+│ requested       │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Update/deletion │
+│ performed       │
+└─────┬───────────┘
+      │
+      ▼
+┌─────────────────┐
+│ Task state      │
+│ updated         │
+└─────┬───────────┘
+      │
+      ▼
+    (◉) End
+```
 
 ### Architectural Note
 
