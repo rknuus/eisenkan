@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement utility LoggingUtility (not listed in the "Currently supported decomposition" in the [SAD](./doc/SAD.md))
 - Implement utility VersionUtility
 - Implement service TaskAccess
 - Implement service RulesAccess
