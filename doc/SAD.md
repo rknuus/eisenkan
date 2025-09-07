@@ -2,7 +2,7 @@
 ## Volatility analysis
 * notification customization, e.g. email
 * customize rules and triggers, e.g. Scrum, SAFe
-* automation, e.g. automated status transitions
+* automation, e.g. automated status transitions or automatic generation of commit messages
 * external data ingestion
 * versioning incl. conflict resolution
 * schema migrations
