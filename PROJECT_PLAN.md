@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement utility VersionUtility
 - Implement service TaskAccess
 - Implement service RulesAccess
 - Implement service RuleEngine
