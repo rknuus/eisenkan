@@ -91,3 +91,114 @@
 - **SRS Update Required**: Interface contract section needs revision
 
 **User Approval**: [User] approved on [2025-09-06]
+
+## [2025-09-07] - VersionUtility Design Decision: Repository Handle Pattern
+
+**Decision**: Repository Handle Pattern (Option C)
+
+**Context**: Need to choose repository object management approach for go-git integration, balancing performance and simplicity for 7 interface operations.
+
+**Options Considered**:
+- Option A: Repository Instance Per Operation - Simple but high overhead
+- Option B: Repository Caching with Lifecycle Management - Complex state management
+- Option C: Repository Handle Pattern - Explicit lifecycle control
+
+**Rationale**: Repository Handle Pattern provides optimal performance for multi-operation workflows while giving callers explicit control over repository lifecycle. This aligns with the performance requirements (REQ-PERFORMANCE-001) and supports efficient resource management.
+
+**Consequences**:
+- Interface returns handles for multi-operation scenarios
+- Callers manage repository lifecycle explicitly
+- Better performance for batch operations
+- Slight increase in interface complexity
+- Requires careful handle cleanup in error scenarios
+
+**User Approval**: [User] approved on [2025-09-07]
+
+## [2025-09-07] - VersionUtility Design Decision: Direct Error Passthrough with Context
+
+**Decision**: Direct go-git Error Passthrough with Annotations (Option C)
+
+**Context**: Need structured error information (REQ-RELIABILITY-001) while integrating with go-git error handling.
+
+**Options Considered**:
+- Option A: Error Wrapping with Context - Custom error structures
+- Option B: Error Translation to Domain Errors - Abstract away go-git errors
+- Option C: Direct go-git Error Passthrough with Annotations - Preserve original errors with context
+
+**Rationale**: Direct passthrough preserves all go-git error information while adding necessary context. This provides maximum debugging information and maintains compatibility with go-git error handling patterns.
+
+**Consequences**:
+- Rich error information preserved from go-git
+- Context annotations provide operation and path information
+- Callers can handle specific go-git error types if needed
+- Error messages include full chain of context
+- Maintains compatibility with Go error handling idioms
+
+**User Approval**: [User] approved on [2025-09-07]
+
+## [2025-09-07] - VersionUtility Design Decision: Selective Staging with Patterns
+
+**Decision**: Selective Staging with Patterns (Option B)
+
+**Context**: REQ-VERSION-003 requires staging "all modifications" but need flexibility for different staging scenarios.
+
+**Options Considered**:
+- Option A: Stage All Changes - Simple but inflexible
+- Option B: Selective Staging with Patterns - Granular control with patterns
+- Option C: Smart Staging with Conflict Detection - Complex logic
+
+**Rationale**: Selective staging with patterns provides flexibility for different use cases while maintaining simplicity. Default pattern can stage all files, but callers can specify patterns for selective staging when needed.
+
+**Consequences**:
+- Interface supports both "stage all" and selective staging
+- Pattern-based approach familiar to git users
+- More flexible than simple stage-all approach
+- Requires pattern validation and error handling
+- Default behavior stages all changes for simplicity
+
+**User Approval**: [User] approved on [2025-09-07]
+
+## [2025-09-07] - VersionUtility Design Decision: Lazy Loading with Limits Plus Streaming
+
+**Decision**: Combined Lazy Loading with Limits and Streaming Results (Hybrid Option A+C)
+
+**Context**: REQ-PERFORMANCE-001 requires 5-second completion for repositories with 10,000 commits, need scalable approach for large repositories.
+
+**Options Considered**:
+- Option A: Lazy Loading with Limits - Good for bounded results
+- Option B: Caching with Background Updates - Complex state management
+- Option C: Streaming Results - Good for large result sets
+- Hybrid: Combine A+C for optimal flexibility
+
+**Rationale**: Combining lazy loading with streaming provides both immediate responsiveness for small requests and scalability for large ones. Interface can provide both synchronous (limited) and asynchronous (streaming) access patterns.
+
+**Consequences**:
+- Synchronous methods with limits for simple use cases
+- Streaming methods for large result sets
+- Optimal memory usage for different scenarios
+- Dual interface approach requires careful design
+- Performance meets requirements under various loads
+
+**User Approval**: [User] approved on [2025-09-07]
+
+## [2025-09-07] - VersionUtility Design Decision: Per-Repository Mutex Locking
+
+**Decision**: Per-Repository Mutex Locking (Option A)
+
+**Context**: Need thread-safe operations for concurrent access to repositories, as go-git repositories may not be inherently thread-safe.
+
+**Options Considered**:
+- Option A: Per-Repository Mutex Locking - Fine-grained locking by path
+- Option B: Operation-Level Locking - Coarser locking approach
+- Option C: go-git Native Concurrency - Rely on library thread safety
+
+**Rationale**: Per-repository mutex locking provides optimal concurrency by allowing operations on different repositories to proceed simultaneously while protecting individual repositories from concurrent modifications.
+
+**Consequences**:
+- Maximum concurrency for multi-repository scenarios
+- Path-based mutex map requires memory management
+- Deadlock prevention through consistent lock ordering
+- Lock cleanup needed for unused repositories
+- Thread-safe access to repository operations
+
+**User Approval**: [User] approved on [2025-09-07]
