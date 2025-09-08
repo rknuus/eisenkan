@@ -11,14 +11,6 @@ APP_NAME := eisenkan
 BIN_DIR := bin
 OUTPUT := $(BIN_DIR)/$(APP_NAME)
 SRC_DIR := ./cmd/$(APP_NAME)
-SYNC_REPO := https://github.com/rknuus/idesign_project_template_sync.git
-SYNC_PREFIX := 3rd-party/sync
-SYNC_BRANCH := main
-
-# Template repository configuration
-TEMPLATE_USER := rknuus
-TEMPLATE_REPO := idesign_project_template
-TEMPLATE_BRANCH := main
 
 # Version can be set via environment variable: make build VERSION=1.0.0
 VERSION ?= dev
@@ -42,26 +34,6 @@ run: build ## Build and run the application
 test: build ## Run tests
 	@echo "Running tests for $(APP_NAME)..."
 	go test ./...
-
-.PHONY: sync-setup
-sync-setup: ## Setup the git subtrees
-	git subtree add --prefix=$(SYNC_PREFIX) $(SYNC_REPO) $(SYNC_BRANCH) --squash
-
-.PHONY: sync-update
-sync-update: ## Synchronize the git subtrees
-	git subtree pull --prefix=$(SYNC_PREFIX) $(SYNC_REPO) $(SYNC_BRANCH) --squash
-
-.PHONY: sync-reset
-sync-reset: ## Reset subtree to remote state (destructive)
-	@echo "Resetting subtree to remote state..."
-	rm -rf $(SYNC_PREFIX)
-	git subtree add --prefix=$(SYNC_PREFIX) $(SYNC_REPO) $(SYNC_BRANCH) --squash
-	@echo "Subtree reset complete"
-
-.PHONY: sync-claude
-sync-claude: sync-update ## Update CLAUDE.md from template repository
-	@echo "Updating CLAUDE.md from template repository..."
-	./$(SYNC_PREFIX)/scripts/update-claude-md.sh $(TEMPLATE_USER) $(TEMPLATE_REPO) $(TEMPLATE_BRANCH)
 
 .PHONY: install
 install: ## Install the application
