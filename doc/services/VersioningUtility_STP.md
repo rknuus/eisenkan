@@ -1,9 +1,9 @@
-# VersionUtility Software Test Plan (STP)
+# VersioningUtility Software Test Plan (STP)
 
 ## 1. Test Overview
 
 ### 1.1 Purpose
-This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the VersionUtility service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [VersionUtility_SRS.md](VersionUtility_SRS.md).
+This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the VersioningUtility service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [VersioningUtility_SRS.md](VersioningUtility_SRS.md).
 
 ### 1.2 Scope
 Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and version control capabilities.
@@ -31,17 +31,17 @@ This STP emphasizes breaking the system through:
 
 | Requirement ID | Description | Test Functions | Coverage Status |
 |---|---|---|---|
-| REQ-VERSION-001 | Initialize or open repository | `TestVersionUtility_InitializeRepository_API`, `TestVersionUtility_InitializeRepository_Errors` | 🚧 Pending |
-| REQ-VERSION-002 | Return repository status information | `TestVersionUtility_GetRepositoryStatus_API`, `TestVersionUtility_GetRepositoryStatus_Corruption` | 🚧 Pending |
-| REQ-VERSION-003 | Stage file changes for commit | `TestVersionUtility_StageChanges_API`, `TestVersionUtility_StageChanges_Concurrent` | 🚧 Pending |
-| REQ-VERSION-004 | Create commits with staged changes | `TestVersionUtility_CommitChanges_API`, `TestVersionUtility_CommitChanges_DiskFull` | 🚧 Pending |
-| REQ-VERSION-005 | Return chronological commit history | `TestVersionUtility_GetRepositoryHistory_API`, `TestVersionUtility_GetRepositoryHistory_Large` | 🚧 Pending |
-| REQ-VERSION-006 | Return file-specific commit history | `TestVersionUtility_GetFileHistory_API`, `TestVersionUtility_GetFileHistory_NonExistent` | 🚧 Pending |
-| REQ-VERSION-007 | Return differences between versions | `TestVersionUtility_GetFileDifferences_API`, `TestVersionUtility_GetFileDifferences_Binary` | 🚧 Pending |
-| REQ-PERFORMANCE-001 | Complete operations within 5 seconds | `TestVersionUtility_Performance_LargeRepository`, `TestVersionUtility_Performance_Stress` | 🚧 Pending |
-| REQ-RELIABILITY-001 | Return structured error information | `TestVersionUtility_ErrorHandling_Corruption`, `TestVersionUtility_ErrorHandling_FileSystem` | 🚧 Pending |
-| REQ-RELIABILITY-002 | Reject operations with merge conflicts | `TestVersionUtility_ConflictDetection`, `TestVersionUtility_ConflictRejection` | 🚧 Pending |
-| REQ-USABILITY-001 | Accept absolute and relative paths | `TestVersionUtility_PathHandling_Absolute`, `TestVersionUtility_PathHandling_Relative` | 🚧 Pending |
+| REQ-VERSION-001 | Initialize or open repository | `TestVersioningUtility_InitializeRepository_API`, `TestVersioningUtility_InitializeRepository_Errors` | 🚧 Pending |
+| REQ-VERSION-002 | Return repository status information | `TestVersioningUtility_GetRepositoryStatus_API`, `TestVersioningUtility_GetRepositoryStatus_Corruption` | 🚧 Pending |
+| REQ-VERSION-003 | Stage file changes for commit | `TestVersioningUtility_StageChanges_API`, `TestVersioningUtility_StageChanges_Concurrent` | 🚧 Pending |
+| REQ-VERSION-004 | Create commits with staged changes | `TestVersioningUtility_CommitChanges_API`, `TestVersioningUtility_CommitChanges_DiskFull` | 🚧 Pending |
+| REQ-VERSION-005 | Return chronological commit history | `TestVersioningUtility_GetRepositoryHistory_API`, `TestVersioningUtility_GetRepositoryHistory_Large` | 🚧 Pending |
+| REQ-VERSION-006 | Return file-specific commit history | `TestVersioningUtility_GetFileHistory_API`, `TestVersioningUtility_GetFileHistory_NonExistent` | 🚧 Pending |
+| REQ-VERSION-007 | Return differences between versions | `TestVersioningUtility_GetFileDifferences_API`, `TestVersioningUtility_GetFileDifferences_Binary` | 🚧 Pending |
+| REQ-PERFORMANCE-001 | Complete operations within 5 seconds | `TestVersioningUtility_Performance_LargeRepository`, `TestVersioningUtility_Performance_Stress` | 🚧 Pending |
+| REQ-RELIABILITY-001 | Return structured error information | `TestVersioningUtility_ErrorHandling_Corruption`, `TestVersioningUtility_ErrorHandling_FileSystem` | 🚧 Pending |
+| REQ-RELIABILITY-002 | Reject operations with merge conflicts | `TestVersioningUtility_ConflictDetection`, `TestVersioningUtility_ConflictRejection` | 🚧 Pending |
+| REQ-USABILITY-001 | Accept absolute and relative paths | `TestVersioningUtility_PathHandling_Absolute`, `TestVersioningUtility_PathHandling_Relative` | 🚧 Pending |
 
 ### 3.1 Test Coverage Summary
 - **Total Requirements**: 11
@@ -51,11 +51,11 @@ This STP emphasizes breaking the system through:
 - **Total Test Coverage**: Pending
 
 ### 3.2 Quality Verification
-- **Architectural Compliance**: `TestVersionUtility_Integration_ArchitecturalCompliance`
-- **Use Case Validation**: `TestVersionUtility_Integration_UseCaseValidation`
-- **Performance Requirements**: `TestVersionUtility_Integration_PerformanceImpact`
-- **Concurrent Operations**: `TestVersionUtility_Integration_ConcurrentUsage`
-- **Error Handling**: `TestVersionUtility_Integration_ErrorScenarios`
+- **Architectural Compliance**: `TestVersioningUtility_Integration_ArchitecturalCompliance`
+- **Use Case Validation**: `TestVersioningUtility_Integration_UseCaseValidation`
+- **Performance Requirements**: `TestVersioningUtility_Integration_PerformanceImpact`
+- **Concurrent Operations**: `TestVersioningUtility_Integration_ConcurrentUsage`
+- **Error Handling**: `TestVersioningUtility_Integration_ErrorScenarios`
 
 ## 4. Destructive API Test Cases
 

@@ -39,18 +39,18 @@ type RepositoryStatus struct {
 func InitializeRepository(path string) (Repository, error) {
 	logger := NewLoggingUtility()
 	
-	logger.Log(Debug, "VersionUtility", "Initializing repository", map[string]interface{}{
+	logger.Log(Debug, "VersioningUtility", "Initializing repository", map[string]interface{}{
 		"path": path,
 	})
 
 	// Validate path is not empty
 	if strings.TrimSpace(path) == "" {
-		return nil, fmt.Errorf("VersionUtility.InitializeRepository cannot initialize repository with empty path")
+		return nil, fmt.Errorf("VersioningUtility.InitializeRepository cannot initialize repository with empty path")
 	}
 
 	// Ensure directory exists
 	if err := os.MkdirAll(path, 0755); err != nil {
-		return nil, fmt.Errorf("VersionUtility.InitializeRepository failed to create directory: %w", err)
+		return nil, fmt.Errorf("VersioningUtility.InitializeRepository failed to create directory: %w", err)
 	}
 
 	// Initialize or open Git repository
@@ -63,7 +63,7 @@ func InitializeRepository(path string) (Repository, error) {
 		// Repository doesn't exist, create new one
 		gitRepo, err = git.PlainInit(path, false)
 		if err != nil {
-			return nil, fmt.Errorf("VersionUtility.InitializeRepository failed to initialize Git repository: %w", err)
+			return nil, fmt.Errorf("VersioningUtility.InitializeRepository failed to initialize Git repository: %w", err)
 		}
 	}
 
@@ -74,7 +74,7 @@ func InitializeRepository(path string) (Repository, error) {
 		logger:  logger,
 	}
 
-	logger.Log(Info, "VersionUtility", "Repository initialized successfully", map[string]interface{}{
+	logger.Log(Info, "VersioningUtility", "Repository initialized successfully", map[string]interface{}{
 		"path": path,
 	})
 
@@ -512,29 +512,29 @@ func (r *repository) GetFileDifferences(hash1, hash2 string) ([]byte, error) {
 	// Get commits
 	commit1, err := r.gitRepo.CommitObject(plumbing.NewHash(hash1))
 	if err != nil {
-		return nil, fmt.Errorf("VersionUtility.Repository.GetFileDifferences failed to get commit %s: %w", hash1, err)
+		return nil, fmt.Errorf("VersioningUtility.Repository.GetFileDifferences failed to get commit %s: %w", hash1, err)
 	}
 
 	commit2, err := r.gitRepo.CommitObject(plumbing.NewHash(hash2))
 	if err != nil {
-		return nil, fmt.Errorf("VersionUtility.Repository.GetFileDifferences failed to get commit %s: %w", hash2, err)
+		return nil, fmt.Errorf("VersioningUtility.Repository.GetFileDifferences failed to get commit %s: %w", hash2, err)
 	}
 
 	// Get trees
 	tree1, err := commit1.Tree()
 	if err != nil {
-		return nil, fmt.Errorf("VersionUtility.Repository.GetFileDifferences failed to get tree for commit %s: %w", hash1, err)
+		return nil, fmt.Errorf("VersioningUtility.Repository.GetFileDifferences failed to get tree for commit %s: %w", hash1, err)
 	}
 
 	tree2, err := commit2.Tree()
 	if err != nil {
-		return nil, fmt.Errorf("VersionUtility.Repository.GetFileDifferences failed to get tree for commit %s: %w", hash2, err)
+		return nil, fmt.Errorf("VersioningUtility.Repository.GetFileDifferences failed to get tree for commit %s: %w", hash2, err)
 	}
 
 	// Get patch
 	patch, err := tree1.Patch(tree2)
 	if err != nil {
-		return nil, fmt.Errorf("VersionUtility.Repository.GetFileDifferences failed to generate patch between %s and %s: %w", hash1, hash2, err)
+		return nil, fmt.Errorf("VersioningUtility.Repository.GetFileDifferences failed to generate patch between %s and %s: %w", hash1, hash2, err)
 	}
 
 	return []byte(patch.String()), nil
@@ -544,7 +544,7 @@ func (r *repository) GetFileDifferences(hash1, hash2 string) ([]byte, error) {
 func (r *repository) Close() error {
 	// go-git repositories don't need explicit closing
 	// but we can log the operation
-	r.logger.Log(Debug, "VersionUtility", "Repository handle closed", map[string]interface{}{
+	r.logger.Log(Debug, "VersioningUtility", "Repository handle closed", map[string]interface{}{
 		"path": r.path,
 	})
 	return nil

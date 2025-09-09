@@ -92,7 +92,7 @@
 
 **User Approval**: [User] approved on [2025-09-06]
 
-## [2025-09-07] - VersionUtility Design Decision: Repository Handle Pattern
+## [2025-09-07] - VersioningUtility Design Decision: Repository Handle Pattern
 
 **Decision**: Repository Handle Pattern (Option C)
 
@@ -114,7 +114,7 @@
 
 **User Approval**: [User] approved on [2025-09-07]
 
-## [2025-09-07] - VersionUtility Design Decision: Direct Error Passthrough with Context
+## [2025-09-07] - VersioningUtility Design Decision: Direct Error Passthrough with Context
 
 **Decision**: Direct go-git Error Passthrough with Annotations (Option C)
 
@@ -136,7 +136,7 @@
 
 **User Approval**: [User] approved on [2025-09-07]
 
-## [2025-09-07] - VersionUtility Design Decision: Selective Staging with Patterns
+## [2025-09-07] - VersioningUtility Design Decision: Selective Staging with Patterns
 
 **Decision**: Selective Staging with Patterns (Option B)
 
@@ -158,7 +158,7 @@
 
 **User Approval**: [User] approved on [2025-09-07]
 
-## [2025-09-07] - VersionUtility Design Decision: Lazy Loading with Limits Plus Streaming
+## [2025-09-07] - VersioningUtility Design Decision: Lazy Loading with Limits Plus Streaming
 
 **Decision**: Combined Lazy Loading with Limits and Streaming Results (Hybrid Option A+C)
 
@@ -181,7 +181,7 @@
 
 **User Approval**: [User] approved on [2025-09-07]
 
-## [2025-09-07] - VersionUtility Design Decision: Per-Repository Mutex Locking
+## [2025-09-07] - VersioningUtility Design Decision: Per-Repository Mutex Locking
 
 **Decision**: Per-Repository Mutex Locking (Option A)
 

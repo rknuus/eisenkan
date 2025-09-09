@@ -14,7 +14,7 @@ TaskAccess is responsible for:
 - Resource access abstraction for task-related operations
 
 ### 1.3 System Context
-TaskAccess operates in the ResourceAccess layer of the EisenKan architecture, sitting between the business logic layers (Engines/Managers) and the resource layer (file system via VersionUtility). It provides a stable API for task data operations while encapsulating the volatility of data storage mechanisms.
+TaskAccess operates in the ResourceAccess layer of the EisenKan architecture, sitting between the business logic layers (Engines/Managers) and the resource layer (file system via VersioningUtility). It provides a stable API for task data operations while encapsulating the volatility of data storage mechanisms.
 
 ## 2. Use Cases
 
@@ -170,7 +170,7 @@ All errors shall include:
 ## 6. Technical Constraints
 
 ### 6.1 Integration Requirements
-**REQ-INTEGRATION-001**: The TaskAccess service shall use the VersionUtility service for all persistent storage operations.
+**REQ-INTEGRATION-001**: The TaskAccess service shall use the VersioningUtility service for all persistent storage operations.
 
 **REQ-INTEGRATION-002**: The TaskAccess service shall use the LoggingUtility service for all operational logging.
 
@@ -196,7 +196,7 @@ All errors shall include:
 - All error scenarios return structured, actionable error information
 
 ### 7.3 Integration Acceptance
-- Service integrates successfully with VersionUtility for storage operations
+- Service integrates successfully with VersioningUtility for storage operations
 - Service integrates successfully with LoggingUtility for operational visibility
 - Service can be consumed by business logic layers (Engines/Managers) without coupling
 
