@@ -3,7 +3,7 @@
 ## 1. Test Overview
 
 ### 1.1 Purpose
-This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the VersioningUtility service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [VersioningUtility_SRS.md](VersioningUtility_SRS.md).
+This Software Test Plan defines destructive testing strategies for the VersioningUtility service. The plan emphasizes API boundary testing, error condition validation, and destructive testing approaches for all EARS requirements specified in [VersioningUtility_SRS.md](VersioningUtility_SRS.md). Requirements verification and actual test execution results are documented in [VersioningUtility_STR.md](VersioningUtility_STR.md).
 
 ### 1.2 Scope
 Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and version control capabilities.
@@ -249,6 +249,7 @@ This STP emphasizes breaking the system through:
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Created**: 2025-09-07  
-**Status**: Under Review
+**Updated**: 2025-09-09  
+**Status**: Accepted
