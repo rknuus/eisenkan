@@ -202,3 +202,258 @@
 - Thread-safe access to repository operations
 
 **User Approval**: [User] approved on [2025-09-07]
+
+## [2025-09-11] - BoardAccess Design Decision: Data Storage and File Organization Strategy
+
+**Decision**: Directory Structure with Board Configuration (User-Specified Approach)
+
+**Context**: BoardAccess requires efficient storage of board data, column configuration, and task data with JSON format (REQ-FORMAT-001), version control integration (REQ-INTEGRATION-001), and separate active/archived task organization (REQ-FORMAT-003). Need to optimize for minimal git diffs during common operations like priority changes (REQ-FORMAT-002).
+
+**Options Considered**:
+
+### Option A: Single Task Per File Approach
+- **Structure**: Each task stored in separate JSON file (e.g., `tasks/active/task-12345.json`, `tasks/archived/task-12345.json`)
+- **File Organization**: 
+  ```
+  tasks/
+  ├── active/
+  │   ├── task-12345.json
+  │   └── task-67890.json
+  └── archived/
+      └── task-11111.json
+  ```
+- **Advantages**:
+  - Optimal git diffs: only affected task file changes
+  - Easy conflict resolution during merges
+  - Simple task archiving (move file between directories)
+  - Natural task history per file through VersioningUtility
+  - No need for complex JSON manipulation
+- **Disadvantages**:
+  - More files to manage
+  - Bulk queries require multiple file reads
+  - Directory operations for task enumeration
+
+### Option B: Priority-Grouped JSON Files
+- **Structure**: Tasks grouped by Eisenhower matrix quadrant in separate files
+- **File Organization**:
+  ```
+  tasks/
+  ├── active/
+  │   ├── urgent-important.json
+  │   ├── urgent-not-important.json
+  │   ├── not-urgent-important.json
+  │   └── not-urgent-not-important.json
+  └── archived/
+      └── archived-tasks.json
+  ```
+- **JSON Format**: Array of tasks per priority level
+- **Advantages**:
+  - Fewer files to manage
+  - Fast priority-based queries (single file read)
+  - Natural grouping matches domain model
+- **Disadvantages**:
+  - Large git diffs when moving tasks between priorities
+  - Complex JSON array manipulation
+  - Potential merge conflicts on same file
+  - Archive operations require JSON modification
+
+### Option C: Hybrid Single Index + Individual Files
+- **Structure**: Master index file with task metadata + individual task files
+- **File Organization**:
+  ```
+  tasks/
+  ├── index.json          # Master index: {id, priority, status, archived}
+  ├── active/
+  │   ├── task-12345.json
+  │   └── task-67890.json
+  └── archived/
+      └── task-11111.json
+  ```
+- **Advantages**:
+  - Fast bulk queries via index
+  - Minimal diffs for priority changes (only index)
+  - Individual task history preserved
+- **Disadvantages**:
+  - Index consistency challenges
+  - Two-stage operations (index + task file)
+  - Complex recovery if index corrupts
+
+### Option D: Two Aggregate Files (Active + Archived)
+- **Structure**: All active tasks in single file, all archived tasks in separate file
+- **File Organization**:
+  ```
+  tasks/
+  ├── active-tasks.json    # All active tasks as JSON array/object
+  └── archived-tasks.json  # All archived tasks as JSON array/object
+  ```
+- **JSON Format**: Either array of tasks or object with task IDs as keys
+- **Advantages**:
+  - Minimal files to manage (only 2 files)
+  - Simple bulk operations (single file read/write)
+  - Easy backup and synchronization
+  - Fast enumeration of all tasks
+  - Directly meets REQ-FORMAT-003 (separate active/archived)
+- **Disadvantages**:
+  - Large git diffs for any task change
+  - Potential merge conflicts on same file
+  - No individual task history tracking
+  - Entire file rewrite for single task changes
+  - Poor performance for large task sets
+  - Complex JSON manipulation for individual operations
+  - File locking issues under high concurrency
+
+### **User-Specified Approach: Directory Structure with Board Configuration**
+
+**Structure**: 
+- **Board Configuration**: `board.json` - contains column definitions and Eisenhower sections
+- **Active Tasks**: `<column>[/<section>]/task-<id>.json` - tasks organized by column/section directory structure  
+- **Archived Tasks**: `archived/task-<id>.json` - archived tasks in dedicated directory
+
+**File Organization**:
+```
+board.json                           # Board and column configuration
+todo/
+├── urgent-important/
+│   ├── task-12345.json
+│   └── task-67890.json
+├── urgent-not-important/
+│   └── task-11111.json
+├── not-urgent-important/
+│   └── task-22222.json
+└── not-urgent-not-important/
+    └── task-33333.json
+doing/
+├── task-44444.json
+└── task-55555.json
+done/
+├── task-66666.json
+└── task-77777.json
+archived/
+├── task-99999.json
+└── task-88888.json
+```
+
+**Advantages**:
+- **Optimal git diffs**: Moving between sections = file move operation, minimal diff
+- **Board configuration centralized**: Column definitions, Eisenhower setup in `board.json`
+- **Natural directory queries**: List files in directory for column/section queries
+- **Simple archiving**: Move file to `archive/` directory
+- **Column context implicit**: Directory structure provides column/section information
+- **Clean separation**: Board structure vs task content clearly separated
+
+**Implementation Details**:
+- `board.json` contains column definitions, section mappings, workflow rules
+- Directory structure mirrors logical board organization
+- Task files contain only task-specific data (no column redundancy)
+- Archive operations are simple file moves
+- Section queries become directory listings
+
+**Rationale**: User-specified approach provides optimal git diff behavior for common operations (priority/column moves), centralizes board configuration, and uses directory structure as natural organizational mechanism.
+
+**User Approval**: **APPROVED** - User specified this exact approach
+
+## [2025-09-11] - BoardAccess Design Decision: Error Handling and Recovery Strategy  
+
+**Decision**: Error Wrapping with Context (Option B)
+
+**Context**: SRS requires structured error information (REQ-RELIABILITY-001) and graceful failure handling when VersioningUtility unavailable (REQ-RELIABILITY-003). Need consistent error response format and recovery mechanisms.
+
+**Options Considered**:
+
+### Option A: Structured Error Types with Recovery Actions
+- **Error Structure**: Custom error types implementing structured format
+  ```go
+  type TaskAccessError struct {
+      Code        string            // ERROR_TASK_NOT_FOUND, ERROR_STORAGE_FAILED
+      Message     string            // Human-readable description
+      Details     map[string]interface{} // Technical debugging info
+      Suggestions []string          // Recovery action suggestions
+      Cause       error            // Underlying error if any
+  }
+  ```
+- **Recovery Strategy**: Return specific suggestions per error type
+- **Advantages**:
+  - Meets SRS structured error requirements precisely
+  - Clear recovery guidance for callers
+  - Rich debugging information
+- **Disadvantages**:
+  - More complex error handling implementation
+  - Potential over-engineering for simple errors
+
+### Option B: Error Wrapping with Context
+- **Error Structure**: Go standard error wrapping with context
+- **Strategy**: Use fmt.Errorf with contextual information
+- **Advantages**:
+  - Follows Go idioms
+  - Simple implementation
+  - Good error chain preservation
+- **Disadvantages**:
+  - Less structured than SRS requirements
+  - Limited recovery action guidance
+
+### Option C: Hybrid Approach - Structured for Domain Errors, Simple for System Errors
+- **Strategy**: Structured errors for business logic, wrapped errors for system failures
+- **Implementation**: Custom types for task-specific errors, standard wrapping for storage/logging errors
+- **Advantages**:
+  - Meets SRS requirements for important cases
+  - Simpler handling for infrastructure errors
+  - Balanced complexity
+- **Disadvantages**:
+  - Inconsistent error handling patterns
+  - Callers need to handle multiple error types
+
+**Rationale**: Option B chosen for simpler implementation following Go idioms while still providing good error chain preservation. Standard error wrapping with contextual information provides sufficient debugging capability without over-engineering.
+
+**User Approval**: Option B approved on [2025-09-11]
+
+---
+
+**Design Review Status**: Complete design approved by user on [2025-09-11] - Ready for implementation
+
+## [2025-09-11] - BoardAccess Design Decision: Concurrency and Thread Safety Strategy
+
+**Decision**: Service-Level Mutex Protection (Option A)  
+
+**Context**: SRS requires concurrent operations without data corruption (REQ-PERFORMANCE-002) and data consistency under simultaneous operations (REQ-RELIABILITY-002). VersioningUtility provides repository-level locking, but BoardAccess needs operation-level coordination.
+
+**Options Considered**:
+
+### Option A: Service-Level Mutex Protection
+- **Strategy**: Single mutex protecting all TaskAccess operations
+- **Implementation**: RWMutex allowing multiple readers, exclusive writers
+- **Advantages**:
+  - Simple implementation
+  - Guaranteed data consistency
+  - No deadlock potential
+- **Disadvantages**:
+  - Limited concurrency (serializes all operations)
+  - Suboptimal performance for read-heavy workloads
+  - Doesn't leverage VersioningUtility's repository-level locking
+
+### Option B: Operation-Level Locking
+- **Strategy**: Different locks for read vs. write operations, with task-level granularity
+- **Implementation**: Map of task ID mutexes for fine-grained locking
+- **Advantages**:
+  - Maximum concurrency for independent tasks
+  - Optimal read/write separation
+  - Better performance characteristics
+- **Disadvantages**:
+  - Complex lock management
+  - Potential deadlock scenarios
+  - Memory overhead for lock map
+
+### Option C: Repository Delegation with Atomic Operations
+- **Strategy**: Rely on VersioningUtility repository locking, make TaskAccess operations atomic
+- **Implementation**: Each operation completes entirely within VersioningUtility transaction boundaries
+- **Advantages**:
+  - Leverages existing VersioningUtility thread safety
+  - Consistent with architectural layering
+  - No additional locking complexity
+- **Disadvantages**:
+  - Limited by VersioningUtility locking granularity
+  - May not optimize for TaskAccess-specific access patterns
+  - Potential performance bottleneck for bulk operations
+
+**Rationale**: Option A chosen for guaranteed data consistency and simple implementation. Service-level RWMutex ensures file consistency under concurrent requests, which is critical for directory-structure-per-column approach. Simpler than complex lock management while providing reliable concurrent access.
+
+**User Approval**: Option A approved on [2025-09-11]
