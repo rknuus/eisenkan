@@ -46,6 +46,9 @@ type ILoggingUtility interface {
 	// Log records event with message and optional arbitrary data
 	Log(level LogLevel, component string, message string, data interface{})
 
+	// LogMessage records event with just a message (convenience method)
+	LogMessage(level LogLevel, component string, message string)
+
 	// LogError records error with automatic stack trace capture (always at Error level)
 	LogError(component string, err error, data interface{})
 
@@ -109,6 +112,11 @@ func (l *LoggingUtility) Log(level LogLevel, component string, message string, d
 
 	logEntry := l.formatLog(level, component, message, data)
 	l.writeLog(logEntry)
+}
+
+// LogMessage records event with just a message (convenience method)
+func (l *LoggingUtility) LogMessage(level LogLevel, component string, message string) {
+	l.Log(level, component, message, nil)
 }
 
 // LogError records error with automatic stack trace capture (always at Error level)
