@@ -201,14 +201,14 @@ The following decomposition contains all components to encapsulate *all* volatil
              │         │                │                │    │
              ▼         ▼                ▼                ▼    ▼
            ┌─────────────┐      ┌───────────────┐      ┌───────────────┐
-           │  Files      │      │  Rules Access │      │  Tasks Access │
+           │  Files      │      │  Rules Access │      │  Board Access │
            │  Access     │      │               │      │               │ 
            └─────┬───────┘      └───────┬───────┘      └───────┬───────┘ 
                  │                      │                      │
                  │                      │                      │
                  ▼                      ▼                      ▼
            ┌─────────────┐      ┌───────────────┐      ┌───────────────┐
-           │ Storage API │      │  Rules Repo   │      │  Tasks Repo   │
+           │ Storage API │      │  Rules Repo   │      │  Board Repo   │
            │             │      │               │      │               │
            └─────────────┘      └───────────────┘      └───────────────┘
 
@@ -251,14 +251,14 @@ The graphical diagram is colorized:
                             │           │
                             ▼           ▼
                ┌───────────────┐   ┌───────────────┐
-               │  Tasks Access │   │  Rules Access │
+               │  Board Access │   │  Rules Access │
                │               │   │               │
                └───────┬───────┘   └───────┬───────┘
                        │                   │
                        │                   │
                        ▼                   ▼
                ┌───────────────┐   ┌───────────────┐
-               │  Tasks Repo   │   │  Rules Repo   │
+               │  Board Repo   │   │  Rules Repo   │
                │               │   │               │
                └───────────────┘   └───────────────┘
 

@@ -1,4 +1,4 @@
-# TaskAccess Software Test Report (STR)
+# BoardAccess Software Test Report (STR)
 
 ## 1. Test Execution Overview
 

@@ -1,9 +1,9 @@
-# TaskAccess Software Test Plan (STP)
+# BoardAccess Software Test Plan (STP)
 
 ## 1. Test Overview
 
 ### 1.1 Purpose
-This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the TaskAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [TaskAccess_SRS.md](TaskAccess_SRS.md).
+This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the BoardAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [BoardAccess_SRS.md](BoardAccess_SRS.md).
 
 ### 1.2 Scope
 Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities.
