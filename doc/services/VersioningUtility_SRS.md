@@ -17,12 +17,11 @@ VersioningUtility is responsible for:
 ### 1.3 System Context
 VersioningUtility operates in the Utilities layer of the EisenKan architecture, providing version control services to ResourceAccess components (TasksAccess and RulesAccess). It provides a stable API for version control operations while encapsulating the volatility of version control implementation details and storage mechanisms.
 
-## 2. Use Cases
+## 2. Operations
 
-### 2.1 Primary Use Cases
-The following use cases define the required behavior for VersioningUtility:
+The following operations define the required behavior for VersioningUtility:
 
-#### UC-1: Initialize Repository
+#### OP-1: Initialize Repository
 **Actors**: TasksAccess, RulesAccess components
 **Trigger**: When a component needs version control for a data directory
 **Flow**:
@@ -31,7 +30,7 @@ The following use cases define the required behavior for VersioningUtility:
 3. Configure repository with appropriate settings
 4. Return initialization confirmation or error details
 
-#### UC-2: Commit Changes
+#### OP-2: Commit Changes
 **Actors**: TasksAccess, RulesAccess components
 **Trigger**: When component has made data changes that need to be versioned
 **Flow**:
@@ -40,7 +39,7 @@ The following use cases define the required behavior for VersioningUtility:
 3. Create commit with provided metadata (message, author, timestamp)
 4. Return commit confirmation with commit hash or error details
 
-#### UC-3: Retrieve History
+#### OP-3: Retrieve History
 **Actors**: TasksAccess, RulesAccess components
 **Trigger**: When component needs access to version history for analysis
 **Flow**:

@@ -17,12 +17,11 @@ LoggingUtility is responsible for:
 ### 1.3 System Context
 LoggingUtility operates in the Utilities layer of the EisenKan architecture, providing logging services to all other layers (Clients, Managers, Engines, ResourceAccess, Resources). It provides a stable API for structured logging while encapsulating the volatility of output formatting and destination management.
 
-## 2. Use Cases
+## 2. Operations
 
-### 2.1 Primary Use Cases
-The following use cases define the required behavior for LoggingUtility:
+The following operations define the required behavior for LoggingUtility:
 
-#### UC-1: Record Event
+#### OP-1: Record Event
 **Actors**: All system components
 **Trigger**: When a component needs to record an event with structured data
 **Flow**:
@@ -32,7 +31,7 @@ The following use cases define the required behavior for LoggingUtility:
 4. Output to configured destinations (console, file)
 5. Return success confirmation
 
-#### UC-2: Record Error with Stack Trace
+#### OP-2: Record Error with Stack Trace
 **Actors**: All system components
 **Trigger**: When a component encounters an error condition
 **Flow**:
@@ -42,7 +41,7 @@ The following use cases define the required behavior for LoggingUtility:
 4. Output to configured destinations with ERROR level
 5. Return success confirmation or crash application if output fails
 
-#### UC-3: Check Log Level
+#### OP-3: Check Log Level
 **Actors**: All system components
 **Trigger**: When a component needs to determine if expensive debug operations should run
 **Flow**:

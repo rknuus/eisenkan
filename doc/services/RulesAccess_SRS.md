@@ -17,12 +17,11 @@ RulesAccess is responsible for:
 ### 1.3 System Context
 RulesAccess operates in the ResourceAccess layer of the EisenKan architecture, sitting between the Rule Engine and the underlying storage layer (Rules Repo via VersioningUtility). It provides a stable API for rule data operations while encapsulating the volatility of rule storage mechanisms and formats.
 
-## 2. Use Cases
+## 2. Operations
 
-### 2.1 Primary Use Cases
-The following use cases define the required behavior for RulesAccess:
+The following operations define the required behavior for RulesAccess:
 
-#### UC-1: Retrieve Rules
+#### OP-1: Retrieve Rules
 **Actors**: Rule Engine
 **Trigger**: When rule definitions are needed for business operations
 **Flow**:
@@ -31,7 +30,7 @@ The following use cases define the required behavior for RulesAccess:
 3. Return complete rule data for all rules in the board directory
 4. Return empty rule set if no rules are configured
 
-#### UC-2: Validate Rules
+#### OP-2: Validate Rules
 **Actors**: Rule Engine, TaskManager
 **Trigger**: When rule definitions need validation before storage
 **Flow**:
@@ -41,7 +40,7 @@ The following use cases define the required behavior for RulesAccess:
 4. Validate rule dependencies and circular references
 5. Return validation result with detailed error information if validation fails
 
-#### UC-3: Store Rules
+#### OP-3: Store Rules
 **Actors**: Rule Engine, TaskManager
 **Trigger**: When validated rule definitions need to be persisted
 **Flow**:
@@ -165,7 +164,7 @@ All errors shall include:
 
 ### 7.1 Functional Acceptance
 - All functional requirements are met
-- All use cases UC-1 through UC-3 are fully supported
+- All operations OP-1 through OP-3 are fully supported
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
 - Rule validation prevents invalid or dangerous rule configurations

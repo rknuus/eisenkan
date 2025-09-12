@@ -16,12 +16,11 @@ BoardAccess is responsible for:
 ### 1.3 System Context
 BoardAccess operates in the ResourceAccess layer of the EisenKan architecture, sitting between the business logic layers (Engines/Managers) and the resource layer (file system via VersioningUtility). It provides a stable API for task data operations while encapsulating the volatility of data storage mechanisms.
 
-## 2. Use Cases
+## 2. Operations
 
-### 2.1 Primary Use Cases
-The following use cases define the required behavior for BoardAccess:
+The following operations define the required behavior for BoardAccess:
 
-#### UC-1: Store New Task
+#### OP-1: Store New Task
 **Actors**: TaskManager, ValidationEngine
 **Trigger**: When a new task is created in the system  
 **Flow**:
@@ -31,7 +30,7 @@ The following use cases define the required behavior for BoardAccess:
 4. Persist task to version-controlled storage
 5. Return task identifier and confirmation
 
-#### UC-2: Retrieve Task
+#### OP-2: Retrieve Task
 **Actors**: TaskManager
 **Trigger**: When task data is needed for business operations  
 **Flow**:
@@ -39,7 +38,7 @@ The following use cases define the required behavior for BoardAccess:
 2. Locate task in storage
 3. Return complete task data or not found indication
 
-#### UC-3: Update Task
+#### OP-3: Update Task
 **Actors**: TaskManager, ValidationEngine
 **Trigger**: When task data needs modification  
 **Flow**:
@@ -49,7 +48,7 @@ The following use cases define the required behavior for BoardAccess:
 4. Create version history entry
 5. Return update confirmation
 
-#### UC-4: Remove Task  
+#### OP-4: Remove Task  
 **Actors**: TaskManager  
 **Trigger**: When task should be deleted from system  
 **Flow**:
@@ -58,7 +57,7 @@ The following use cases define the required behavior for BoardAccess:
 3. Archive or remove task data
 4. Return removal confirmation
 
-#### UC-5: Query Tasks by Criteria
+#### OP-5: Query Tasks by Criteria
 **Actors**: TaskManager  
 **Trigger**: When tasks need to be found by specific attributes  
 **Flow**:
@@ -187,7 +186,7 @@ All errors shall include:
 
 ### 7.1 Functional Acceptance
 - All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-015 are met
-- All use cases UC-1 through UC-5 are fully supported
+- All operations OP-1 through OP-5 are fully supported
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
 
