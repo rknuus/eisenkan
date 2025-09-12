@@ -46,10 +46,10 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
                          └──────┬─────┘                          │
                                 │                                │
                                 ▼                                ▼
-                       ┌─────────────────┐                    ┌─────┐
-                       │ Some            │                    │ STP │
-                       │ Construction    │                    └──┬──┘
-                       └────────┬────────┘                       │
+                       ┌──────────────────┐                   ┌─────┐
+                       │ Optionally:      │                   │ STP │
+                       │ Design Prototype │                   └──┬──┘
+                       └────────┬─────────┘                      │
                                 │                                ▼
                                 ▼                          ┌────────────┐
                         ┌───────────────┐                  │ STP Review │
@@ -85,6 +85,12 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
                    ┌────────────────────────┐                    │
                    │ Acceptance test demo   │◀───────────────────┘
                    │                        │
+                   └────────┬───────────────┘
+                            │
+                            ▼
+                   ┌────────────────────────┐
+                   │ STR Report Creation    │
+                   │                        │
                    └────────────────────────┘
 ```
 
@@ -97,16 +103,20 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 2. **SRS Review**: Present to user, wait for explicit "SRS approved"
 3. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing
 4. **STP Review**: Present to user, wait for explicit "STP approved"
-5. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
-6. **Design Review**: Present complete design, wait for "Design approved"
-7. **Construction & Code Review**: Involve user in code review, wait for approval
-8. **Acceptance Testing**: Demonstrate all STP tests pass, obtain user acceptance
+5. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
+6. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
+7. **Design Review**: Present complete design, wait for "Design approved"
+8. **Construction & Code Review**: Involve user in code review, wait for approval
+9. **Integration Testing**: Required for components basing on other components, skip for leaf-compontents
+10. **Acceptance Testing**: Demonstrate all STP tests pass, obtain user acceptance
+11. **STR Creation**: Create `doc/services/<ServiceName>_STR.md` with actual test execution results and requirements verification
 
-#### Review Interaction Requirements
-- **MUST** ask explicit questions: "Please review this [SRS/STP/Design]. Do you approve proceeding?"
+#### Interaction Requirements
+- **MUST** ask explicit questions: "Please review this [SRS/STP/Design Prototype/Design]. Do you approve proceeding?"
 - **MUST** wait for explicit approval: "approved", "proceed", "looks good"
 - **MUST NOT** assume approval from silence or general comments
 - **MUST** involve user as decision-maker, not just reviewer
+- **MUST** re-scan artifacts under review when user reports findings or approves
 - **SHOULD** update `CLAUDE.md` when user findings reveal preventable issues
 
 #### Acceptance test demo
@@ -116,8 +126,10 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
   2. **Log Outputs**: Showing detailed execution logs that prove test coverage
   3. **Code Walkthrough**: Explaining test implementation and expected behavior
 - **MUST** verify 100% STP test coverage through demonstration
-- **MUST** document demonstration results and any gaps identified
+- **MUST** document demonstration results in the STR document
+- **MUST** update Requirements Verification Matrix in STR with actual test function names and results
 - **MUST** obtain user acceptance after successful demonstration
+- **MUST** mark STR document as "Accepted" with final status upon successful completion
 
 ### Documentation Standards
 
@@ -125,7 +137,8 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 | Document Type | Location | Required Sections |
 |---|---|---|
 | SRS | `doc/services/<ServiceName>_SRS.md` | Purpose, Use Cases, Quality Attributes, Interface Requirements |
-| STP | `doc/services/<ServiceName>_STP.md` | Test Strategy, Destructive Testing, Requirements Verification |
+| STP | `doc/services/<ServiceName>_STP.md` | Test Strategy, Destructive Testing (NO Requirements Verification Matrix) |
+| STR | `doc/services/<ServiceName>_STR.md` | Requirements Verification Matrix, Test Execution Results, Acceptance Status |
 | Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval |
 | Architecture | `doc/ADR.md` | Same format as DDR |
 
