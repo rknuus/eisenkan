@@ -78,16 +78,15 @@ type TaskWithTimestamps struct {
 
 // IBoardAccess defines the contract for board data operations
 type IBoardAccess interface {
-	// Task Operations (simplified interface)
-	StoreTask(task *Task, priority Priority, status WorkflowStatus) (string, error)
-	RetrieveTasks(taskIDs []string) ([]*TaskWithTimestamps, error) // Combined method
-	RetrieveTaskIdentifiers() ([]string, error)
-	UpdateTask(taskID string, task *Task, priority Priority, status WorkflowStatus) error
-	MoveTask(taskID string, priority Priority, status WorkflowStatus) error // Move without content changes
+	CreateTask(task *Task, priority Priority, status WorkflowStatus) (string, error)
+	GetTasksData(taskIDs []string) ([]*TaskWithTimestamps, error)
+	ListTaskIdentifiers() ([]string, error)
+	ChangeTaskData(taskID string, task *Task, priority Priority, status WorkflowStatus) error
+	MoveTask(taskID string, priority Priority, status WorkflowStatus) error
 	ArchiveTask(taskID string) error
 	RemoveTask(taskID string) error
-	QueryTasks(criteria *QueryCriteria) ([]*TaskWithTimestamps, error)
-	GetTaskHistory(taskID string, limit int) ([]utilities.CommitInfo, error) // Configurable limit
+	FindTasks(criteria *QueryCriteria) ([]*TaskWithTimestamps, error)
+	GetTaskHistory(taskID string, limit int) ([]utilities.CommitInfo, error)
 
 	// Board Configuration Operations
 	GetBoardConfiguration() (*BoardConfiguration, error)
@@ -113,7 +112,7 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 	// Load board configuration directly from file to get git settings
 	configPath := filepath.Join(repositoryPath, "board.json")
 	var config *BoardConfiguration
-	
+
 	if configData, err := os.ReadFile(configPath); err == nil {
 		// Try to parse board configuration
 		var parsedConfig BoardConfiguration
@@ -121,12 +120,12 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 			config = &parsedConfig
 		}
 	}
-	
+
 	// Use default configuration if loading fails or is incomplete
 	if config == nil {
 		config = &BoardConfiguration{
-			Name:     "EisenKan Board",
-			Columns:  []string{"todo", "doing", "done"},
+			Name:    "EisenKan Board",
+			Columns: []string{"todo", "doing", "done"},
 			Sections: map[string][]string{
 				"todo": {"urgent-important", "urgent-not-important", "not-urgent-important"},
 			},
@@ -134,7 +133,7 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 			GitEmail: "boardaccess@eisenkan.local",
 		}
 	}
-	
+
 	// Ensure git configuration is complete
 	if config.GitUser == "" {
 		config.GitUser = "BoardAccess"
@@ -142,13 +141,13 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 	if config.GitEmail == "" {
 		config.GitEmail = "boardaccess@eisenkan.local"
 	}
-	
+
 	// Initialize repository with git configuration
 	gitConfig := &utilities.AuthorConfiguration{
 		User:  config.GitUser,
 		Email: config.GitEmail,
 	}
-	
+
 	repository, err := utilities.InitializeRepositoryWithConfig(repositoryPath, gitConfig)
 	if err != nil {
 		return nil, fmt.Errorf("BoardAccess.NewBoardAccess failed to initialize repository with config: %w", err)
@@ -165,26 +164,26 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 	return boardAccess, nil
 }
 
-// StoreTask stores a new task and returns its ID
-func (ba *boardAccess) StoreTask(task *Task, priority Priority, status WorkflowStatus) (string, error) {
+// CreateTask stores a new task and returns its ID
+func (ba *boardAccess) CreateTask(task *Task, priority Priority, status WorkflowStatus) (string, error) {
 	ba.mutex.Lock()
 	defer ba.mutex.Unlock()
 
 	// Early validation to prevent nil pointer panics
 	if task == nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask task validation failed: task cannot be nil")
+		return "", fmt.Errorf("BoardAccess.CreateTask task validation failed: task cannot be nil")
 	}
 
 	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Storing new task: %s", task.Title))
 
 	// Validate task content
 	if err := ba.validateTask(task); err != nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask task validation failed: %w", err)
+		return "", fmt.Errorf("BoardAccess.CreateTask task validation failed: %w", err)
 	}
 
 	// Validate priority and status
 	if err := ba.validatePriority(priority); err != nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask priority validation failed: %w", err)
+		return "", fmt.Errorf("BoardAccess.CreateTask priority validation failed: %w", err)
 	}
 
 	// Auto-correct priority label after validation
@@ -198,16 +197,16 @@ func (ba *boardAccess) StoreTask(task *Task, priority Priority, status WorkflowS
 	// Determine file path with position prefix
 	filePath, err := ba.getTaskFilePath(task.ID, priority, status)
 	if err != nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask failed to determine file path: %w", err)
+		return "", fmt.Errorf("BoardAccess.CreateTask failed to determine file path: %w", err)
 	}
 
 	// Store task and commit
 	if err := ba.writeTaskFile(task, filePath); err != nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask failed to write task: %w", err)
+		return "", fmt.Errorf("BoardAccess.CreateTask failed to write task: %w", err)
 	}
 
 	if err := ba.commitChange(filePath, fmt.Sprintf("Add task: %s", task.Title)); err != nil {
-		return "", fmt.Errorf("BoardAccess.StoreTask failed to commit task: %w", err)
+		return "", fmt.Errorf("BoardAccess.CreateTask failed to commit task: %w", err)
 	}
 
 	ba.logger.LogMessage(utilities.Info, "BoardAccess", fmt.Sprintf("Task stored successfully: %s", task.ID))
@@ -215,8 +214,8 @@ func (ba *boardAccess) StoreTask(task *Task, priority Priority, status WorkflowS
 	return task.ID, nil
 }
 
-// RetrieveTasks retrieves tasks by IDs (combined method)
-func (ba *boardAccess) RetrieveTasks(taskIDs []string) ([]*TaskWithTimestamps, error) {
+// GetTasksData retrieves tasks by IDs (combined method)
+func (ba *boardAccess) GetTasksData(taskIDs []string) ([]*TaskWithTimestamps, error) {
 	ba.mutex.RLock()
 	defer ba.mutex.RUnlock()
 
@@ -226,7 +225,7 @@ func (ba *boardAccess) RetrieveTasks(taskIDs []string) ([]*TaskWithTimestamps, e
 	for _, taskID := range taskIDs {
 		taskWithTimestamps, err := ba.retrieveTaskWithTimestamps(taskID)
 		if err != nil {
-			return nil, fmt.Errorf("BoardAccess.RetrieveTasks failed to retrieve task %s: %w", taskID, err)
+			return nil, fmt.Errorf("BoardAccess.GetTasksData failed to retrieve task %s: %w", taskID, err)
 		}
 		if taskWithTimestamps != nil {
 			tasks = append(tasks, taskWithTimestamps)
@@ -238,8 +237,8 @@ func (ba *boardAccess) RetrieveTasks(taskIDs []string) ([]*TaskWithTimestamps, e
 	return tasks, nil
 }
 
-// RetrieveTaskIdentifiers returns all task IDs
-func (ba *boardAccess) RetrieveTaskIdentifiers() ([]string, error) {
+// ListTaskIdentifiers returns all task IDs
+func (ba *boardAccess) ListTaskIdentifiers() ([]string, error) {
 	ba.mutex.RLock()
 	defer ba.mutex.RUnlock()
 
@@ -247,7 +246,7 @@ func (ba *boardAccess) RetrieveTaskIdentifiers() ([]string, error) {
 
 	taskFiles, err := ba.getAllTaskFiles()
 	if err != nil {
-		return nil, fmt.Errorf("BoardAccess.RetrieveTaskIdentifiers failed to get task files: %w", err)
+		return nil, fmt.Errorf("BoardAccess.ListTaskIdentifiers failed to get task files: %w", err)
 	}
 
 	var taskIDs []string
@@ -261,8 +260,8 @@ func (ba *boardAccess) RetrieveTaskIdentifiers() ([]string, error) {
 	return taskIDs, nil
 }
 
-// UpdateTask updates an existing task (content + location)
-func (ba *boardAccess) UpdateTask(taskID string, task *Task, priority Priority, status WorkflowStatus) error {
+// ChangeTaskData updates an existing task (content + location)
+func (ba *boardAccess) ChangeTaskData(taskID string, task *Task, priority Priority, status WorkflowStatus) error {
 	ba.mutex.Lock()
 	defer ba.mutex.Unlock()
 
@@ -270,16 +269,16 @@ func (ba *boardAccess) UpdateTask(taskID string, task *Task, priority Priority, 
 
 	// Early validation to prevent nil pointer panics
 	if task == nil {
-		return fmt.Errorf("BoardAccess.UpdateTask task validation failed: task cannot be nil")
+		return fmt.Errorf("BoardAccess.ChangeTaskData task validation failed: task cannot be nil")
 	}
 
 	// Validate inputs
 	if err := ba.validateTask(task); err != nil {
-		return fmt.Errorf("BoardAccess.UpdateTask task validation failed: %w", err)
+		return fmt.Errorf("BoardAccess.ChangeTaskData task validation failed: %w", err)
 	}
 
 	if err := ba.validatePriority(priority); err != nil {
-		return fmt.Errorf("BoardAccess.UpdateTask priority validation failed: %w", err)
+		return fmt.Errorf("BoardAccess.ChangeTaskData priority validation failed: %w", err)
 	}
 
 	// Auto-correct priority label
@@ -289,39 +288,39 @@ func (ba *boardAccess) UpdateTask(taskID string, task *Task, priority Priority, 
 	// Find current task file and determine new path
 	oldPath, err := ba.findTaskFile(taskID)
 	if err != nil {
-		return fmt.Errorf("BoardAccess.UpdateTask failed to find task %s: %w", taskID, err)
+		return fmt.Errorf("BoardAccess.ChangeTaskData failed to find task %s: %w", taskID, err)
 	}
 
 	newPath, err := ba.getTaskFilePath(taskID, priority, status)
 	if err != nil {
-		return fmt.Errorf("BoardAccess.UpdateTask failed to determine new file path: %w", err)
+		return fmt.Errorf("BoardAccess.ChangeTaskData failed to determine new file path: %w", err)
 	}
 
 	// Handle file location/name change
 	if oldPath != newPath {
 		if err := os.Remove(oldPath); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to remove old file: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to remove old file: %w", err)
 		}
 
 		if err := ba.writeTaskFile(task, newPath); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to write new file: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to write new file: %w", err)
 		}
 
 		// Stage both old and new files, then commit
 		if err := ba.stageFiles([]string{oldPath, newPath}); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to stage files: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to stage files: %w", err)
 		}
 
 		if err := ba.commitWithConfig(fmt.Sprintf("Move and update task: %s", task.Title)); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to commit move: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to commit move: %w", err)
 		}
 	} else {
 		if err := ba.writeTaskFile(task, newPath); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to write file: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to write file: %w", err)
 		}
 
 		if err := ba.commitChange(newPath, fmt.Sprintf("Update task: %s", task.Title)); err != nil {
-			return fmt.Errorf("BoardAccess.UpdateTask failed to commit: %w", err)
+			return fmt.Errorf("BoardAccess.ChangeTaskData failed to commit: %w", err)
 		}
 	}
 
@@ -437,8 +436,8 @@ func (ba *boardAccess) RemoveTask(taskID string) error {
 	return nil
 }
 
-// QueryTasks searches for tasks matching the given criteria
-func (ba *boardAccess) QueryTasks(criteria *QueryCriteria) ([]*TaskWithTimestamps, error) {
+// FindTasks searches for tasks matching the given criteria
+func (ba *boardAccess) FindTasks(criteria *QueryCriteria) ([]*TaskWithTimestamps, error) {
 	ba.mutex.RLock()
 	defer ba.mutex.RUnlock()
 
@@ -447,7 +446,7 @@ func (ba *boardAccess) QueryTasks(criteria *QueryCriteria) ([]*TaskWithTimestamp
 	// Get all task files
 	taskFiles, err := ba.getAllTaskFiles()
 	if err != nil {
-		return nil, fmt.Errorf("BoardAccess.QueryTasks failed to get task files: %w", err)
+		return nil, fmt.Errorf("BoardAccess.FindTasks failed to get task files: %w", err)
 	}
 
 	var matchingTasks []*TaskWithTimestamps

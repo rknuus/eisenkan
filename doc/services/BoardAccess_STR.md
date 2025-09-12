@@ -125,14 +125,14 @@ This Software Test Report documents the actual test execution results and requir
 ### 5.2 Critical Issues Identified and Resolved
 
 #### Security Vulnerability Fixed
-**Issue**: Critical nil pointer dereference in `StoreTask` and `UpdateTask` methods  
+**Issue**: Critical nil pointer dereference in `CreateTask` and `ChangeTaskData` methods  
 **Severity**: Critical (Production crash risk)  
-**Location**: `board_access.go:StoreTask()`, `board_access.go:UpdateTask()`  
+**Location**: `board_access.go:CreateTask()`, `board_access.go:ChangeTaskData()`  
 **Fix Applied**: Added early nil validation before accessing task fields  
 ```go
 // Fix applied in internal/resource_access/board_access.go
 if task == nil {
-    return "", fmt.Errorf("BoardAccess.StoreTask task validation failed: task cannot be nil")
+    return "", fmt.Errorf("BoardAccess.CreateTask task validation failed: task cannot be nil")
 }
 ```
 **Verification**: Test now passes gracefully with proper error message instead of SIGSEGV crash

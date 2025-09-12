@@ -77,14 +77,14 @@ func TestIntegration_ResourceAccess_SharedRepositoryInitialization(t *testing.T)
 		Position: 1,
 	}
 
-	taskID, err := boardAccess.StoreTask(task, priority, status)
+	taskID, err := boardAccess.CreateTask(task, priority, status)
 	if err != nil {
-		t.Fatalf("BoardAccess.StoreTask failed: %v", err)
+		t.Fatalf("BoardAccess.CreateTask failed: %v", err)
 	}
 
-	retrievedTasks, err := boardAccess.RetrieveTasks([]string{taskID})
+	retrievedTasks, err := boardAccess.GetTasksData([]string{taskID})
 	if err != nil {
-		t.Fatalf("BoardAccess.RetrieveTasks failed: %v", err)
+		t.Fatalf("BoardAccess.GetTasksData failed: %v", err)
 	}
 	if len(retrievedTasks) != 1 {
 		t.Fatal("Task not found after storage")
@@ -196,7 +196,7 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
 	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
-	_, err = boardAccess.StoreTask(task, priority, status)
+	_, err = boardAccess.CreateTask(task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 
 	// Verify data isolation - BoardAccess should only see tasks
 	criteria := &QueryCriteria{} // Empty criteria to get all tasks
-	allTasks, err := boardAccess.QueryTasks(criteria)
+	allTasks, err := boardAccess.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query tasks: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 			priority := Priority{Urgent: true, Important: false, Label: "urgent-not-important"}
 			status := WorkflowStatus{Column: "todo", Section: "urgent-not-important", Position: i + 1}
 			
-			_, err := boardAccess.StoreTask(task, priority, status)
+			_, err := boardAccess.CreateTask(task, priority, status)
 			if err != nil {
 				errors <- err
 				return
@@ -386,7 +386,7 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 
 	// Verify final state
 	criteria := &QueryCriteria{}
-	tasks, err := boardAccess.QueryTasks(criteria)
+	tasks, err := boardAccess.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query final tasks: %v", err)
 	}
@@ -466,7 +466,7 @@ func TestIntegration_ResourceAccess_VersioningIntegration(t *testing.T) {
 	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
 	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
-	_, err = boardAccess.StoreTask(task, priority, status)
+	_, err = boardAccess.CreateTask(task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}

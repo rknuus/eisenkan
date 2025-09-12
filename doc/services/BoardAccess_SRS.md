@@ -139,14 +139,14 @@ The following use cases define the required behavior for BoardAccess:
 ### 5.1 Interface Operations
 The BoardAccess service shall provide the following behavioral operations:
 
-- **Store Task**: Accept task data and return unique identifier with success confirmation
+- **Create Task**: Accept task data and return unique identifier with success confirmation
 - **Retrieve Single Task**: Accept task identifier and return complete task data or not-found indication
-- **Retrieve Tasks Identifiers**: Return list with identifiers of all tasks
-- **Retrieve Multiple Tasks**: Accept list of task identifiers and return corresponding task data
-- **Update Task**: Accept task identifier and updated data, apply changes with version history
+- **List Task Identifiers**: Return list with identifiers of all tasks
+- **Get Tasks Data**: Accept list of task identifiers and return corresponding task data
+- **Change Task Data**: Accept task identifier and updated data, apply changes with version history
 - **Archive Task**: Accept task identifier and archive task data safely
 - **Remove Task**: Accept task identifier and remove task permanently
-- **Query Tasks**: Accept search criteria and return matching tasks
+- **Find Tasks**: Accept search criteria and return matching tasks
 - **Get Task History**: Accept task identifier and return version history information
 
 ### 5.2 Data Contracts

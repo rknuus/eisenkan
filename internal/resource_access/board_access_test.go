@@ -25,7 +25,7 @@ func TestUnit_BoardAccess_NewBoardAccess(t *testing.T) {
 	var _ IBoardAccess = ba
 }
 
-func TestUnit_BoardAccess_StoreAndRetrieveTasks(t *testing.T) {
+func TestUnit_BoardAccess_StoreAndGetTasksData(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -59,7 +59,7 @@ func TestUnit_BoardAccess_StoreAndRetrieveTasks(t *testing.T) {
 	}
 
 	// Store task with priority and status parameters
-	taskID, err := ba.StoreTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestUnit_BoardAccess_StoreAndRetrieveTasks(t *testing.T) {
 	}
 
 	// Retrieve task using new combined method
-	tasksWithTimestamps, err := ba.RetrieveTasks([]string{taskID})
+	tasksWithTimestamps, err := ba.GetTasksData([]string{taskID})
 	if err != nil {
 		t.Fatalf("Failed to retrieve tasks: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 		Position: 1,
 	}
 
-	taskID, err := ba.StoreTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 	}
 
 	// Verify task can still be retrieved
-	archivedTasks, err := ba.RetrieveTasks([]string{taskID})
+	archivedTasks, err := ba.GetTasksData([]string{taskID})
 	if err != nil {
 		t.Fatalf("Failed to retrieve archived task: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 	}
 }
 
-func TestUnit_BoardAccess_QueryTasks(t *testing.T) {
+func TestUnit_BoardAccess_FindTasks(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -293,7 +293,7 @@ func TestUnit_BoardAccess_QueryTasks(t *testing.T) {
 
 	// Store all tasks
 	for _, td := range testData {
-		_, err := ba.StoreTask(td.task, td.priority, td.status)
+		_, err := ba.CreateTask(td.task, td.priority, td.status)
 		if err != nil {
 			t.Fatalf("Failed to store task %s: %v", td.task.Title, err)
 		}
@@ -304,7 +304,7 @@ func TestUnit_BoardAccess_QueryTasks(t *testing.T) {
 		Columns: []string{"todo"},
 	}
 
-	results, err := ba.QueryTasks(criteria)
+	results, err := ba.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query tasks: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestUnit_BoardAccess_QueryTasks(t *testing.T) {
 		Priority: &Priority{Urgent: true, Important: true},
 	}
 
-	results, err = ba.QueryTasks(criteria)
+	results, err = ba.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query tasks by priority: %v", err)
 	}
@@ -354,14 +354,14 @@ func TestUnit_BoardAccess_GetTaskHistory(t *testing.T) {
 	priority := Priority{Urgent: true, Important: true}
 	status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 
-	taskID, err := ba.StoreTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
 
 	// Update task to create history
 	task.Title = "Updated Task Title"
-	err = ba.UpdateTask(taskID, task, priority, status)
+	err = ba.ChangeTaskData(taskID, task, priority, status)
 	if err != nil {
 		t.Fatalf("Failed to update task: %v", err)
 	}

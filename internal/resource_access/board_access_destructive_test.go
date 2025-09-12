@@ -23,7 +23,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 
 		// Test nil task
-		_, err := ba.StoreTask(nil, priority, status)
+		_, err := ba.CreateTask(nil, priority, status)
 		if err == nil {
 			t.Error("Expected error for nil task, got none")
 		}
@@ -41,7 +41,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 
 		// Test task with empty title
 		task := &Task{Title: "", Description: "Test"}
-		_, err := ba.StoreTask(task, priority, status)
+		_, err := ba.CreateTask(task, priority, status)
 		if err == nil {
 			t.Error("Expected error for empty title, got none")
 		}
@@ -51,7 +51,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 
 		// Test task with whitespace-only title
 		task.Title = "   \t\n   "
-		_, err = ba.StoreTask(task, priority, status)
+		_, err = ba.CreateTask(task, priority, status)
 		if err == nil {
 			t.Error("Expected error for whitespace-only title, got none")
 		}
@@ -66,7 +66,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 
 		// Test not-urgent-not-important (invalid priority combination)
 		invalidPriority := Priority{Urgent: false, Important: false}
-		_, err := ba.StoreTask(task, invalidPriority, status)
+		_, err := ba.CreateTask(task, invalidPriority, status)
 		if err == nil {
 			t.Error("Expected error for not-urgent-not-important priority, got none")
 		}
@@ -90,13 +90,13 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 		}
 
 		// Should handle large descriptions gracefully
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
 			t.Errorf("Unexpected error storing task with large description: %v", err)
 		}
 
 		// Verify we can retrieve it
-		tasks, err := ba.RetrieveTasks([]string{taskID})
+		tasks, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Errorf("Error retrieving large task: %v", err)
 		}
@@ -119,13 +119,13 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 			Tags:        []string{"unicode", "special-chars", "json\"test"},
 		}
 
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
 			t.Errorf("Error storing task with special characters: %v", err)
 		}
 
 		// Verify retrieval preserves special characters
-		tasks, err := ba.RetrieveTasks([]string{taskID})
+		tasks, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Errorf("Error retrieving task with special characters: %v", err)
 		}
@@ -149,7 +149,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 		task := &Task{Title: "Updated Task"}
 
 		// Try to update a non-existent task
-		err := ba.UpdateTask("non-existent-id", task, priority, status)
+		err := ba.ChangeTaskData("non-existent-id", task, priority, status)
 		if err == nil {
 			t.Error("Expected error updating non-existent task, got none")
 		}
@@ -167,7 +167,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 
 		// Create a task first
 		initialTask := &Task{Title: "Concurrent Test Task"}
-		taskID, err := ba.StoreTask(initialTask, priority, status)
+		taskID, err := ba.CreateTask(initialTask, priority, status)
 		if err != nil {
 			t.Fatalf("Error creating initial task: %v", err)
 		}
@@ -184,7 +184,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 				updatedTask := &Task{
 					Title: fmt.Sprintf("Updated Task %d", i),
 				}
-				err := ba.UpdateTask(taskID, updatedTask, priority, status)
+				err := ba.ChangeTaskData(taskID, updatedTask, priority, status)
 				if err != nil {
 					errors <- err
 				}
@@ -200,7 +200,7 @@ func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 		}
 
 		// Verify task still exists and is valid
-		tasks, err := ba.RetrieveTasks([]string{taskID})
+		tasks, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Errorf("Error retrieving task after concurrent updates: %v", err)
 		}
@@ -217,7 +217,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		defer cleanupTestBoardAccess(tempDir, ba)
 
 		// Test with empty slice
-		tasks, err := ba.RetrieveTasks([]string{})
+		tasks, err := ba.GetTasksData([]string{})
 		if err != nil {
 			t.Errorf("Unexpected error with empty identifier slice: %v", err)
 		}
@@ -226,7 +226,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		}
 
 		// Test with empty string identifier
-		tasks, err = ba.RetrieveTasks([]string{""})
+		tasks, err = ba.GetTasksData([]string{""})
 		if err != nil {
 			t.Errorf("Unexpected error with empty identifier: %v", err)
 		}
@@ -252,7 +252,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		}
 
 		// These should not crash and should return empty results
-		tasks, err := ba.RetrieveTasks(invalidIDs)
+		tasks, err := ba.GetTasksData(invalidIDs)
 		if err != nil {
 			t.Errorf("Unexpected error with invalid characters: %v", err)
 		}
@@ -267,7 +267,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 
 		// Test with very long identifier (>1000 characters)
 		longID := strings.Repeat("a", 2000)
-		tasks, err := ba.RetrieveTasks([]string{longID})
+		tasks, err := ba.GetTasksData([]string{longID})
 		if err != nil {
 			t.Errorf("Unexpected error with long identifier: %v", err)
 		}
@@ -288,7 +288,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		}
 
 		// Should handle unicode gracefully
-		tasks, err := ba.RetrieveTasks(unicodeIDs)
+		tasks, err := ba.GetTasksData(unicodeIDs)
 		if err != nil {
 			t.Errorf("Unexpected error with unicode identifiers: %v", err)
 		}
@@ -308,7 +308,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 			"00000000-0000-0000-0000-000000000000",
 		}
 
-		tasks, err := ba.RetrieveTasks(nonExistentIDs)
+		tasks, err := ba.GetTasksData(nonExistentIDs)
 		if err != nil {
 			t.Errorf("Unexpected error with non-existent identifiers: %v", err)
 		}
@@ -326,7 +326,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		validID, err := ba.StoreTask(validTask, priority, status)
+		validID, err := ba.CreateTask(validTask, priority, status)
 		if err != nil {
 			t.Fatalf("Failed to create valid task: %v", err)
 		}
@@ -339,7 +339,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 			"another-invalid", // Invalid
 		}
 
-		tasks, err := ba.RetrieveTasks(mixedIDs)
+		tasks, err := ba.GetTasksData(mixedIDs)
 		if err != nil {
 			t.Errorf("Unexpected error with mixed identifiers: %v", err)
 		}
@@ -364,7 +364,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 		}
 
 		// Should handle large bulk requests gracefully
-		tasks, err := ba.RetrieveTasks(largeIDSet)
+		tasks, err := ba.GetTasksData(largeIDSet)
 		if err != nil {
 			t.Errorf("Unexpected error with large ID set: %v", err)
 		}
@@ -384,7 +384,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 			priority := Priority{Urgent: true, Important: true}
 			status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: i + 1}
 			
-			id, err := ba.StoreTask(task, priority, status)
+			id, err := ba.CreateTask(task, priority, status)
 			if err != nil {
 				t.Fatalf("Failed to create task %d: %v", i, err)
 			}
@@ -407,7 +407,7 @@ func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 					fmt.Sprintf("invalid-%d", i),
 				}
 				
-				tasks, err := ba.RetrieveTasks(queryIDs)
+				tasks, err := ba.GetTasksData(queryIDs)
 				if err != nil {
 					errors <- err
 					return
@@ -441,7 +441,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			Priority: &Priority{Urgent: false, Important: false}, // Invalid combination
 		}
 
-		tasks, err := ba.QueryTasks(invalidCriteria)
+		tasks, err := ba.FindTasks(invalidCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with invalid priority criteria: %v", err)
 		}
@@ -461,7 +461,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			Sections: []string{"non-existent-section", "invalid-section"},
 		}
 
-		tasks, err := ba.QueryTasks(invalidCriteria)
+		tasks, err := ba.FindTasks(invalidCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with invalid status criteria: %v", err)
 		}
@@ -486,7 +486,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			},
 		}
 
-		tasks, err := ba.QueryTasks(invalidDateCriteria)
+		tasks, err := ba.FindTasks(invalidDateCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with malformed date range: %v", err)
 		}
@@ -505,7 +505,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		_, err := ba.StoreTask(task, priority, status)
+		_, err := ba.CreateTask(task, priority, status)
 		if err != nil {
 			t.Fatalf("Failed to create test task: %v", err)
 		}
@@ -517,7 +517,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			Tags:     []string{"tag2"},                                         // And different tag
 		}
 
-		tasks, err := ba.QueryTasks(contradictoryCriteria)
+		tasks, err := ba.FindTasks(contradictoryCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with contradictory criteria: %v", err)
 		}
@@ -556,7 +556,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 
 		// Store all tasks
 		for _, td := range testTasks {
-			_, err := ba.StoreTask(td.task, td.priority, td.status)
+			_, err := ba.CreateTask(td.task, td.priority, td.status)
 			if err != nil {
 				t.Fatalf("Failed to store task %s: %v", td.task.Title, err)
 			}
@@ -570,7 +570,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			Priority: &Priority{Urgent: true, Important: true}, // Specific priority
 		}
 
-		tasks, err := ba.QueryTasks(complexCriteria)
+		tasks, err := ba.FindTasks(complexCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with complex criteria: %v", err)
 		}
@@ -596,7 +596,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		_, err := ba.StoreTask(unicodeTask, priority, status)
+		_, err := ba.CreateTask(unicodeTask, priority, status)
 		if err != nil {
 			t.Fatalf("Failed to create unicode task: %v", err)
 		}
@@ -606,7 +606,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 			Tags: []string{"测试", "🚀rocket"},
 		}
 
-		tasks, err := ba.QueryTasks(unicodeCriteria)
+		tasks, err := ba.FindTasks(unicodeCriteria)
 		if err != nil {
 			t.Errorf("Unexpected error with unicode criteria: %v", err)
 		}
@@ -645,7 +645,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 				status.Section = []string{"urgent-important", "urgent-not-important", "not-urgent-important"}[i%3]
 			}
 
-			_, err := ba.StoreTask(task, priority, status)
+			_, err := ba.CreateTask(task, priority, status)
 			if err != nil {
 				t.Fatalf("Failed to create concurrent task %d: %v", i, err)
 			}
@@ -667,7 +667,7 @@ func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 					Tags:    []string{fmt.Sprintf("tag%d", i%5)},
 				}
 
-				tasks, err := ba.QueryTasks(criteria)
+				tasks, err := ba.FindTasks(criteria)
 				if err != nil {
 					errors <- err
 					return
@@ -722,7 +722,7 @@ func TestAcceptance_BoardAccess_MemoryPerformanceExhaustion(t *testing.T) {
 				status.Section = []string{"urgent-important", "urgent-not-important", "not-urgent-important"}[i%3]
 			}
 
-			_, err := ba.StoreTask(task, priority, status)
+			_, err := ba.CreateTask(task, priority, status)
 			if err != nil {
 				t.Fatalf("Failed to store task %d: %v", i, err)
 			}
@@ -740,7 +740,7 @@ func TestAcceptance_BoardAccess_MemoryPerformanceExhaustion(t *testing.T) {
 
 		// Test bulk query performance
 		start = time.Now()
-		results, err := ba.QueryTasks(&QueryCriteria{})
+		results, err := ba.FindTasks(&QueryCriteria{})
 		queryDuration := time.Since(start)
 		
 		if err != nil {
@@ -769,7 +769,7 @@ func TestAcceptance_BoardAccess_MemoryPerformanceExhaustion(t *testing.T) {
 			status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: i + 1}
 
 			start := time.Now()
-			taskID, err := ba.StoreTask(task, priority, status)
+			taskID, err := ba.CreateTask(task, priority, status)
 			duration := time.Since(start)
 			
 			if err != nil {
@@ -781,7 +781,7 @@ func TestAcceptance_BoardAccess_MemoryPerformanceExhaustion(t *testing.T) {
 
 			// Verify retrieval performance
 			start = time.Now()
-			tasks, err := ba.RetrieveTasks([]string{taskID})
+			tasks, err := ba.GetTasksData([]string{taskID})
 			duration = time.Since(start)
 			
 			if err != nil {
@@ -834,7 +834,7 @@ func TestAcceptance_BoardAccess_PerformanceDegradationUnderLoad(t *testing.T) {
 						priority := Priority{Urgent: true, Important: true}
 						status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: j + 1}
 						
-						_, err := ba.StoreTask(task, priority, status)
+						_, err := ba.CreateTask(task, priority, status)
 						if err != nil {
 							errors <- fmt.Errorf("Store failed G%d-O%d: %v", goroutineID, j, err)
 						}
@@ -843,13 +843,13 @@ func TestAcceptance_BoardAccess_PerformanceDegradationUnderLoad(t *testing.T) {
 						criteria := &QueryCriteria{
 							Tags: []string{fmt.Sprintf("load-test-g%d", goroutineID)},
 						}
-						_, err := ba.QueryTasks(criteria)
+						_, err := ba.FindTasks(criteria)
 						if err != nil {
 							errors <- fmt.Errorf("Query failed G%d-O%d: %v", goroutineID, j, err)
 						}
 						
 					case 2: // Retrieve task identifiers
-						_, err := ba.RetrieveTaskIdentifiers()
+						_, err := ba.ListTaskIdentifiers()
 						if err != nil {
 							errors <- fmt.Errorf("RetrieveIdentifiers failed G%d-O%d: %v", goroutineID, j, err)
 						}
@@ -935,7 +935,7 @@ func TestAcceptance_BoardAccess_PerformanceDegradationUnderLoad(t *testing.T) {
 			status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: i + 1}
 
 			start := time.Now()
-			_, err := ba.StoreTask(task, priority, status)
+			_, err := ba.CreateTask(task, priority, status)
 			measurements[i] = time.Since(start)
 			
 			if err != nil {
@@ -1019,17 +1019,17 @@ func TestAcceptance_BoardAccess_VersioningUtilityFailures(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		// Verify task was committed to version control
 		task.Description = "Updated description"
 		inProgressStatus := WorkflowStatus{Column: "in-progress", Section: "urgent-important", Position: 1}
-		err = ba.UpdateTask(taskID, task, priority, inProgressStatus)
+		err = ba.ChangeTaskData(taskID, task, priority, inProgressStatus)
 		if err != nil {
-			t.Errorf("UpdateTask failed: %v", err)
+			t.Errorf("ChangeTaskData failed: %v", err)
 		}
 
 		t.Logf("Version control operations completed successfully")
@@ -1051,9 +1051,9 @@ func TestAcceptance_BoardAccess_FileSystemFailures(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		// Make directory read-only
@@ -1069,7 +1069,7 @@ func TestAcceptance_BoardAccess_FileSystemFailures(t *testing.T) {
 			Description: "This should fail due to read-only filesystem",
 		}
 
-		_, err = ba.StoreTask(task2, priority, status)
+		_, err = ba.CreateTask(task2, priority, status)
 		if err == nil {
 			t.Error("Expected error due to read-only filesystem, got none")
 		} else {
@@ -1080,7 +1080,7 @@ func TestAcceptance_BoardAccess_FileSystemFailures(t *testing.T) {
 		os.Chmod(tempDir, 0755)
 		
 		// Should be able to retrieve existing task
-		retrievedTasks, err := ba.RetrieveTasks([]string{taskID})
+		retrievedTasks, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Errorf("Failed to retrieve task after permission restore: %v", err)
 		}
@@ -1105,9 +1105,9 @@ func TestAcceptance_BoardAccess_JSONCorruptionHandling(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		// Find and corrupt the JSON file
@@ -1137,7 +1137,7 @@ func TestAcceptance_BoardAccess_JSONCorruptionHandling(t *testing.T) {
 		}
 
 		// Try to retrieve the corrupted task - should handle gracefully
-		_, err = ba.RetrieveTasks([]string{taskID})
+		_, err = ba.GetTasksData([]string{taskID})
 		if err == nil {
 			t.Error("Expected error due to corrupted JSON, got none")
 		} else {
@@ -1153,7 +1153,7 @@ func TestAcceptance_BoardAccess_JSONCorruptionHandling(t *testing.T) {
 		priority2 := Priority{Urgent: false, Important: true}
 		status2 := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 		
-		_, err = ba.StoreTask(task2, priority2, status2)
+		_, err = ba.CreateTask(task2, priority2, status2)
 		if err != nil {
 			t.Errorf("Service should recover and allow new tasks: %v", err)
 		}
@@ -1175,9 +1175,9 @@ func TestAcceptance_BoardAccess_ServiceRecoveryAfterFailures(t *testing.T) {
 		priority := Priority{Urgent: true, Important: true}
 		status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		taskID, err := ba.StoreTask(task, priority, status)
+		taskID, err := ba.CreateTask(task, priority, status)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		// Simulate temporary filesystem issue by removing the task file
@@ -1194,7 +1194,7 @@ func TestAcceptance_BoardAccess_ServiceRecoveryAfterFailures(t *testing.T) {
 		}
 
 		// Operations should fail during the "outage" (return empty results)
-		outageResults, err := ba.RetrieveTasks([]string{taskID})
+		outageResults, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Logf("Expected error during simulated outage: %v", err)
 		} else if len(outageResults) > 0 {
@@ -1210,7 +1210,7 @@ func TestAcceptance_BoardAccess_ServiceRecoveryAfterFailures(t *testing.T) {
 		}
 
 		// Service should recover automatically
-		retrievedTasks, err := ba.RetrieveTasks([]string{taskID})
+		retrievedTasks, err := ba.GetTasksData([]string{taskID})
 		if err != nil {
 			t.Errorf("Service should recover after permission restore: %v", err)
 		}
@@ -1242,17 +1242,17 @@ func TestAcceptance_BoardAccess_PartialFunctionalityUnderConstraints(t *testing.
 		priority1 := Priority{Urgent: true, Important: true}
 		status1 := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 		
-		taskID1, err := ba.StoreTask(task1, priority1, status1)
+		taskID1, err := ba.CreateTask(task1, priority1, status1)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		priority2 := Priority{Urgent: false, Important: true}
 		status2 := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 		
-		taskID2, err := ba.StoreTask(task2, priority2, status2)
+		taskID2, err := ba.CreateTask(task2, priority2, status2)
 		if err != nil {
-			t.Errorf("StoreTask failed: %v", err)
+			t.Errorf("CreateTask failed: %v", err)
 		}
 
 		// Simulate partial constraints by temporarily removing one task file
@@ -1273,7 +1273,7 @@ func TestAcceptance_BoardAccess_PartialFunctionalityUnderConstraints(t *testing.
 		}()
 
 		// High priority task should still be accessible
-		retrievedTasks1, err := ba.RetrieveTasks([]string{taskID1})
+		retrievedTasks1, err := ba.GetTasksData([]string{taskID1})
 		if err != nil {
 			t.Errorf("High priority task should remain accessible: %v", err)
 		}
@@ -1282,7 +1282,7 @@ func TestAcceptance_BoardAccess_PartialFunctionalityUnderConstraints(t *testing.
 		}
 
 		// Low priority task should fail gracefully (file was removed, expect empty results)
-		constrainedResults, err := ba.RetrieveTasks([]string{taskID2})
+		constrainedResults, err := ba.GetTasksData([]string{taskID2})
 		if err != nil {
 			t.Logf("Expected error for inaccessible task: %v", err)
 		} else if len(constrainedResults) > 0 {
@@ -1297,7 +1297,7 @@ func TestAcceptance_BoardAccess_PartialFunctionalityUnderConstraints(t *testing.
 			Sections: []string{"urgent-important", "not-urgent-important"},
 		}
 
-		tasks, err := ba.QueryTasks(criteria)
+		tasks, err := ba.FindTasks(criteria)
 		if err != nil {
 			t.Errorf("Query should return partial results: %v", err)
 		}
