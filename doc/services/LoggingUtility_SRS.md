@@ -1,19 +1,58 @@
 # LoggingUtility Software Requirements Specification (SRS)
 
-## 1. Service Overview
+## 1. Introduction
 
 ### 1.1 Purpose
-The LoggingUtility shall provide structured logging capabilities for all layers of the EisenKan system, enabling consistent event recording, contextual information capture, and arbitrary data type logging following Google's structured logging principles.
+This Software Requirements Specification defines the requirements for the LoggingUtility service, a Utilities layer component that provides structured logging capabilities for all layers of the EisenKan system. The service enables consistent event recording, contextual information capture, and arbitrary data type logging following Google's structured logging principles.
 
-### 1.2 Architectural Classification
-- **Layer**: Utilities
-- **Type**: Utility Service
-- **Volatility**: Infrastructure (Low volatility - logging patterns are stable)
-- **Namespace**: `eisenkan.Utilities.LoggingUtility`
+### 1.2 Scope
+LoggingUtility is responsible for:
+- Structured logging with severity levels and contextual information
+- Multiple output destinations (console, file) simultaneously
+- Automatic stack trace capture for error conditions
+- Level-based filtering for performance optimization
+- Support for arbitrary data types as structured data
+- Thread-safe concurrent logging operations
 
-## 2. Business Requirements
+### 1.3 System Context
+LoggingUtility operates in the Utilities layer of the EisenKan architecture, providing logging services to all other layers (Clients, Managers, Engines, ResourceAccess, Resources). It provides a stable API for structured logging while encapsulating the volatility of output formatting and destination management.
 
-### 2.1 Core Logging Requirements
+## 2. Use Cases
+
+### 2.1 Primary Use Cases
+The following use cases define the required behavior for LoggingUtility:
+
+#### UC-1: Record Event
+**Actors**: All system components
+**Trigger**: When a component needs to record an event with structured data
+**Flow**:
+1. Receive log request with level, message, component, and structured data
+2. Check if log level is enabled for performance optimization
+3. Add timestamp and format structured data
+4. Output to configured destinations (console, file)
+5. Return success confirmation
+
+#### UC-2: Record Error with Stack Trace
+**Actors**: All system components
+**Trigger**: When a component encounters an error condition
+**Flow**:
+1. Receive error log request with message, component, and error data
+2. Automatically capture current stack trace information
+3. Format error with stack trace and structured data
+4. Output to configured destinations with ERROR level
+5. Return success confirmation or crash application if output fails
+
+#### UC-3: Check Log Level
+**Actors**: All system components
+**Trigger**: When a component needs to determine if expensive debug operations should run
+**Flow**:
+1. Receive log level check request
+2. Compare requested level with current configuration
+3. Return boolean indicating if level would be output
+
+## 3. Functional Requirements
+
+### 3.1 Event Recording Requirements
 
 **REQ-LOG-001**: While the system is operational, the LoggingUtility shall record events with severity levels (Debug, Info, Warning, Error, Fatal) to enable filtering based on operational needs.
 
@@ -27,7 +66,7 @@ The LoggingUtility shall provide structured logging capabilities for all layers 
 
 **REQ-LOG-006**: When a log request is received, the LoggingUtility shall add a timestamp to avoid skewing timestamps if the requests are processed asynchronously.
 
-### 2.2 Structured Logging Requirements (Based on Google Research)
+### 3.2 Structured Data Requirements
 
 **REQ-STRUCT-001**: While the system is operational, the LoggingUtility shall support logging of arbitrary data types (structs, maps, slices, primitives) as structured data.
 
@@ -41,26 +80,32 @@ The LoggingUtility shall provide structured logging capabilities for all layers 
 
 **REQ-FORMAT-003**: While processing structured data, the LoggingUtility shall limit nested object depth to 5 levels to prevent output verbosity issues.
 
-### 2.3 Quality Attributes
+## 4. Quality Attributes
+
+### 4.1 Performance Requirements
 
 **REQ-PERF-001**: While the system is operational, the LoggingUtility shall introduce less than 4x performance overhead compared to baseline operations without logging.
 
-**REQ-THREAD-001**: While the system is operational, the LoggingUtility shall handle concurrent access from multiple execution contexts without data races or deadlocks.
+### 4.2 Reliability Requirements
 
 **REQ-RELIABILITY-001**: If log output fails, then the LoggingUtility shall crash the application.
 
+**REQ-THREAD-001**: While the system is operational, the LoggingUtility shall handle concurrent access from multiple execution contexts without data races or deadlocks.
+
+### 4.3 Usability Requirements
+
 **REQ-CONFIG-001**: When the LoggingUtility starts, it shall read configuration from environment variables to support stateless design.
 
-## 3. Service Contract Requirements
+## 5. Service Contract Requirements
 
-### 3.1 Interface Operations
+### 5.1 Interface Operations
 The LoggingUtility shall provide the following operations:
 
 1. **Log**: Record event
 2. **LogError**: Record error with automatic stack trace capture
 3. **IsLevelEnabled**: Check if log level would be output (performance optimization)
 
-### 4.2 Data Contracts
+### 5.2 Data Contracts
 
 **LogLevel Enumeration**:
 - Debug (detailed development information)
@@ -74,61 +119,59 @@ The LoggingUtility shall provide the following operations:
 - Component: String identifying the calling component
 - Data: interface{} for arbitrary structured data
 
-## 5. Technical Constraints
+### 5.3 Error Handling
+All errors shall include:
+- Error code classification
+- Human-readable error message
+- Technical details for debugging
+- Suggested recovery actions where applicable
 
-### 5.1 Technology Requirements
-- Implementation Language: Go (matching project requirements)
-- Output Formats: Human-readable with embedded JSON for structured data
-- Configuration Method: Environment variables (stateless design)
-- Dependencies: Go standard library only
+## 6. Technical Constraints
 
-### 5.2 Integration Requirements
-- The LoggingUtility shall be callable from all architectural layers
-- The LoggingUtility shall not create dependencies on other system components
-- The LoggingUtility shall support graceful resource cleanup
+### 6.1 Integration Requirements
+**REQ-INTEGRATION-001**: The LoggingUtility shall be callable from all architectural layers.
 
-### 5.3 Operational Requirements
-- Environment Variables:
-  - `LOG_LEVEL`: Controls minimum log level
-  - `LOG_FILE`: Optional file path for file logging
+**REQ-INTEGRATION-002**: The LoggingUtility shall not create dependencies on other system components.
+
+**REQ-INTEGRATION-003**: The LoggingUtility shall support graceful resource cleanup.
+
+### 6.2 Data Format Requirements
+**REQ-FORMAT-001**: The LoggingUtility shall store log output in human-readable format with embedded JSON for structured data.
+
+**REQ-FORMAT-002**: The LoggingUtility shall support multiple output destinations (console, file) simultaneously.
+
+**REQ-FORMAT-003**: The LoggingUtility shall use environment variables for configuration:
+- `LOG_LEVEL`: Controls minimum log level
+- `LOG_FILE`: Optional file path for file logging
 - Default Behavior: INFO level to console if no configuration provided
 
-## 6. Acceptance Criteria
+## 7. Acceptance Criteria
 
-### 6.1 Functional Acceptance
+### 7.1 Functional Acceptance
 - All interface operations work as specified in contract
 - Arbitrary Go types (structs, maps, slices, primitives) can be logged as structured data
 - Environment variable configuration is properly applied
 - Multiple output destinations work simultaneously
 
-### 6.2 Quality Acceptance  
+### 7.2 Quality Acceptance  
 - Performance overhead is less than 4x baseline for typical operations
 - No data races or deadlocks under concurrent load (100 goroutines, 1000 messages each)
 - Service handles invalid file paths and permissions gracefully
 - Structured logs contain narrative messages with embedded structured data
 
-### 6.3 Structured Logging Acceptance
+### 7.3 Integration Acceptance
 - Complex business objects are logged with preserved type information
 - Machine-parseable structured data is embedded in human-readable format
 - Nested object depth is limited to prevent verbosity
-
-## 7. Design Constraints
-
-### 7.1 Architectural Constraints
-- Must follow iDesign utility service patterns
-- Must not contain business logic or domain-specific functionality
-- Must be stateless (configuration only, no business state)
-- Must support interface-based design for testability
-
-### 7.2 Structured Logging Constraints
-- Must handle arbitrary types through reflection or type switching
-- Must balance human readability with machine parseability
-- Must prevent infinite recursion in self-referencing data structures
+- Service can be consumed by all system layers without coupling
+- Service follows iDesign utility service patterns
+- Service maintains stateless operation (configuration only, no business state)
 
 ---
 
 **Document Version**: 1.1
 **Released**: 2025-09-07
+**Updated**: 2025-09-12
 **Status**: Accepted
 **Based on**: Google Research "Structured Logging: Crafting Useful Message Content"
 
