@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNewBoardAccess(t *testing.T) {
+func TestUnit_BoardAccess_NewBoardAccess(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -25,7 +25,7 @@ func TestNewBoardAccess(t *testing.T) {
 	var _ IBoardAccess = ba
 }
 
-func TestStoreAndRetrieveTasks(t *testing.T) {
+func TestUnit_BoardAccess_StoreAndRetrieveTasks(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -110,7 +110,7 @@ func TestStoreAndRetrieveTasks(t *testing.T) {
 	}
 }
 
-func TestBoardConfiguration(t *testing.T) {
+func TestUnit_BoardAccess_BoardConfiguration(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -177,7 +177,7 @@ func TestBoardConfiguration(t *testing.T) {
 	}
 }
 
-func TestArchiveTask(t *testing.T) {
+func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -244,7 +244,7 @@ func TestArchiveTask(t *testing.T) {
 	}
 }
 
-func TestQueryTasks(t *testing.T) {
+func TestUnit_BoardAccess_QueryTasks(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {
@@ -332,7 +332,7 @@ func TestQueryTasks(t *testing.T) {
 	}
 }
 
-func TestGetTaskHistory(t *testing.T) {
+func TestUnit_BoardAccess_GetTaskHistory(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "boardaccess_test_")
 	if err != nil {

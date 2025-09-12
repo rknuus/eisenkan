@@ -15,7 +15,7 @@ import (
 
 
 // TestVersioningUtility_Integration_ArchitecturalCompliance validates architectural layer rules
-func TestVersioningUtility_Integration_ArchitecturalCompliance(t *testing.T) {
+func TestIntegration_VersioningUtility_ArchitecturalCompliance(t *testing.T) {
 	// Removed old utility pattern
 
 	// Test: Utilities can be called by all layers
@@ -72,7 +72,7 @@ func TestVersioningUtility_Integration_ArchitecturalCompliance(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_PerformanceRequirements tests REQ-PERFORMANCE-001
-func TestVersioningUtility_Integration_PerformanceRequirements(t *testing.T) {
+func TestIntegration_VersioningUtility_PerformanceRequirements(t *testing.T) {
 	// Removed old utility pattern
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "performance_test")
@@ -135,7 +135,7 @@ func TestVersioningUtility_Integration_PerformanceRequirements(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_ConcurrentAccess tests concurrent repository operations
-func TestVersioningUtility_Integration_ConcurrentAccess(t *testing.T) {
+func TestIntegration_VersioningUtility_ConcurrentAccess(t *testing.T) {
 	// Removed old utility pattern
 	tempDir := t.TempDir()
 
@@ -213,7 +213,7 @@ func TestVersioningUtility_Integration_ConcurrentAccess(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_DestructiveAPITesting tests invalid inputs and boundary conditions
-func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
+func TestIntegration_VersioningUtility_DestructiveAPITesting(t *testing.T) {
 	// Removed old utility pattern
 
 	testCases := []struct {
@@ -351,7 +351,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_ResourceExhaustion tests resource limitations
-func TestVersioningUtility_Integration_ResourceExhaustion(t *testing.T) {
+func TestAcceptance_VersioningUtility_ResourceExhaustion(t *testing.T) {
 	// Removed old utility pattern
 	tempDir := t.TempDir()
 
@@ -412,7 +412,7 @@ func TestVersioningUtility_Integration_ResourceExhaustion(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_StreamingPerformance tests streaming operations
-func TestVersioningUtility_Integration_StreamingPerformance(t *testing.T) {
+func TestAcceptance_VersioningUtility_StreamingPerformance(t *testing.T) {
 	// Removed old utility pattern
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "streaming_test")
@@ -487,7 +487,7 @@ func TestVersioningUtility_Integration_StreamingPerformance(t *testing.T) {
 }
 
 // TestVersioningUtility_Integration_ErrorRecovery tests error recovery scenarios
-func TestVersioningUtility_Integration_ErrorRecovery(t *testing.T) {
+func TestIntegration_VersioningUtility_ErrorRecovery(t *testing.T) {
 	// Removed old utility pattern
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "error_recovery_test")

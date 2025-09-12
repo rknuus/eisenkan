@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestNewRulesAccess(t *testing.T) {
+func TestUnit_RulesAccess_NewRulesAccess(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "rulesaccess_test_")
 	if err != nil {
@@ -25,7 +25,7 @@ func TestNewRulesAccess(t *testing.T) {
 	var _ IRulesAccess = ra
 }
 
-func TestReadRulesEmptyDirectory(t *testing.T) {
+func TestUnit_RulesAccess_ReadRulesEmptyDirectory(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "rulesaccess_test_")
 	if err != nil {
@@ -60,7 +60,7 @@ func TestReadRulesEmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestValidateAndChangeRules(t *testing.T) {
+func TestUnit_RulesAccess_ValidateAndChangeRules(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "rulesaccess_test_")
 	if err != nil {
@@ -144,7 +144,7 @@ func TestValidateAndChangeRules(t *testing.T) {
 	}
 }
 
-func TestValidateRuleChanges_InvalidRules(t *testing.T) {
+func TestUnit_RulesAccess_InvalidRules(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "rulesaccess_test_")
 	if err != nil {
@@ -240,7 +240,7 @@ func TestValidateRuleChanges_InvalidRules(t *testing.T) {
 	})
 }
 
-func TestValidateRuleChanges_CircularDependencies(t *testing.T) {
+func TestUnit_RulesAccess_CircularDependencies(t *testing.T) {
 	// Create temporary directory for test
 	tempDir, err := os.MkdirTemp("", "rulesaccess_test_")
 	if err != nil {

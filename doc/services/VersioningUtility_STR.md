@@ -16,17 +16,17 @@ This Software Test Report documents the actual test execution results and requir
 
 | Requirement ID | Description | Test Functions | Coverage Status |
 |---|---|---|---|
-| REQ-VERSION-001 | Initialize or open repository | `TestVersioningUtility_InitializeRepository_FactoryFunction`, `TestVersioningUtility_InitializeRepository_NewRepository`, `TestVersioningUtility_InitializeRepository_ExistingRepository`, `TestVersioningUtility_InitializeRepository_InvalidPath` | ✅ Complete |
-| REQ-VERSION-002 | Return repository status information | `TestVersioningUtility_GetRepositoryStatus`, `TestRepositoryHandle_StatusAndOperations` | ✅ Complete |
-| REQ-VERSION-003 | Stage file changes for commit | `TestVersioningUtility_StageChanges`, `TestVersioningUtility_StageChanges_SelectiveStaging` | ✅ Complete |
-| REQ-VERSION-004 | Create commits with staged changes | `TestVersioningUtility_CommitChanges`, `TestVersioningUtility_Integration_DestructiveAPITesting` | ✅ Complete |
-| REQ-VERSION-005 | Return chronological commit history | `TestVersioningUtility_GetRepositoryHistory`, `TestVersioningUtility_GetRepositoryHistoryStream` | ✅ Complete |
-| REQ-VERSION-006 | Return file-specific commit history | `TestVersioningUtility_GetFileHistory` | ✅ Complete |
-| REQ-VERSION-007 | Return differences between versions | `TestVersioningUtility_GetFileDifferences`, `TestVersioningUtility_InvalidCommitHash` | ✅ Complete |
-| REQ-PERFORMANCE-001 | Complete operations within 5 seconds | `TestVersioningUtility_Integration_PerformanceRequirements`, `TestVersioningUtility_Integration_StreamingPerformance` | ✅ Complete |
-| REQ-RELIABILITY-001 | Return structured error information | `TestVersioningUtility_Integration_ErrorRecovery`, `TestVersioningUtility_Integration_DestructiveAPITesting` | ✅ Complete |
-| REQ-RELIABILITY-002 | Reject operations with merge conflicts | `TestRepositoryHandle_ConflictDetection` | ✅ Complete |
-| REQ-USABILITY-001 | Accept absolute and relative paths | `TestVersioningUtility_InitializeRepository_NewRepository`, `TestVersioningUtility_InitializeRepository_ExistingRepository` | ✅ Complete |
+| REQ-VERSION-001 | Initialize or open repository | `TestUnit_VersioningUtility_FactoryFunction`, `TestUnit_VersioningUtility_NewRepository`, `TestUnit_VersioningUtility_ExistingRepository`, `TestUnit_VersioningUtility_InvalidPath` | ✅ Complete |
+| REQ-VERSION-002 | Return repository status information | `TestUnit_VersioningUtility_RepositoryStatus`, `TestUnit_VersioningUtility_RepositoryHandle` | ✅ Complete |
+| REQ-VERSION-003 | Stage file changes for commit | `TestUnit_VersioningUtility_StageChanges`, `TestUnit_VersioningUtility_SelectiveStaging` | ✅ Complete |
+| REQ-VERSION-004 | Create commits with staged changes | `TestUnit_VersioningUtility_CommitChanges`, `TestIntegration_VersioningUtility_DestructiveAPITesting` | ✅ Complete |
+| REQ-VERSION-005 | Return chronological commit history | `TestUnit_VersioningUtility_RepositoryHistory`, `TestUnit_VersioningUtility_RepositoryHistoryStream` | ✅ Complete |
+| REQ-VERSION-006 | Return file-specific commit history | `TestUnit_VersioningUtility_FileHistory` | ✅ Complete |
+| REQ-VERSION-007 | Return differences between versions | `TestUnit_VersioningUtility_FileDifferences`, `TestUnit_VersioningUtility_InvalidCommitHash` | ✅ Complete |
+| REQ-PERFORMANCE-001 | Complete operations within 5 seconds | `TestIntegration_VersioningUtility_PerformanceRequirements`, `TestAcceptance_VersioningUtility_StreamingPerformance` | ✅ Complete |
+| REQ-RELIABILITY-001 | Return structured error information | `TestIntegration_VersioningUtility_ErrorRecovery`, `TestIntegration_VersioningUtility_DestructiveAPITesting` | ✅ Complete |
+| REQ-RELIABILITY-002 | Reject operations with merge conflicts | `TestUnit_VersioningUtility_ConflictDetection` | ✅ Complete |
+| REQ-USABILITY-001 | Accept absolute and relative paths | `TestUnit_VersioningUtility_NewRepository`, `TestUnit_VersioningUtility_ExistingRepository` | ✅ Complete |
 
 ### 2.1 Test Coverage Summary
 - **Total Requirements**: 11
@@ -37,13 +37,13 @@ This Software Test Report documents the actual test execution results and requir
 - **Total Test Coverage**: Requirements covered, but STP destructive scenarios partially implemented
 
 ### 2.2 Quality Verification Results
-- **Architectural Compliance**: `TestVersioningUtility_Integration_ArchitecturalCompliance` - ✅ Passed
-- **Performance Requirements**: `TestVersioningUtility_Integration_PerformanceRequirements` - ✅ Passed
-- **Concurrent Operations**: `TestVersioningUtility_Integration_ConcurrentAccess` - ✅ Passed
-- **Destructive API Testing**: `TestVersioningUtility_Integration_DestructiveAPITesting` - ✅ Passed
-- **Resource Exhaustion**: `TestVersioningUtility_Integration_ResourceExhaustion` - ✅ Passed
-- **Streaming Performance**: `TestVersioningUtility_Integration_StreamingPerformance` - ✅ Passed
-- **Error Recovery**: `TestVersioningUtility_Integration_ErrorRecovery` - ✅ Passed
+- **Architectural Compliance**: `TestIntegration_VersioningUtility_ArchitecturalCompliance` - ✅ Passed
+- **Performance Requirements**: `TestIntegration_VersioningUtility_PerformanceRequirements` - ✅ Passed
+- **Concurrent Operations**: `TestIntegration_VersioningUtility_ConcurrentAccess` - ✅ Passed
+- **Destructive API Testing**: `TestIntegration_VersioningUtility_DestructiveAPITesting` - ✅ Passed
+- **Resource Exhaustion**: `TestAcceptance_VersioningUtility_ResourceExhaustion` - ✅ Passed
+- **Streaming Performance**: `TestAcceptance_VersioningUtility_StreamingPerformance` - ✅ Passed
+- **Error Recovery**: `TestIntegration_VersioningUtility_ErrorRecovery` - ✅ Passed
 
 ## 3. Destructive Testing Results
 

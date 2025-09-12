@@ -18,7 +18,7 @@ func testAuthorConfig() *AuthorConfiguration {
 }
 
 // TestVersioningUtility_InitializeRepository_FactoryFunction tests factory function availability
-func TestVersioningUtility_InitializeRepository_FactoryFunction(t *testing.T) {
+func TestUnit_VersioningUtility_FactoryFunction(t *testing.T) {
 	// Test that the factory function is available and works
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "factory_test")
@@ -35,7 +35,7 @@ func TestVersioningUtility_InitializeRepository_FactoryFunction(t *testing.T) {
 }
 
 // TestVersioningUtility_InitializeRepository_NewRepository tests creating new repository
-func TestVersioningUtility_InitializeRepository_NewRepository(t *testing.T) {
+func TestUnit_VersioningUtility_NewRepository(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "test_repo")
 	
@@ -58,7 +58,7 @@ func TestVersioningUtility_InitializeRepository_NewRepository(t *testing.T) {
 }
 
 // TestVersioningUtility_InitializeRepository_ExistingRepository tests opening existing repository
-func TestVersioningUtility_InitializeRepository_ExistingRepository(t *testing.T) {
+func TestUnit_VersioningUtility_ExistingRepository(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "existing_repo")
 	
@@ -84,7 +84,7 @@ func TestVersioningUtility_InitializeRepository_ExistingRepository(t *testing.T)
 }
 
 // TestVersioningUtility_InitializeRepository_InvalidPath tests invalid path handling
-func TestVersioningUtility_InitializeRepository_InvalidPath(t *testing.T) {
+func TestUnit_VersioningUtility_InvalidPath(t *testing.T) {
 	// Removed old utility pattern
 	
 	// Test with read-only parent directory (simulated)
@@ -96,7 +96,7 @@ func TestVersioningUtility_InitializeRepository_InvalidPath(t *testing.T) {
 }
 
 // TestVersioningUtility_GetRepositoryStatus tests repository status retrieval
-func TestVersioningUtility_GetRepositoryStatus(t *testing.T) {
+func TestUnit_VersioningUtility_RepositoryStatus(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "status_test")
 	
@@ -139,7 +139,7 @@ func TestVersioningUtility_GetRepositoryStatus(t *testing.T) {
 }
 
 // TestVersioningUtility_StageChanges tests file staging
-func TestVersioningUtility_StageChanges(t *testing.T) {
+func TestUnit_VersioningUtility_StageChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "stage_test")
 	
@@ -179,7 +179,7 @@ func TestVersioningUtility_StageChanges(t *testing.T) {
 }
 
 // TestVersioningUtility_StageChanges_SelectiveStaging tests pattern-based staging
-func TestVersioningUtility_StageChanges_SelectiveStaging(t *testing.T) {
+func TestUnit_VersioningUtility_SelectiveStaging(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "selective_stage_test")
 	
@@ -223,7 +223,7 @@ func TestVersioningUtility_StageChanges_SelectiveStaging(t *testing.T) {
 }
 
 // TestVersioningUtility_CommitChanges tests commit creation
-func TestVersioningUtility_CommitChanges(t *testing.T) {
+func TestUnit_VersioningUtility_CommitChanges(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "commit_test")
 	
@@ -261,7 +261,7 @@ func TestVersioningUtility_CommitChanges(t *testing.T) {
 }
 
 // TestVersioningUtility_GetRepositoryHistory tests commit history retrieval
-func TestVersioningUtility_GetRepositoryHistory(t *testing.T) {
+func TestUnit_VersioningUtility_RepositoryHistory(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "history_test")
 	
@@ -345,7 +345,7 @@ func TestVersioningUtility_GetRepositoryHistory(t *testing.T) {
 }
 
 // TestVersioningUtility_GetRepositoryHistoryStream tests streaming commit history
-func TestVersioningUtility_GetRepositoryHistoryStream(t *testing.T) {
+func TestUnit_VersioningUtility_RepositoryHistoryStream(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "stream_test")
 	
@@ -396,7 +396,7 @@ func TestVersioningUtility_GetRepositoryHistoryStream(t *testing.T) {
 }
 
 // TestVersioningUtility_GetFileHistory tests file-specific history
-func TestVersioningUtility_GetFileHistory(t *testing.T) {
+func TestUnit_VersioningUtility_FileHistory(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "file_history_test")
 	
@@ -465,7 +465,7 @@ func TestVersioningUtility_GetFileHistory(t *testing.T) {
 }
 
 // TestVersioningUtility_GetFileDifferences tests file difference retrieval
-func TestVersioningUtility_GetFileDifferences(t *testing.T) {
+func TestUnit_VersioningUtility_FileDifferences(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "diff_test")
 	
@@ -528,7 +528,7 @@ func TestVersioningUtility_GetFileDifferences(t *testing.T) {
 }
 
 // TestVersioningUtility_InvalidCommitHash tests error handling for invalid commit hashes
-func TestVersioningUtility_InvalidCommitHash(t *testing.T) {
+func TestUnit_VersioningUtility_InvalidCommitHash(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "invalid_hash_test")
 	
@@ -547,7 +547,7 @@ func TestVersioningUtility_InvalidCommitHash(t *testing.T) {
 }
 
 // TestRepositoryHandle_StatusAndOperations tests repository repo operations
-func TestRepositoryHandle_StatusAndOperations(t *testing.T) {
+func TestUnit_VersioningUtility_RepositoryHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "repo_test")
 	
@@ -597,7 +597,7 @@ func TestRepositoryHandle_StatusAndOperations(t *testing.T) {
 }
 
 // TestRepositoryHandle_ConflictDetection tests conflict detection
-func TestRepositoryHandle_ConflictDetection(t *testing.T) {
+func TestUnit_VersioningUtility_ConflictDetection(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "conflict_test")
 	

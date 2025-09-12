@@ -12,7 +12,7 @@ import (
 )
 
 // TestLoggingUtility_NewLoggingUtility tests utility creation
-func TestLoggingUtility_NewLoggingUtility(t *testing.T) {
+func TestUnit_LoggingUtility_NewLoggingUtility(t *testing.T) {
 	// Test default creation
 	utility := NewLoggingUtility()
 	if utility == nil {
@@ -26,7 +26,7 @@ func TestLoggingUtility_NewLoggingUtility(t *testing.T) {
 }
 
 // TestLoggingUtility_NewLoggingUtility_WithFileLogging tests file logging configuration
-func TestLoggingUtility_NewLoggingUtility_WithFileLogging(t *testing.T) {
+func TestUnit_LoggingUtility_WithFileLogging(t *testing.T) {
 	// Create temporary log file
 	tmpFile := "/tmp/test_eisenkan.log"
 	defer os.Remove(tmpFile)
@@ -49,7 +49,7 @@ func TestLoggingUtility_NewLoggingUtility_WithFileLogging(t *testing.T) {
 }
 
 // TestLoggingUtility_IsLevelEnabled tests log level filtering
-func TestLoggingUtility_IsLevelEnabled(t *testing.T) {
+func TestUnit_LoggingUtility_IsLevelEnabled(t *testing.T) {
 	// Set log level to Warning
 	os.Setenv("LOG_LEVEL", "WARNING")
 	defer os.Unsetenv("LOG_LEVEL")
@@ -81,7 +81,7 @@ func TestLoggingUtility_IsLevelEnabled(t *testing.T) {
 }
 
 // TestLoggingUtility_Log tests simple logging
-func TestLoggingUtility_Log(t *testing.T) {
+func TestUnit_LoggingUtility_Log(t *testing.T) {
 	// Capture console output
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
@@ -105,7 +105,7 @@ func TestLoggingUtility_Log(t *testing.T) {
 }
 
 // TestLoggingUtility_Log_WithStructuredData tests structured logging
-func TestLoggingUtility_Log_WithStructuredData(t *testing.T) {
+func TestUnit_LoggingUtility_StructuredData(t *testing.T) {
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
 		minLevel:      Debug,
@@ -142,7 +142,7 @@ func TestLoggingUtility_Log_WithStructuredData(t *testing.T) {
 }
 
 // TestLoggingUtility_Log_WithVariousMapTypes tests different map key types
-func TestLoggingUtility_Log_WithVariousMapTypes(t *testing.T) {
+func TestUnit_LoggingUtility_VariousMapTypes(t *testing.T) {
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
 		minLevel:      Debug,
@@ -187,7 +187,7 @@ func TestLoggingUtility_Log_WithVariousMapTypes(t *testing.T) {
 }
 
 // TestLoggingUtility_LogError tests error logging with stack trace
-func TestLoggingUtility_LogError(t *testing.T) {
+func TestUnit_LoggingUtility_LogError(t *testing.T) {
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
 		minLevel:      Debug,
@@ -219,7 +219,7 @@ func TestLoggingUtility_LogError(t *testing.T) {
 }
 
 // TestLoggingUtility_SerializeData_DepthLimiting tests depth limiting
-func TestLoggingUtility_SerializeData_DepthLimiting(t *testing.T) {
+func TestUnit_LoggingUtility_DepthLimiting(t *testing.T) {
 	utility := &LoggingUtility{}
 	
 	// Create deeply nested structure
@@ -246,7 +246,7 @@ func TestLoggingUtility_SerializeData_DepthLimiting(t *testing.T) {
 }
 
 // TestLoggingUtility_ThreadSafety tests concurrent logging
-func TestLoggingUtility_ThreadSafety(t *testing.T) {
+func TestUnit_LoggingUtility_ThreadSafety(t *testing.T) {
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
 		minLevel:      Debug,
@@ -298,7 +298,7 @@ func TestLoggingUtility_ThreadSafety(t *testing.T) {
 }
 
 // TestLoggingUtility_LevelFiltering tests that levels below minimum are filtered
-func TestLoggingUtility_LevelFiltering(t *testing.T) {
+func TestUnit_LoggingUtility_LevelFiltering(t *testing.T) {
 	var buf bytes.Buffer
 	utility := &LoggingUtility{
 		minLevel:      Warning, // Only Warning and above
@@ -333,7 +333,7 @@ func TestLoggingUtility_LevelFiltering(t *testing.T) {
 }
 
 // TestLoggingUtility_FileAndConsoleOutput tests dual output functionality
-func TestLoggingUtility_FileAndConsoleOutput(t *testing.T) {
+func TestUnit_LoggingUtility_FileAndConsoleOutput(t *testing.T) {
 	// Create temporary log file
 	tmpFile := "/tmp/test_dual_output.log"
 	defer os.Remove(tmpFile)
@@ -376,7 +376,7 @@ func TestLoggingUtility_FileAndConsoleOutput(t *testing.T) {
 }
 
 // TestLogLevel_String tests LogLevel string representation
-func TestLogLevel_String(t *testing.T) {
+func TestUnit_LoggingUtility_LogLevelString(t *testing.T) {
 	testCases := []struct {
 		level    LogLevel
 		expected string
@@ -398,7 +398,7 @@ func TestLogLevel_String(t *testing.T) {
 }
 
 // TestGetLogLevelFromEnv tests environment variable parsing
-func TestGetLogLevelFromEnv(t *testing.T) {
+func TestUnit_LoggingUtility_GetLogLevelFromEnv(t *testing.T) {
 	testCases := []struct {
 		envValue string
 		expected LogLevel
@@ -429,7 +429,7 @@ func TestGetLogLevelFromEnv(t *testing.T) {
 }
 
 // TestLoggingUtility_InvalidFilePathPanic tests that invalid file paths cause panic
-func TestLoggingUtility_InvalidFilePathPanic(t *testing.T) {
+func TestUnit_LoggingUtility_InvalidFilePathPanic(t *testing.T) {
 	// Set invalid file path
 	os.Setenv("LOG_FILE", "/invalid/path/that/does/not/exist/test.log")
 	defer os.Unsetenv("LOG_FILE")

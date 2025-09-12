@@ -10,7 +10,7 @@ import (
 )
 
 // TestLoggingUtility_Integration_ArchitecturalCompliance validates architectural layer rules
-func TestLoggingUtility_Integration_ArchitecturalCompliance(t *testing.T) {
+func TestIntegration_LoggingUtility_ArchitecturalCompliance(t *testing.T) {
 	// Test: Utilities can be called by all layers
 	logger := NewLoggingUtility()
 	defer func() {
@@ -44,7 +44,7 @@ func TestLoggingUtility_Integration_ArchitecturalCompliance(t *testing.T) {
 }
 
 // TestLoggingUtility_Integration_PerformanceImpact validates logging doesn't degrade system performance
-func TestLoggingUtility_Integration_PerformanceImpact(t *testing.T) {
+func TestIntegration_LoggingUtility_PerformanceImpact(t *testing.T) {
 	logger := NewLoggingUtility()
 	defer func() {
 		if concreteLogger, ok := logger.(*LoggingUtility); ok {
@@ -84,7 +84,7 @@ func TestLoggingUtility_Integration_PerformanceImpact(t *testing.T) {
 }
 
 // TestLoggingUtility_Integration_ConfigurationIntegration tests environment variable integration
-func TestLoggingUtility_Integration_ConfigurationIntegration(t *testing.T) {
+func TestIntegration_LoggingUtility_ConfigurationIntegration(t *testing.T) {
 	testCases := []struct {
 		name     string
 		level    string
@@ -136,7 +136,7 @@ func TestLoggingUtility_Integration_ConfigurationIntegration(t *testing.T) {
 }
 
 // TestLoggingUtility_Integration_ErrorScenarios tests error handling in integration scenarios
-func TestLoggingUtility_Integration_ErrorScenarios(t *testing.T) {
+func TestIntegration_LoggingUtility_ErrorScenarios(t *testing.T) {
 	testCases := []struct {
 		name        string
 		scenario    func() (recovered interface{})
@@ -215,7 +215,7 @@ func TestLoggingUtility_Integration_ErrorScenarios(t *testing.T) {
 }
 
 // TestLoggingUtility_Integration_ConcurrentUsage tests thread safety in realistic scenarios
-func TestLoggingUtility_Integration_ConcurrentUsage(t *testing.T) {
+func TestIntegration_LoggingUtility_ConcurrentUsage(t *testing.T) {
 	logger := NewLoggingUtility()
 	defer func() {
 		if concreteLogger, ok := logger.(*LoggingUtility); ok {
@@ -269,7 +269,7 @@ func TestLoggingUtility_Integration_ConcurrentUsage(t *testing.T) {
 }
 
 // TestLoggingUtility_Integration_UseCaseValidation validates all SRS use cases work in practice
-func TestLoggingUtility_Integration_UseCaseValidation(t *testing.T) {
+func TestIntegration_LoggingUtility_UseCaseValidation(t *testing.T) {
 	// Set up comprehensive logging environment
 	tmpFile := "/tmp/usecase_validation.log"
 	defer os.Remove(tmpFile)

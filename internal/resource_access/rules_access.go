@@ -13,6 +13,11 @@ import (
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
+const (
+	// rulesFileName defines the standard filename for rule sets
+	rulesFileName = "rules.json"
+)
+
 // Rule represents a single business rule in the rule set
 type Rule struct {
 	ID          string                 `json:"id"`
@@ -72,7 +77,7 @@ func NewRulesAccess(repositoryPath string) (*RulesAccess, error) {
 	// Load board configuration to get git settings
 	boardConfigPath := filepath.Join(repositoryPath, "board.json")
 	var gitConfig *utilities.AuthorConfiguration
-	
+
 	if configData, err := os.ReadFile(boardConfigPath); err == nil {
 		// Try to parse board configuration
 		var boardConfig struct {
@@ -86,12 +91,12 @@ func NewRulesAccess(repositoryPath string) (*RulesAccess, error) {
 			}
 		}
 	}
-	
+
 	// Fall back to default if no config found
 	if gitConfig == nil {
 		gitConfig = &utilities.AuthorConfiguration{
-			User:  "RulesAccess",
-			Email: "rulesaccess@eisenkan.local",
+			User:  "Eisen Kan",
+			Email: "eisenkan@board.local",
 		}
 		logger.LogMessage(utilities.Warning, "RulesAccess", "Using default git configuration - board.json not found or incomplete")
 	}
@@ -116,7 +121,7 @@ func (ra *RulesAccess) ReadRules(boardDirPath string) (*RuleSet, error) {
 	ra.mutex.RLock()
 	defer ra.mutex.RUnlock()
 
-	rulesFilePath := filepath.Join(boardDirPath, "rules.json")
+	rulesFilePath := filepath.Join(boardDirPath, rulesFileName)
 
 	// Check if rules file exists
 	if _, err := os.Stat(rulesFilePath); os.IsNotExist(err) {
@@ -313,13 +318,13 @@ func (ra *RulesAccess) ChangeRules(boardDirPath string, ruleSet *RuleSet) error 
 	}
 
 	// Write to rules file
-	rulesFilePath := filepath.Join(boardDirPath, "rules.json")
+	rulesFilePath := filepath.Join(boardDirPath, rulesFileName)
 	if err := os.WriteFile(rulesFilePath, data, 0644); err != nil {
 		return fmt.Errorf("RulesAccess.ChangeRules failed to write rules file %s: %w", rulesFilePath, err)
 	}
 
 	// Stage and commit changes via Repository
-	if err := ra.repository.Stage([]string{"rules.json"}); err != nil {
+	if err := ra.repository.Stage([]string{rulesFileName}); err != nil {
 		return fmt.Errorf("RulesAccess.ChangeRules failed to stage changes: %w", err)
 	}
 

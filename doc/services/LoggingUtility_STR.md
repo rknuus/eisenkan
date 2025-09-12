@@ -16,22 +16,22 @@ This Software Test Report documents the actual test execution results and requir
 
 | Requirement ID | Description | Test Functions | Coverage Status |
 |---|---|---|---|
-| REQ-LOG-001 | Record events with severity levels | `TestLoggingUtility_Log`, `TestLogLevel_String`, `TestLoggingUtility_LevelFiltering` | ✅ Complete |
-| REQ-LOG-002 | Capture contextual information | `TestLoggingUtility_Log`, `TestLoggingUtility_Log_WithStructuredData` | ✅ Complete |
-| REQ-LOG-003 | Support multiple output destinations | `TestLoggingUtility_FileAndConsoleOutput`, `TestLoggingUtility_NewLoggingUtility_WithFileLogging` | ✅ Complete |
-| REQ-LOG-004 | Automatic stack trace capture | `TestLoggingUtility_LogError` | ✅ Complete |
-| REQ-LOG-005 | Level-based filtering checks | `TestLoggingUtility_IsLevelEnabled`, `TestLoggingUtility_LevelFiltering` | ✅ Complete |
-| REQ-LOG-006 | Add timestamp to log entries | `TestLoggingUtility_Log`, `TestLoggingUtility_Integration_UseCaseValidation` | ✅ Complete |
-| REQ-STRUCT-001 | Support arbitrary data types | `TestLoggingUtility_Log_WithStructuredData`, `TestLoggingUtility_Log_WithVariousMapTypes` | ✅ Complete |
-| REQ-STRUCT-002 | Preserve type information | `TestLoggingUtility_Log_WithStructuredData`, `TestLoggingUtility_Log_WithVariousMapTypes` | ✅ Complete |
-| REQ-STRUCT-003 | Support plain messages | `TestLoggingUtility_Log` | ✅ Complete |
-| REQ-STRUCT-004 | Human-readable with machine-parseable data | `TestLoggingUtility_Log_WithStructuredData`, `TestLoggingUtility_Integration_UseCaseValidation` | ✅ Complete |
-| REQ-FORMAT-001 | Format with timestamp, level, message, data | `TestLoggingUtility_Log`, `TestLoggingUtility_Log_WithStructuredData` | ✅ Complete |
-| REQ-FORMAT-003 | Limit nested depth to 5 levels | `TestLoggingUtility_SerializeData_DepthLimiting` | ✅ Complete |
-| REQ-PERF-001 | Less than 4x performance overhead | `TestLoggingUtility_Integration_PerformanceImpact` | ✅ Complete |
-| REQ-THREAD-001 | Handle concurrent access safely | `TestLoggingUtility_ThreadSafety`, `TestLoggingUtility_Integration_ConcurrentUsage` | ✅ Complete |
-| REQ-RELIABILITY-001 | Crash application on log output failure | `TestLoggingUtility_InvalidFilePathPanic`, `TestLoggingUtility_Integration_ErrorScenarios` | ✅ Complete |
-| REQ-CONFIG-001 | Read environment variable configuration | `TestGetLogLevelFromEnv`, `TestLoggingUtility_Integration_ConfigurationIntegration` | ✅ Complete |
+| REQ-LOG-001 | Record events with severity levels | `TestUnit_LoggingUtility_Log`, `TestUnit_LoggingUtility_LogLevelString`, `TestUnit_LoggingUtility_LevelFiltering` | ✅ Complete |
+| REQ-LOG-002 | Capture contextual information | `TestUnit_LoggingUtility_Log`, `TestUnit_LoggingUtility_StructuredData` | ✅ Complete |
+| REQ-LOG-003 | Support multiple output destinations | `TestUnit_LoggingUtility_FileAndConsoleOutput`, `TestUnit_LoggingUtility_WithFileLogging` | ✅ Complete |
+| REQ-LOG-004 | Automatic stack trace capture | `TestUnit_LoggingUtility_LogError` | ✅ Complete |
+| REQ-LOG-005 | Level-based filtering checks | `TestUnit_LoggingUtility_IsLevelEnabled`, `TestUnit_LoggingUtility_LevelFiltering` | ✅ Complete |
+| REQ-LOG-006 | Add timestamp to log entries | `TestUnit_LoggingUtility_Log`, `TestIntegration_LoggingUtility_UseCaseValidation` | ✅ Complete |
+| REQ-STRUCT-001 | Support arbitrary data types | `TestUnit_LoggingUtility_StructuredData`, `TestUnit_LoggingUtility_VariousMapTypes` | ✅ Complete |
+| REQ-STRUCT-002 | Preserve type information | `TestUnit_LoggingUtility_StructuredData`, `TestUnit_LoggingUtility_VariousMapTypes` | ✅ Complete |
+| REQ-STRUCT-003 | Support plain messages | `TestUnit_LoggingUtility_Log` | ✅ Complete |
+| REQ-STRUCT-004 | Human-readable with machine-parseable data | `TestUnit_LoggingUtility_StructuredData`, `TestIntegration_LoggingUtility_UseCaseValidation` | ✅ Complete |
+| REQ-FORMAT-001 | Format with timestamp, level, message, data | `TestUnit_LoggingUtility_Log`, `TestUnit_LoggingUtility_StructuredData` | ✅ Complete |
+| REQ-FORMAT-003 | Limit nested depth to 5 levels | `TestUnit_LoggingUtility_DepthLimiting` | ✅ Complete |
+| REQ-PERF-001 | Less than 4x performance overhead | `TestIntegration_LoggingUtility_PerformanceImpact` | ✅ Complete |
+| REQ-THREAD-001 | Handle concurrent access safely | `TestUnit_LoggingUtility_ThreadSafety`, `TestIntegration_LoggingUtility_ConcurrentUsage` | ✅ Complete |
+| REQ-RELIABILITY-001 | Crash application on log output failure | `TestUnit_LoggingUtility_InvalidFilePathPanic`, `TestIntegration_LoggingUtility_ErrorScenarios` | ✅ Complete |
+| REQ-CONFIG-001 | Read environment variable configuration | `TestUnit_LoggingUtility_GetLogLevelFromEnv`, `TestIntegration_LoggingUtility_ConfigurationIntegration` | ✅ Complete |
 
 ### 2.1 Test Coverage Summary
 - **Total Requirements**: 16
@@ -41,11 +41,11 @@ This Software Test Report documents the actual test execution results and requir
 - **Total Test Coverage**: Complete
 
 ### 2.2 Quality Verification Results
-- **Architectural Compliance**: `TestLoggingUtility_Integration_ArchitecturalCompliance` - ✅ Passed
-- **Use Case Validation**: `TestLoggingUtility_Integration_UseCaseValidation` - ✅ Passed
-- **Performance Requirements**: `TestLoggingUtility_Integration_PerformanceImpact` - ✅ Passed
-- **Concurrent Operations**: `TestLoggingUtility_Integration_ConcurrentUsage` - ✅ Passed
-- **Error Handling**: `TestLoggingUtility_Integration_ErrorScenarios` - ✅ Passed
+- **Architectural Compliance**: `TestIntegration_LoggingUtility_ArchitecturalCompliance` - ✅ Passed
+- **Use Case Validation**: `TestIntegration_LoggingUtility_UseCaseValidation` - ✅ Passed
+- **Performance Requirements**: `TestIntegration_LoggingUtility_PerformanceImpact` - ✅ Passed
+- **Concurrent Operations**: `TestIntegration_LoggingUtility_ConcurrentUsage` - ✅ Passed
+- **Error Handling**: `TestIntegration_LoggingUtility_ErrorScenarios` - ✅ Passed
 
 ## 3. Destructive Testing Results
 

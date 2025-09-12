@@ -14,7 +14,7 @@ import (
 )
 
 // DT-API-001: Store and Update Task with invalid or unusual inputs
-func TestDT_API_001_InvalidTaskDataHandling(t *testing.T) {
+func TestAcceptance_BoardAccess_InvalidTaskDataHandling(t *testing.T) {
 	t.Run("NilTaskHandling", func(t *testing.T) {
 		tempDir, ba := setupTestBoardAccess(t)
 		defer cleanupTestBoardAccess(tempDir, ba)
@@ -211,7 +211,7 @@ func TestDT_API_001_InvalidTaskDataHandling(t *testing.T) {
 }
 
 // DT-API-002: Retrieve Task with invalid identifiers
-func TestDT_API_002_InvalidTaskIdentifierHandling(t *testing.T) {
+func TestAcceptance_BoardAccess_InvalidTaskIdentifierHandling(t *testing.T) {
 	t.Run("NilAndEmptyIdentifiers", func(t *testing.T) {
 		tempDir, ba := setupTestBoardAccess(t)
 		defer cleanupTestBoardAccess(tempDir, ba)
@@ -431,7 +431,7 @@ func TestDT_API_002_InvalidTaskIdentifierHandling(t *testing.T) {
 }
 
 // DT-API-004: Query Tasks with extreme criteria
-func TestDT_API_004_ExtremeQueryCriteriaHandling(t *testing.T) {
+func TestAcceptance_BoardAccess_ExtremeQueryCriteriaHandling(t *testing.T) {
 	t.Run("InvalidPriorityCombinations", func(t *testing.T) {
 		tempDir, ba := setupTestBoardAccess(t)
 		defer cleanupTestBoardAccess(tempDir, ba)
@@ -691,7 +691,7 @@ func TestDT_API_004_ExtremeQueryCriteriaHandling(t *testing.T) {
 }
 
 // DT-RESOURCE-001: Memory and Performance Exhaustion
-func TestDT_RESOURCE_001_MemoryPerformanceExhaustion(t *testing.T) {
+func TestAcceptance_BoardAccess_MemoryPerformanceExhaustion(t *testing.T) {
 	// Skip in short test mode since these are intensive
 	if testing.Short() {
 		t.Skip("Skipping resource exhaustion tests in short mode")
@@ -795,7 +795,7 @@ func TestDT_RESOURCE_001_MemoryPerformanceExhaustion(t *testing.T) {
 }
 
 // DT-PERFORMANCE-001: Performance Degradation Under Load
-func TestDT_PERFORMANCE_001_PerformanceDegradationUnderLoad(t *testing.T) {
+func TestAcceptance_BoardAccess_PerformanceDegradationUnderLoad(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance tests in short mode")
 	}
@@ -1005,7 +1005,7 @@ func cleanupTestBoardAccess(tempDir string, ba IBoardAccess) {
 }
 
 // TestDT_ERROR_001_VersioningUtilityFailures tests resilience to version control issues
-func TestDT_ERROR_001_VersioningUtilityFailures(t *testing.T) {
+func TestAcceptance_BoardAccess_VersioningUtilityFailures(t *testing.T) {
 	tempDir, ba := setupTestBoardAccess(t)
 	defer cleanupTestBoardAccess(tempDir, ba)
 
@@ -1037,7 +1037,7 @@ func TestDT_ERROR_001_VersioningUtilityFailures(t *testing.T) {
 }
 
 // TestDT_ERROR_002_FileSystemFailures tests resilience to file system issues  
-func TestDT_ERROR_002_FileSystemFailures(t *testing.T) {
+func TestAcceptance_BoardAccess_FileSystemFailures(t *testing.T) {
 	tempDir, ba := setupTestBoardAccess(t)
 	defer cleanupTestBoardAccess(tempDir, ba)
 
@@ -1091,7 +1091,7 @@ func TestDT_ERROR_002_FileSystemFailures(t *testing.T) {
 }
 
 // TestDT_ERROR_003_JSONCorruptionHandling tests handling of corrupted task data files
-func TestDT_ERROR_003_JSONCorruptionHandling(t *testing.T) {
+func TestAcceptance_BoardAccess_JSONCorruptionHandling(t *testing.T) {
 	tempDir, ba := setupTestBoardAccess(t)
 	defer cleanupTestBoardAccess(tempDir, ba)
 
@@ -1161,7 +1161,7 @@ func TestDT_ERROR_003_JSONCorruptionHandling(t *testing.T) {
 }
 
 // TestDT_RECOVERY_001_ServiceRecoveryAfterFailures tests recovery capabilities
-func TestDT_RECOVERY_001_ServiceRecoveryAfterFailures(t *testing.T) {
+func TestAcceptance_BoardAccess_ServiceRecoveryAfterFailures(t *testing.T) {
 	tempDir, ba := setupTestBoardAccess(t)
 	defer cleanupTestBoardAccess(tempDir, ba)
 
@@ -1223,7 +1223,7 @@ func TestDT_RECOVERY_001_ServiceRecoveryAfterFailures(t *testing.T) {
 }
 
 // TestDT_RECOVERY_002_PartialFunctionalityUnderConstraints tests continued operation under constraints
-func TestDT_RECOVERY_002_PartialFunctionalityUnderConstraints(t *testing.T) {
+func TestAcceptance_BoardAccess_PartialFunctionalityUnderConstraints(t *testing.T) {
 	tempDir, ba := setupTestBoardAccess(t)
 	defer cleanupTestBoardAccess(tempDir, ba)
 
