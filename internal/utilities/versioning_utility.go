@@ -16,6 +16,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+// AuthorConfiguration represents git user configuration
+type AuthorConfiguration struct {
+	User  string // Git commit author name
+	Email string // Git commit author email
+}
+
 // CommitInfo represents information about a single commit
 type CommitInfo struct {
 	ID        string    // Commit hash
@@ -27,20 +33,30 @@ type CommitInfo struct {
 
 // RepositoryStatus represents the current state of a repository
 type RepositoryStatus struct {
-	CurrentBranch    string   // Active branch name
-	ModifiedFiles    []string // List of changed files
-	StagedFiles      []string // List of files ready for commit
-	UntrackedFiles   []string // List of unversioned files
-	HasConflicts     bool     // Indicates presence of merge conflicts
+	CurrentBranch  string   // Active branch name
+	ModifiedFiles  []string // List of changed files
+	StagedFiles    []string // List of files ready for commit
+	UntrackedFiles []string // List of unversioned files
+	HasConflicts   bool     // Indicates presence of merge conflicts
 }
 
-// InitializeRepository initializes or opens a repository at the specified path
-// This is a factory function that creates a new Repository instance
-func InitializeRepository(path string) (Repository, error) {
+// InitializeRepositoryWithConfig initializes or opens a repository with git configuration
+func InitializeRepositoryWithConfig(path string, gitConfig *AuthorConfiguration) (Repository, error) {
 	logger := NewLoggingUtility()
-	
+
+	// Validate git configuration is provided
+	if gitConfig == nil {
+		return nil, fmt.Errorf("InitializeRepositoryWithConfig requires AuthorConfiguration - cannot be nil")
+	}
+
+	if gitConfig.User == "" || gitConfig.Email == "" {
+		return nil, fmt.Errorf("InitializeRepositoryWithConfig requires complete AuthorConfiguration - both user (%s) and email (%s) must be non-empty", gitConfig.User, gitConfig.Email)
+	}
+
 	logger.Log(Debug, "VersioningUtility", "Initializing repository", map[string]interface{}{
-		"path": path,
+		"path":  path,
+		"user":  gitConfig.User,
+		"email": gitConfig.Email,
 	})
 
 	// Validate path is not empty
@@ -68,10 +84,11 @@ func InitializeRepository(path string) (Repository, error) {
 	}
 
 	repo := &repository{
-		path:    path,
-		gitRepo: gitRepo,
-		mutex:   &sync.RWMutex{},
-		logger:  logger,
+		path:      path,
+		gitRepo:   gitRepo,
+		gitConfig: gitConfig,
+		mutex:     &sync.RWMutex{},
+		logger:    logger,
 	}
 
 	logger.Log(Info, "VersioningUtility", "Repository initialized successfully", map[string]interface{}{
@@ -86,28 +103,28 @@ type Repository interface {
 	Path() string
 	Status() (*RepositoryStatus, error)
 	Stage(patterns []string) error
-	Commit(message, author, email string) (string, error)
-	
+	Commit(message string) (string, error)
+
 	// Dual approach: limited sync + unlimited streaming
 	GetHistory(limit int) ([]CommitInfo, error)
 	GetHistoryStream() <-chan CommitInfo
-	
+
 	GetFileHistory(filePath string, limit int) ([]CommitInfo, error)
 	GetFileHistoryStream(filePath string) <-chan CommitInfo
-	
+
 	GetFileDifferences(hash1, hash2 string) ([]byte, error)
-	
+
 	Close() error
 }
 
 // repository implements Repository
 type repository struct {
-	path    string
-	gitRepo *git.Repository
-	mutex   *sync.RWMutex
-	logger  ILoggingUtility
+	path      string
+	gitRepo   *git.Repository
+	gitConfig *AuthorConfiguration
+	mutex     *sync.RWMutex
+	logger    ILoggingUtility
 }
-
 
 // Repository Implementation
 
@@ -120,7 +137,7 @@ func (r *repository) Path() string {
 func (r *repository) Status() (*RepositoryStatus, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	return r.statusInternal()
 }
 
@@ -214,7 +231,7 @@ func (r *repository) Stage(patterns []string) error {
 				})
 				continue
 			}
-			
+
 			// Stage each matched file
 			for _, match := range matches {
 				// Convert absolute path to relative path from repo root
@@ -228,7 +245,7 @@ func (r *repository) Stage(patterns []string) error {
 					})
 					continue
 				}
-				
+
 				_, err = workTree.Add(relPath)
 				if err != nil {
 					r.logger.LogError("Repository", err, map[string]interface{}{
@@ -265,9 +282,18 @@ func (r *repository) Stage(patterns []string) error {
 }
 
 // Commit creates a commit with all staged changes
-func (r *repository) Commit(message, author, email string) (string, error) {
+func (r *repository) Commit(message string) (string, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
+	// Validate that git configuration is available
+	if r.gitConfig == nil {
+		return "", fmt.Errorf("repository.Commit no git configuration available - repository must be initialized with AuthorConfiguration")
+	}
+
+	if r.gitConfig.User == "" || r.gitConfig.Email == "" {
+		return "", fmt.Errorf("repository.Commit git configuration incomplete - both user (%s) and email (%s) are required", r.gitConfig.User, r.gitConfig.Email)
+	}
 
 	workTree, err := r.gitRepo.Worktree()
 	if err != nil {
@@ -276,8 +302,8 @@ func (r *repository) Commit(message, author, email string) (string, error) {
 
 	commitHash, err := workTree.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  author,
-			Email: email,
+			Name:  r.gitConfig.User,
+			Email: r.gitConfig.Email,
 			When:  time.Now(),
 		},
 	})
@@ -288,8 +314,8 @@ func (r *repository) Commit(message, author, email string) (string, error) {
 	r.logger.Log(Info, "Repository", "Commit created successfully", map[string]interface{}{
 		"path":   r.path,
 		"hash":   commitHash.String(),
-		"author": author,
-		"email":  email,
+		"author": r.gitConfig.User,
+		"email":  r.gitConfig.Email,
 	})
 
 	return commitHash.String(), nil
@@ -313,12 +339,12 @@ func (r *repository) GetHistory(limit int) ([]CommitInfo, error) {
 
 	var commits []CommitInfo
 	count := 0
-	
+
 	err = commitIter.ForEach(func(c *object.Commit) error {
 		if limit > 0 && count >= limit {
 			return fmt.Errorf("limit reached") // Use error to break iteration
 		}
-		
+
 		commits = append(commits, CommitInfo{
 			ID:        c.Hash.String(),
 			Author:    c.Author.Name,
@@ -341,13 +367,13 @@ func (r *repository) GetHistory(limit int) ([]CommitInfo, error) {
 // GetHistoryStream returns a channel that streams all commits
 func (r *repository) GetHistoryStream() <-chan CommitInfo {
 	ch := make(chan CommitInfo)
-	
+
 	go func() {
 		defer close(ch)
-		
+
 		r.mutex.RLock()
 		defer r.mutex.RUnlock()
-		
+
 		ref, err := r.gitRepo.Head()
 		if err != nil {
 			r.logger.LogError("Repository", err, map[string]interface{}{
@@ -357,7 +383,7 @@ func (r *repository) GetHistoryStream() <-chan CommitInfo {
 			})
 			return
 		}
-		
+
 		commitIter, err := r.gitRepo.Log(&git.LogOptions{From: ref.Hash()})
 		if err != nil {
 			r.logger.LogError("Repository", err, map[string]interface{}{
@@ -367,7 +393,7 @@ func (r *repository) GetHistoryStream() <-chan CommitInfo {
 			})
 			return
 		}
-		
+
 		err = commitIter.ForEach(func(c *object.Commit) error {
 			select {
 			case ch <- CommitInfo{
@@ -383,7 +409,7 @@ func (r *repository) GetHistoryStream() <-chan CommitInfo {
 			}
 			return nil
 		})
-		
+
 		if err != nil && err.Error() != "channel closed" {
 			r.logger.LogError("Repository", err, map[string]interface{}{
 				"operation": "GetHistoryStream",
@@ -392,7 +418,7 @@ func (r *repository) GetHistoryStream() <-chan CommitInfo {
 			})
 		}
 	}()
-	
+
 	return ch
 }
 
@@ -417,12 +443,12 @@ func (r *repository) GetFileHistory(filePath string, limit int) ([]CommitInfo, e
 
 	var commits []CommitInfo
 	count := 0
-	
+
 	err = commitIter.ForEach(func(c *object.Commit) error {
 		if limit > 0 && count >= limit {
 			return fmt.Errorf("limit reached")
 		}
-		
+
 		commits = append(commits, CommitInfo{
 			ID:        c.Hash.String(),
 			Author:    c.Author.Name,
@@ -444,13 +470,13 @@ func (r *repository) GetFileHistory(filePath string, limit int) ([]CommitInfo, e
 // GetFileHistoryStream returns a channel that streams commits for a specific file
 func (r *repository) GetFileHistoryStream(filePath string) <-chan CommitInfo {
 	ch := make(chan CommitInfo)
-	
+
 	go func() {
 		defer close(ch)
-		
+
 		r.mutex.RLock()
 		defer r.mutex.RUnlock()
-		
+
 		ref, err := r.gitRepo.Head()
 		if err != nil {
 			r.logger.LogError("Repository", err, map[string]interface{}{
@@ -461,7 +487,7 @@ func (r *repository) GetFileHistoryStream(filePath string) <-chan CommitInfo {
 			})
 			return
 		}
-		
+
 		commitIter, err := r.gitRepo.Log(&git.LogOptions{
 			From:     ref.Hash(),
 			FileName: &filePath,
@@ -475,7 +501,7 @@ func (r *repository) GetFileHistoryStream(filePath string) <-chan CommitInfo {
 			})
 			return
 		}
-		
+
 		err = commitIter.ForEach(func(c *object.Commit) error {
 			select {
 			case ch <- CommitInfo{
@@ -490,7 +516,7 @@ func (r *repository) GetFileHistoryStream(filePath string) <-chan CommitInfo {
 			}
 			return nil
 		})
-		
+
 		if err != nil && err.Error() != "channel closed" {
 			r.logger.LogError("Repository", err, map[string]interface{}{
 				"operation": "GetFileHistoryStream",
@@ -500,7 +526,7 @@ func (r *repository) GetFileHistoryStream(filePath string) <-chan CommitInfo {
 			})
 		}
 	}()
-	
+
 	return ch
 }
 

@@ -110,10 +110,48 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 
 	logger.LogMessage(utilities.Debug, "BoardAccess", "Initializing BoardAccess")
 
-	// Initialize repository
-	repository, err := utilities.InitializeRepository(repositoryPath)
+	// Load board configuration directly from file to get git settings
+	configPath := filepath.Join(repositoryPath, "board.json")
+	var config *BoardConfiguration
+	
+	if configData, err := os.ReadFile(configPath); err == nil {
+		// Try to parse board configuration
+		var parsedConfig BoardConfiguration
+		if json.Unmarshal(configData, &parsedConfig) == nil {
+			config = &parsedConfig
+		}
+	}
+	
+	// Use default configuration if loading fails or is incomplete
+	if config == nil {
+		config = &BoardConfiguration{
+			Name:     "EisenKan Board",
+			Columns:  []string{"todo", "doing", "done"},
+			Sections: map[string][]string{
+				"todo": {"urgent-important", "urgent-not-important", "not-urgent-important"},
+			},
+			GitUser:  "BoardAccess",
+			GitEmail: "boardaccess@eisenkan.local",
+		}
+	}
+	
+	// Ensure git configuration is complete
+	if config.GitUser == "" {
+		config.GitUser = "BoardAccess"
+	}
+	if config.GitEmail == "" {
+		config.GitEmail = "boardaccess@eisenkan.local"
+	}
+	
+	// Initialize repository with git configuration
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  config.GitUser,
+		Email: config.GitEmail,
+	}
+	
+	repository, err := utilities.InitializeRepositoryWithConfig(repositoryPath, gitConfig)
 	if err != nil {
-		return nil, fmt.Errorf("BoardAccess.NewBoardAccess failed to initialize repository: %w", err)
+		return nil, fmt.Errorf("BoardAccess.NewBoardAccess failed to initialize repository with config: %w", err)
 	}
 
 	boardAccess := &boardAccess{
@@ -678,15 +716,9 @@ func (ba *boardAccess) stageFiles(filePaths []string) error {
 	return ba.repository.Stage(relPaths)
 }
 
-// commitWithConfig commits with git configuration from board config
+// commitWithConfig commits using the repository's configured git settings
 func (ba *boardAccess) commitWithConfig(message string) error {
-	config, err := ba.loadBoardConfiguration()
-	if err != nil {
-		// Fallback to default values
-		config = ba.getDefaultBoardConfiguration()
-	}
-
-	_, err = ba.repository.Commit(message, config.GitUser, config.GitEmail)
+	_, err := ba.repository.Commit(message)
 	return err
 }
 

@@ -9,13 +9,21 @@ import (
 	"time"
 )
 
+// Helper function to create test AuthorConfiguration
+func testAuthorConfig() *AuthorConfiguration {
+	return &AuthorConfiguration{
+		User:  "Test Author",
+		Email: "test@example.com",
+	}
+}
+
 // TestVersioningUtility_InitializeRepository_FactoryFunction tests factory function availability
 func TestVersioningUtility_InitializeRepository_FactoryFunction(t *testing.T) {
 	// Test that the factory function is available and works
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "factory_test")
 	
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Factory function failed: %v", err)
 	}
@@ -32,7 +40,7 @@ func TestVersioningUtility_InitializeRepository_NewRepository(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "test_repo")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Expected successful initialization, got error: %v", err)
 	}
@@ -57,14 +65,14 @@ func TestVersioningUtility_InitializeRepository_ExistingRepository(t *testing.T)
 	// Removed old utility pattern
 	
 	// Create repository first
-	repo1, err := InitializeRepository(repoPath)
+	repo1, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to create initial repository: %v", err)
 	}
 	repo1.Close()
 
 	// Open existing repository
-	repo2, err := InitializeRepository(repoPath)
+	repo2, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Expected successful opening of existing repository, got error: %v", err)
 	}
@@ -81,7 +89,7 @@ func TestVersioningUtility_InitializeRepository_InvalidPath(t *testing.T) {
 	
 	// Test with read-only parent directory (simulated)
 	invalidPath := "/dev/null/invalid_repo"
-	_, err := InitializeRepository(invalidPath)
+	_, err := InitializeRepositoryWithConfig(invalidPath, testAuthorConfig())
 	if err == nil {
 		t.Error("Expected error for invalid path, got nil")
 	}
@@ -93,7 +101,7 @@ func TestVersioningUtility_GetRepositoryStatus(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "status_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -136,7 +144,7 @@ func TestVersioningUtility_StageChanges(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "stage_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -176,7 +184,7 @@ func TestVersioningUtility_StageChanges_SelectiveStaging(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "selective_stage_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -220,7 +228,7 @@ func TestVersioningUtility_CommitChanges(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "commit_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -238,7 +246,7 @@ func TestVersioningUtility_CommitChanges(t *testing.T) {
 	}
 
 	// Create commit
-	commitHash, err := repo.Commit("Initial commit", "Test Author", "test@example.com")
+	commitHash, err := repo.Commit("Initial commit")
 	if err != nil {
 		t.Fatalf("Failed to commit changes: %v", err)
 	}
@@ -258,7 +266,7 @@ func TestVersioningUtility_GetRepositoryHistory(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "history_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -287,7 +295,7 @@ func TestVersioningUtility_GetRepositoryHistory(t *testing.T) {
 			t.Fatalf("Failed to stage changes %d: %v", i, err)
 		}
 
-		_, err = repo.Commit("Commit "+string(rune('0'+i)), "Test Author", "test@example.com")
+		_, err = repo.Commit("Commit "+string(rune('0'+i)))
 		if err != nil {
 			t.Fatalf("Failed to commit %d: %v", i, err)
 		}
@@ -342,7 +350,7 @@ func TestVersioningUtility_GetRepositoryHistoryStream(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "stream_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -359,7 +367,7 @@ func TestVersioningUtility_GetRepositoryHistoryStream(t *testing.T) {
 		t.Fatalf("Failed to stage changes: %v", err)
 	}
 
-	_, err = repo.Commit("Stream test commit", "Test Author", "test@example.com")
+	_, err = repo.Commit("Stream test commit")
 	if err != nil {
 		t.Fatalf("Failed to commit: %v", err)
 	}
@@ -393,7 +401,7 @@ func TestVersioningUtility_GetFileHistory(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "file_history_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -415,7 +423,7 @@ func TestVersioningUtility_GetFileHistory(t *testing.T) {
 		t.Fatalf("Failed to stage initial changes: %v", err)
 	}
 
-	_, err = repo.Commit("Initial commit", "Test Author", "test@example.com")
+	_, err = repo.Commit("Initial commit")
 	if err != nil {
 		t.Fatalf("Failed to create initial commit: %v", err)
 	}
@@ -430,7 +438,7 @@ func TestVersioningUtility_GetFileHistory(t *testing.T) {
 		t.Fatalf("Failed to stage tracked file: %v", err)
 	}
 
-	_, err = repo.Commit("Updated tracked file", "Test Author", "test@example.com")
+	_, err = repo.Commit("Updated tracked file")
 	if err != nil {
 		t.Fatalf("Failed to commit tracked file update: %v", err)
 	}
@@ -462,7 +470,7 @@ func TestVersioningUtility_GetFileDifferences(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "diff_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -480,7 +488,7 @@ func TestVersioningUtility_GetFileDifferences(t *testing.T) {
 		t.Fatalf("Failed to stage first version: %v", err)
 	}
 
-	hash1, err := repo.Commit("First version", "Test Author", "test@example.com")
+	hash1, err := repo.Commit("First version")
 	if err != nil {
 		t.Fatalf("Failed to commit first version: %v", err)
 	}
@@ -495,7 +503,7 @@ func TestVersioningUtility_GetFileDifferences(t *testing.T) {
 		t.Fatalf("Failed to stage second version: %v", err)
 	}
 
-	hash2, err := repo.Commit("Second version", "Test Author", "test@example.com")
+	hash2, err := repo.Commit("Second version")
 	if err != nil {
 		t.Fatalf("Failed to commit second version: %v", err)
 	}
@@ -525,7 +533,7 @@ func TestVersioningUtility_InvalidCommitHash(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "invalid_hash_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -544,7 +552,7 @@ func TestRepositoryHandle_StatusAndOperations(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "repo_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}
@@ -578,7 +586,7 @@ func TestRepositoryHandle_StatusAndOperations(t *testing.T) {
 	}
 
 	// Test commit
-	commitHash, err := repo.Commit("Handle test commit", "Test Author", "test@example.com")
+	commitHash, err := repo.Commit("Handle test commit")
 	if err != nil {
 		t.Fatalf("Failed to commit via repo: %v", err)
 	}
@@ -594,7 +602,7 @@ func TestRepositoryHandle_ConflictDetection(t *testing.T) {
 	repoPath := filepath.Join(tempDir, "conflict_test")
 	
 	// Removed old utility pattern
-	repo, err := InitializeRepository(repoPath)
+	repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize repository: %v", err)
 	}

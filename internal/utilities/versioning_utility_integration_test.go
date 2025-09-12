@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+
+
 // TestVersioningUtility_Integration_ArchitecturalCompliance validates architectural layer rules
 func TestVersioningUtility_Integration_ArchitecturalCompliance(t *testing.T) {
 	// Removed old utility pattern
@@ -34,7 +36,7 @@ func TestVersioningUtility_Integration_ArchitecturalCompliance(t *testing.T) {
 		repoPath := filepath.Join(tempDir, tc.component+"_repo")
 		
 		// Each layer should be able to use version control
-		handle, err := InitializeRepository(repoPath)
+		handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Layer %s component %s failed to initialize repository: %v", tc.layer, tc.component, err)
 			continue
@@ -58,7 +60,7 @@ func TestVersioningUtility_Integration_ArchitecturalCompliance(t *testing.T) {
 			continue
 		}
 
-		_, err = handle.Commit("Initial data for "+tc.component, "System", "system@eisenkan.local")
+		_, err = handle.Commit("Initial data for "+tc.component)
 		if err != nil {
 			handle.Close()
 			t.Errorf("Component %s failed to commit: %v", tc.component, err)
@@ -75,7 +77,7 @@ func TestVersioningUtility_Integration_PerformanceRequirements(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "performance_test")
 
-	handle, err := InitializeRepository(repoPath)
+	handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize performance test repository: %v", err)
 	}
@@ -103,7 +105,7 @@ func TestVersioningUtility_Integration_PerformanceRequirements(t *testing.T) {
 			t.Fatalf("Failed to stage changes for commit %d: %v", i, err)
 		}
 
-		_, err = handle.Commit(fmt.Sprintf("Performance test commit %d", i), "PerfTest", "perf@test.com")
+		_, err = handle.Commit(fmt.Sprintf("Performance test commit %d", i))
 		if err != nil {
 			t.Fatalf("Failed to create commit %d: %v", i, err)
 		}
@@ -150,7 +152,7 @@ func TestVersioningUtility_Integration_ConcurrentAccess(t *testing.T) {
 			
 			repoPath := filepath.Join(tempDir, fmt.Sprintf("concurrent_repo_%d", id))
 			
-			handle, err := InitializeRepository(repoPath)
+			handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 			if err != nil {
 				t.Errorf("Goroutine %d failed to initialize repository: %v", id, err)
 				return
@@ -175,8 +177,7 @@ func TestVersioningUtility_Integration_ConcurrentAccess(t *testing.T) {
 					return
 				}
 
-				_, err = handle.Commit(fmt.Sprintf("Commit %d from goroutine %d", j, id), 
-					fmt.Sprintf("Worker%d", id), fmt.Sprintf("worker%d@test.com", id))
+				_, err = handle.Commit(fmt.Sprintf("Commit %d from goroutine %d", j, id))
 				if err != nil {
 					t.Errorf("Goroutine %d failed to commit: %v", id, err)
 					return
@@ -191,7 +192,7 @@ func TestVersioningUtility_Integration_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		repoPath := filepath.Join(tempDir, fmt.Sprintf("concurrent_repo_%d", i))
 		
-		repo, err := InitializeRepository(repoPath)
+		repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Failed to initialize repo %d for verification: %v", i, err)
 			continue
@@ -223,7 +224,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 		{
 			name: "EmptyRepositoryPath",
 			operation: func() error {
-				_, err := InitializeRepository("")
+				_, err := InitializeRepositoryWithConfig("", testAuthorConfig())
 				return err
 			},
 			expectError: true,
@@ -231,7 +232,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 		{
 			name: "InvalidUnicodeInPath",
 			operation: func() error {
-				_, err := InitializeRepository("/tmp/test\x00invalid")
+				_, err := InitializeRepositoryWithConfig("/tmp/test\x00invalid", testAuthorConfig())
 				return err
 			},
 			expectError: true,
@@ -240,7 +241,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 			name: "ExtremelyLongPath",
 			operation: func() error {
 				longPath := "/tmp/" + strings.Repeat("a", 5000)
-				_, err := InitializeRepository(longPath)
+				_, err := InitializeRepositoryWithConfig(longPath, testAuthorConfig())
 				return err
 			},
 			expectError: true,
@@ -248,7 +249,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 		{
 			name: "StatusOnNonExistentRepo",
 			operation: func() error {
-				repo, err := InitializeRepository("/nonexistent/path/repo")
+				repo, err := InitializeRepositoryWithConfig("/nonexistent/path/repo", testAuthorConfig())
 				if err != nil {
 					return err
 				}
@@ -264,7 +265,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "empty_message_test")
 				
-				handle, err := InitializeRepository(repoPath)
+				handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
 				}
@@ -276,7 +277,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 				handle.Stage([]string{"."})
 
 				// Try to commit with empty message
-				_, err = handle.Commit("", "Author", "author@test.com")
+				_, err = handle.Commit("")
 				return err
 			},
 			expectError: false, // Empty message might be allowed
@@ -287,7 +288,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "invalid_email_test")
 				
-				handle, err := InitializeRepository(repoPath)
+				handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
 				}
@@ -299,7 +300,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 				handle.Stage([]string{"."})
 
 				// Try to commit with invalid email
-				_, err = handle.Commit("Test commit", "Author", "invalid-email")
+				_, err = handle.Commit("Test commit")
 				return err
 			},
 			expectError: false, // go-git might allow invalid emails
@@ -310,7 +311,7 @@ func TestVersioningUtility_Integration_DestructiveAPITesting(t *testing.T) {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "invalid_hash_test")
 				
-				repo, err := InitializeRepository(repoPath)
+				repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
 				}
@@ -361,7 +362,7 @@ func TestVersioningUtility_Integration_ResourceExhaustion(t *testing.T) {
 	for i := 0; i < numRepos; i++ {
 		repoPath := filepath.Join(tempDir, fmt.Sprintf("resource_repo_%d", i))
 		
-		handle, err := InitializeRepository(repoPath)
+		handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Failed to initialize repository %d: %v", i, err)
 			continue
@@ -384,7 +385,7 @@ func TestVersioningUtility_Integration_ResourceExhaustion(t *testing.T) {
 			continue
 		}
 
-		_, err = handle.Commit(fmt.Sprintf("Resource test commit %d", i), "ResourceTest", "resource@test.com")
+		_, err = handle.Commit(fmt.Sprintf("Resource test commit %d", i))
 		if err != nil {
 			t.Errorf("Failed to commit in repo %d: %v", i, err)
 			continue
@@ -416,7 +417,7 @@ func TestVersioningUtility_Integration_StreamingPerformance(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "streaming_test")
 
-	handle, err := InitializeRepository(repoPath)
+	handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize streaming test repository: %v", err)
 	}
@@ -438,7 +439,7 @@ func TestVersioningUtility_Integration_StreamingPerformance(t *testing.T) {
 			t.Fatalf("Failed to stage file %s: %v", fileName, err)
 		}
 
-		_, err = handle.Commit(fmt.Sprintf("Streaming commit %d", i), "StreamTest", "stream@test.com")
+		_, err = handle.Commit(fmt.Sprintf("Streaming commit %d", i))
 		if err != nil {
 			t.Fatalf("Failed to create streaming commit %d: %v", i, err)
 		}
@@ -491,7 +492,7 @@ func TestVersioningUtility_Integration_ErrorRecovery(t *testing.T) {
 	tempDir := t.TempDir()
 	repoPath := filepath.Join(tempDir, "error_recovery_test")
 
-	handle, err := InitializeRepository(repoPath)
+	handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 	if err != nil {
 		t.Fatalf("Failed to initialize error recovery test repository: %v", err)
 	}
@@ -518,7 +519,7 @@ func TestVersioningUtility_Integration_ErrorRecovery(t *testing.T) {
 		t.Fatalf("Repository not functional after error recovery: %v", err)
 	}
 
-	_, err = handle.Commit("Recovery test", "RecoveryTest", "recovery@test.com")
+	_, err = handle.Commit("Recovery test")
 	if err != nil {
 		t.Fatalf("Failed to commit after error recovery: %v", err)
 	}
