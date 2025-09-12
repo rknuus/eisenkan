@@ -15,7 +15,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 ### When changing code
 1. **Architectural Rules and Guidelines**: Respect the [Architectural Rules and Guidelines](#architectural-rules-and-guidelines)
 2. **Identify Volatility**: Determine which volatility area the change affects
-3. **Validate Use Cases**: Ensure the change supports core use cases
+3. **Validate Operations**: Ensure the change supports core operations
 4. **Choose Layer**: Place components in appropriate architectural layers
 5. **Design Contracts**: Define stable interfaces first
 6. **Implement Bottom-Up**: Start with engines, then managers, then clients
@@ -29,7 +29,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 
 ### Refactoring Guidelines
 - Always refactor within volatility boundaries first
-- Validate use case support before and after changes
+- Validate operation support before and after changes
 - Maintain interface stability during refactoring
 - Use architecture tests to prevent regression
 
@@ -136,7 +136,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 #### File Locations and Formats
 | Document Type | Location | Required Sections |
 |---|---|---|
-| SRS | `doc/services/<ServiceName>_SRS.md` | Purpose, Use Cases, Quality Attributes, Interface Requirements |
+| SRS | `doc/services/<ServiceName>_SRS.md` | Purpose, Operations, Quality Attributes, Interface Requirements |
 | STP | `doc/services/<ServiceName>_STP.md` | Test Strategy, Destructive Testing (NO Requirements Verification Matrix) |
 | STR | `doc/services/<ServiceName>_STR.md` | Requirements Verification Matrix, Test Execution Results, Acceptance Status |
 | Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval |
@@ -172,10 +172,10 @@ STP must include:
 
 #### Requirements Management
 - Capture required behavior, not required functionality
-- Describe required behavior with use cases
-- Document complex use cases with activity diagrams
+- Describe required behavior with operations
+- Document complex operations with activity diagrams
 - Eliminate solutions masquerading as requirements
-- Validate design supports all core use cases
+- Validate design supports all core operations
 
 #### Component Architecture Rules
 
