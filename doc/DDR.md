@@ -42,6 +42,114 @@
 
 **User Approval**: [User] approved on [2025-09-06]
 
+## [2025-09-12] - RulesAccess Design Decision: Rule Storage Structure
+
+**Decision**: Option A - Single rules.json File
+
+**Context**: RulesAccess needs to store rule sets for board directories in JSON format with version control. Need to determine the file organization and naming strategy within directories.
+
+**Options Considered**:
+- **Option A: Single rules.json File**
+  - Store entire rule set in one `rules.json` file per directory
+  - Simple atomic replacement for rule set changes
+  - Easy to read/write complete rule set
+  - Version control tracks entire rule set changes
+  
+- **Option B: Multiple Rule Category Files**
+  - Separate files: `validation-rules.json`, `workflow-rules.json`, `automation-rules.json`, `notification-rules.json`
+  - Granular version control per rule category
+  - Smaller files for specific rule types
+  - More complex atomic replacement logic
+  
+- **Option C: Individual Rule Files**
+  - One file per rule: `rule-{id}.json`
+  - Maximum granular version control
+  - Complex rule set assembly and validation
+  - Contradicts SRS requirement for atomic rule set operations
+
+**Rationale**: Choose Option A to avoid coordination conflicts with BoardAccess. Originally considered storing rules in board.json, but that would require BoardAccess and RulesAccess to coordinate file access. A separate rules.json file provides clean separation of concerns while maintaining atomic rule set operations required by SRS.
+
+**Consequences**:
+- Clean separation between board configuration and rule data
+- No coordination required with BoardAccess for file access
+- Simple atomic rule set replacement implementation
+- Version control tracks complete rule set changes as single units
+- Easy to implement and maintain
+
+**User Approval**: Approved on [2025-09-12]
+
+## [2025-09-12] - RulesAccess Design Decision: Rule Validation Architecture
+
+**Decision**: Option A - Embedded Schema Validation
+
+**Context**: RulesAccess must validate rule syntax, semantics, dependencies, and conflicts. Need to determine validation architecture and extensibility approach.
+
+**Options Considered**:
+- **Option A: Embedded Schema Validation**
+  - JSON schema validation built into RulesAccess
+  - Schema defined as Go structs with validation tags
+  - Simple implementation, fast validation
+  - Schema changes require code changes
+  
+- **Option B: External Schema File**
+  - JSON schema stored as separate file (rules-schema.json)
+  - Runtime schema loading and validation
+  - Schema updates without code changes
+  - More complex validation logic
+  
+- **Option C: Plugin-Based Validation**
+  - Extensible validation interface for different rule types
+  - Support for custom validators per workflow methodology
+  - Maximum flexibility for future extensions
+  - Complex implementation and testing
+
+**Rationale**: Choose Option A for simplicity and performance. Embedded schema validation using Go structs with validation tags provides fast, compile-time safety and straightforward implementation. Schema changes requiring code changes is acceptable trade-off for initial implementation.
+
+**Consequences**:
+- Fast validation performance with compile-time safety
+- Simple implementation and testing
+- Schema changes require code updates and recompilation
+- Good starting point that can be enhanced later if needed
+- Direct integration with Go type system
+
+**User Approval**: Approved on [2025-09-12]
+
+## [2025-09-12] - RulesAccess Design Decision: Concurrent Access Strategy
+
+**Decision**: Option C - VersioningUtility-Level Coordination
+
+**Context**: RulesAccess must handle concurrent read/write operations safely while maintaining data consistency and performance.
+
+**Options Considered**:
+- **Option A: File-Level Locking**
+  - Use file locks (flock) for rule file access
+  - OS-level coordination across processes
+  - Simple implementation
+  - Potential performance bottleneck
+  
+- **Option B: In-Memory Mutex with Caching**
+  - Mutex per directory path
+  - Cache rule sets in memory with TTL
+  - Better performance for read-heavy workloads
+  - Memory usage and cache consistency concerns
+  
+- **Option C: VersioningUtility-Level Coordination**
+  - Rely on VersioningUtility for concurrency control
+  - Atomic commit operations handle conflicts
+  - Consistent with other ResourceAccess components
+  - Version control overhead for all operations
+
+**Rationale**: Choose Option C for architectural consistency and leveraging existing infrastructure. VersioningUtility already provides atomic operations and conflict detection. This approach maintains consistency with BoardAccess and other ResourceAccess components while providing proper concurrency control through version control mechanisms.
+
+**Consequences**:
+- Consistent with other ResourceAccess layer components
+- Leverages existing VersioningUtility concurrency control
+- Atomic operations and conflict detection built-in
+- Version control overhead for all operations (acceptable trade-off)
+- Simplified RulesAccess implementation by delegating concurrency to VersioningUtility
+
+**User Approval**: Approved on [2025-09-12]
+
 ## [2025-09-06] - LoggingUtility Design Decision: Error Handling Strategy
 
 **Decision**: Panic on Internal Failures
