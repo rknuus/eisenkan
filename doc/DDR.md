@@ -1,5 +1,32 @@
 # Design Decision Records (DDR)
 
+## [2025-09-13] - ValidationEngine Service Decision: Service Not Required
+
+**Decision**: Do not implement ValidationEngine service for EisenKan
+
+**Context**: After analyzing the ValidationEngine scope and architectural requirements, determined that the validity of requests is already sufficiently verified by existing components in the system. The planned ValidationEngine would primarily duplicate validation logic already present in BoardAccess (data integrity validation) and RuleEngine (business rule validation).
+
+**Options Considered**:
+- **Option A: Implement ValidationEngine** - Add new Engine component for orchestrated validation scenarios
+- **Option B: Enhance existing components** - Extend BoardAccess and RuleEngine validation capabilities as needed
+- **Option C: No ValidationEngine** - Leave validation distributed across appropriate components (BoardAccess for data integrity, RuleEngine for business rules)
+
+**Rationale**: Existing architecture already provides comprehensive validation:
+- BoardAccess handles data integrity validation (required fields, formats, consistency)
+- RuleEngine handles business rule validation (WIP limits, workflow transitions, dependencies)
+- Cross-task dependency validation can be implemented in BoardAccess when needed
+- External system integration validation can be added to specific components as requirements emerge
+- No compelling use cases identified that require orchestrated validation beyond existing capabilities
+
+**Consequences**:
+- Simplified architecture with fewer components
+- Validation logic remains close to domain responsibility (data validation in data layer, business rules in rule engine)
+- Future validation needs addressed incrementally in appropriate components
+- No validation orchestration layer - complex validations handled by extending existing components
+- Reduced system complexity and maintenance overhead
+
+**User Approval**: Approved on [2025-09-13]
+
 ## [2025-09-13] - RuleEngine Design Decision: Rule Context Data Access Strategy
 
 **Decision**: Option C - Rule Engine with ResourceAccess Integration
