@@ -7,36 +7,53 @@ This Software Requirements Specification defines the requirements for the RuleEn
 
 ### 1.2 Scope
 RuleEngine is responsible for:
-- Business rule evaluation and execution based on task state and transitions
-- Rule trigger detection and condition matching for workflow automation
-- Rule priority ordering and dependency resolution
-- Rule validation and conflict detection during evaluation
+- Business rule evaluation for Kanban workflow management (WIP limits, workflow transitions, definition of ready/done)
+- Task change validation against configurable business rules with comprehensive board context
+- Rule priority ordering and violation aggregation for complete violation reporting
 - Support for extensible rule categories (validation, workflow, automation, notification)
+- Integration with BoardAccess for enriched rule evaluation context (WIP counts, task history, column timestamps)
+- Age-based task management rules and subtask dependency validation
 
 ### 1.3 System Context
-RuleEngine operates in the Engines layer of the EisenKan architecture, sitting between the Managers layer (TaskManager) and providing pure business logic for rule processing. It receives rule sets from RulesAccess and applies business logic to determine rule applicability and execution order to be performed on request of a manager.
+RuleEngine operates in the Engines layer of the EisenKan architecture, accessing RulesAccess for rule definitions and BoardAccess for enriched board context. It provides stateless rule evaluation services to the Manager layer, supporting Kanban-specific business rules including WIP limits, workflow transitions, definition of ready/done criteria, and age-based task management.
 
 ## 2. Operations
 
 The following operations define the required behavior for RuleEngine:
 
-#### OP-1: Evaluate Rules for Task Event
+#### OP-1: Evaluate Task Change
 **Actors**: TaskManager
-**Trigger**: When a task state change
+**Trigger**: When a task state change is requested
 **Flow**:
-1. Receive task event context
-2. Fetch applicable rule set for the board/workflow
-3. Filter rules based on trigger type and conditions
-4. Evaluate rule conditions against task and event context
-5. Return verdict whether task change can be applied
+1. Receive TaskEvent with current and future task states
+2. Fetch applicable rule set from RulesAccess for the board
+3. Filter rules based on event type and enabled status
+4. Enrich evaluation context with board data from BoardAccess (WIP counts, task history, column timestamps)
+5. Evaluate all applicable rules sequentially and aggregate violations
+6. Return RuleEvaluationResult with allowed status and violation details
+
+#### OP-2: Close Engine Resources
+**Actors**: TaskManager
+**Trigger**: When shutting down RuleEngine
+**Flow**:
+1. Receive close request
+2. Release any held resources
+3. Log shutdown completion
+4. Return success status
 
 ## 3. Functional Requirements
 
 ### 3.1 Rule Evaluation Requirements
 
-**REQ-RULEENGINE-001**: When a task event is provided, the RuleEngine shall evaluate whether the task change represented by the event can be applied or not.
+**REQ-RULEENGINE-001**: When a task change request is submitted with a TaskEvent, the RuleEngine shall evaluate all applicable rules within 500ms and return a RuleEvaluationResult indicating whether the change is allowed.
 
-**REQ-RULEENGINE-002**: When multiple rules match an event, the RuleEngine shall evaluate all matching rules ordered by priority (higher priority values first) and report all detected violations in one go.
+**REQ-RULEENGINE-002**: Where rule violations are detected during task change evaluation, the RuleEngine shall return violation details including rule ID, priority, message, category, and optional details.
+
+**REQ-RULEENGINE-003**: When evaluating rules, the RuleEngine shall access BoardAccess to obtain enriched context including WIP counts, task history, column timestamps, and board metadata for comprehensive rule evaluation.
+
+**REQ-RULEENGINE-004**: When multiple rules apply to the same task event, the RuleEngine shall evaluate all applicable rules and aggregate violations sorted by priority (higher priority first).
+
+**REQ-RULEENGINE-005**: When no applicable rules are found for a task event, the RuleEngine shall allow the task change by default.
 
 ## 4. Quality Attributes
 
@@ -66,14 +83,21 @@ The following operations define the required behavior for RuleEngine:
 ### 5.1 Interface Operations
 The RuleEngine service shall provide the following behavioral operations:
 
-- **Evaluate Task Change**: Accept task event context, return decision whether task change can be applied or not
+- **EvaluateTaskChange**: Accept TaskEvent and board path, return RuleEvaluationResult with allowed status and violation details
+- **Close**: Release any resources held by the engine and perform cleanup
 
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
-**Task Event Context**: Contains possible future task state, current state, and event type for rule evaluation.
+**TaskEvent**: Contains event type (task_transition, task_create, task_update), current state (TaskWithTimestamps), future state (TaskState), and timestamp.
 
-**Rule Evaluation Result**: Verdict, whether the task change can be applied or not and list of reasons if not.
+**TaskState**: Contains Task, Priority, and WorkflowStatus representing the intended state.
+
+**RuleEvaluationResult**: Contains Allowed boolean and Violations array with detailed rule violation information.
+
+**RuleViolation**: Contains RuleID, Priority, Message, Category, and optional Details for specific violation context.
+
+**EnrichedContext**: Contains TaskEvent, WIP counts, task history, subtasks, column tasks, column enter times, and board metadata for comprehensive rule evaluation.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -86,18 +110,29 @@ All errors shall include:
 ## 6. Technical Constraints
 
 ### 6.1 Integration Requirements
-**REQ-INTEGRATION-001**: The RuleEngine service shall receive rule sets from ResourceAccess.
+**REQ-INTEGRATION-001**: The RuleEngine service shall receive rule sets from RulesAccess component for rule definitions.
 
-**REQ-INTEGRATION-002**: The RuleEngine service shall use the LoggingUtility service for all operational logging.
+**REQ-INTEGRATION-002**: The RuleEngine service shall use BoardAccess component to obtain enriched board context including WIP counts, task history, and column metadata.
 
-**REQ-INTEGRATION-003**: The RuleEngine service shall operate within the Engines architectural layer constraints and maintain stateless operation.
+**REQ-INTEGRATION-003**: The RuleEngine service shall use the LoggingUtility service for all operational logging.
+
+**REQ-INTEGRATION-004**: The RuleEngine service shall operate within the Engines architectural layer constraints, maintain stateless operation, and only access ResourceAccess and Utilities components.
 
 ### 6.2 Data Format Requirements
 **REQ-FORMAT-001**: The RuleEngine service shall process rule data in the format provided by RulesAccess without format transformation.
 
-**REQ-FORMAT-002**: The RuleEngine service shall support rule condition expressions that can reference task properties and event context.
+**REQ-FORMAT-002**: The RuleEngine service shall support rule categories including validation (WIP limits, required fields), workflow (allowed transitions), automation (age limits), and notification rules.
 
-**REQ-FORMAT-003**: The RuleEngine service shall return rule evaluation results in structured format suitable for Manager layer orchestration.
+**REQ-FORMAT-003**: The RuleEngine service shall return rule evaluation results in structured JSON-serializable format suitable for Manager layer orchestration.
+
+### 6.3 Rule Type Requirements
+**REQ-RULETYPE-001**: The RuleEngine service shall support WIP limit rules that prevent exceeding configurable task counts per column.
+
+**REQ-RULETYPE-002**: The RuleEngine service shall support required field rules that validate task completeness before column transitions.
+
+**REQ-RULETYPE-003**: The RuleEngine service shall support workflow transition rules that enforce allowed column-to-column movements.
+
+**REQ-RULETYPE-004**: The RuleEngine service shall support age limit rules that warn when tasks remain in columns beyond configurable time thresholds.
 
 ## 7. Acceptance Criteria
 
@@ -124,5 +159,6 @@ All errors shall include:
 ---
 
 **Document Version**: 1.0  
-**Created**: 2025-09-12  
+**Created**: 2025-09-12
+**Updated**: 2025-09-13
 **Status**: Accepted

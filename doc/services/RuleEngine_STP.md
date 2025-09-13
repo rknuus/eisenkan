@@ -6,92 +6,88 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the RuleEngine service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [RuleEngine_SRS.md](RuleEngine_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for rule evaluation operations and task change validation capabilities.
+Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for Kanban rule evaluation including WIP limits, workflow transitions, definition of ready/done, and age-based task management capabilities.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
 - Memory and CPU profiling capabilities
-- Rule set test data with various complexity levels
+- Rule set test data with various complexity levels (WIP limits, workflow transitions, age limits)
 - Concurrent execution environment (goroutine support)
 - LoggingUtility service for operational logging
 - RulesAccess service for providing rule sets
+- BoardAccess service for enriched rule evaluation context
 - Mock rule sets for boundary condition testing
+- Test board directories with git repositories for integration testing
 
 ## 2. Test Strategy
 
 This STP emphasizes breaking the system through:
-- **API Contract Violations**: Invalid, extreme, and malformed inputs, boundary violations, type mismatches
-- **Resource Exhaustion**: Memory limits, large rule sets, complex rule conditions
-- **Rule Logic Edge Cases**: Circular conditions, contradictory rules, malformed rule expressions
-- **Performance Degradation**: Large rule sets, complex evaluation scenarios, concurrent load
-- **Requirements Verification Tests**: Validate all EARS requirements with negative cases
-- **Error Recovery Tests**: Test graceful degradation and error handling
-- **Concurrency Stress Testing**: Test race conditions and consistency under concurrent rule evaluation
+- **API Contract Violations**: Invalid TaskEvent structures, malformed board paths, type mismatches
+- **Resource Exhaustion**: Memory limits, large rule sets, complex rule conditions, oversized board data
+- **Rule Logic Edge Cases**: WIP limit boundary conditions, invalid workflow transitions, malformed rule expressions
+- **Performance Degradation**: Large rule sets, complex evaluation scenarios, concurrent load, BoardAccess integration overhead
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-005 with negative cases
+- **Error Recovery Tests**: Test graceful degradation when BoardAccess fails, rule loading errors
+- **Concurrency Stress Testing**: Test race conditions and consistency under concurrent rule evaluation with shared board access
 
 ## 3. Destructive API Test Cases
 
 ### 3.1 API Contract Violations
 
 **Test Case DT-API-001**: Rule Evaluation with Invalid Inputs
-- **Objective**: Test API contract violations for rule evaluation
+- **Objective**: Test API contract violations for EvaluateTaskChange operation
 - **Destructive Inputs**:
-  - nil task event context
-  - Task event context with missing required fields (current state, future state, event type)
-  - Task event context with invalid data types
-  - Task event context with circular references in task data
-  - Task event context with extremely large task descriptions (>10KB)
-  - Task event context with invalid unicode characters
-  - Task event context with malformed priority or status values
-  - Task event context with invalid workflow states
-  - Empty or nil rule sets
-  - Rule sets with malformed JSON structures
-  - Rule sets with invalid rule trigger types
-  - Rule sets with missing rule conditions
-  - Rule sets with invalid condition expressions
-  - Rule sets with circular rule dependencies
+  - nil TaskEvent context
+  - TaskEvent with missing required fields (event type, future state)
+  - TaskEvent with invalid data types in Task fields
+  - TaskEvent with extremely large task descriptions (>10KB)
+  - TaskEvent with invalid unicode characters
+  - TaskEvent with malformed Priority or WorkflowStatus values
+  - Invalid or non-existent board path strings
+  - Board paths pointing to non-git directories
+  - Board paths with permission access issues
+  - Empty or nil rule sets from RulesAccess
+  - Rules with missing required Actions field
+  - Rules with invalid trigger types not matching event types
+  - Rules with malformed condition expressions
 - **Expected**:
-  - Service handles nil gracefully without crashes
-  - Missing required fields are detected and rejected with clear messages
-  - Invalid data types are validated and rejected
-  - Large inputs are handled appropriately or limited safely
-  - Circular references are detected and prevented
-  - Malformed rule sets are rejected with structured errors
+  - Service handles nil TaskEvent gracefully without crashes
+  - Missing required fields are detected and return structured errors
+  - Invalid data types are validated and rejected with clear messages
+  - Large inputs are handled appropriately without memory exhaustion
+  - Invalid board paths return appropriate error messages
+  - Malformed rules are rejected with detailed error information
   - Unicode handling is correct throughout evaluation
-  - Invalid expressions are caught during rule evaluation
 
 ### 3.2 Rule Logic Edge Cases
 
 **Test Case DT-LOGIC-001**: Rule Condition and Configuration Edge Cases
-- **Objective**: Test rule evaluation under complex conditions and invalid rule configurations
+- **Objective**: Test Kanban rule evaluation under complex conditions and edge cases
 - **Edge Case Scenarios**:
-  - Rules with deeply nested condition logic (>10 levels)
-  - Rules with contradictory condition combinations
-  - Rules with conditions referencing non-existent task properties
-  - Rules with infinite loops in condition evaluation
-  - Rules with extremely complex regular expressions
-  - Rules with date/time conditions at boundary values
-  - Rules with numeric conditions at MIN/MAX values
-  - Rules with string conditions containing special characters
-  - Rules with boolean logic that could cause short-circuit evaluation issues
-  - Rules with conditions that reference other rule results
-  - Rule sets with syntax errors in condition expressions
-  - Rule sets with unsupported trigger types
-  - Rule sets with missing required rule fields
-  - Rule sets with invalid rule categories
-  - Rule sets with corrupted or truncated JSON
-  - Rule sets with encoding issues (invalid UTF-8)
+  - WIP limit rules with zero or negative limits
+  - WIP limit rules with extremely high limits (>10000)
+  - Required field rules referencing non-existent task properties
+  - Workflow transition rules with invalid column names
+  - Workflow transition rules with circular transition definitions
+  - Age limit rules with zero or negative age thresholds
+  - Age limit rules with timestamp parsing edge cases
+  - Rules with conditions referencing non-existent board metadata
+  - Rules with invalid priority values (negative, overflow)
+  - Rules with malformed Actions field structures
+  - Rules with unsupported category values
+  - Rules targeting non-existent event types
+  - Rules with disabled status but referenced by other rules
+  - BoardAccess returning malformed WIP count data
+  - BoardAccess returning invalid task history data
+  - BoardAccess integration failures during rule evaluation
 - **Expected**:
-  - Complex conditions are evaluated correctly within performance limits
-  - Contradictory conditions are handled gracefully
-  - Non-existent property references return appropriate defaults or errors
-  - Infinite loops are detected and prevented
-  - Regular expressions are safely evaluated with timeout protection
-  - Boundary values in conditions are handled correctly
-  - Special characters in conditions don't break evaluation
-  - Short-circuit evaluation works correctly
-  - Cross-rule references are either supported or properly rejected
-  - Malformed rules are rejected with detailed error information
-  - System continues operating despite invalid rule configurations
+  - WIP limit edge cases are handled with appropriate error messages
+  - Required field validation handles missing properties gracefully
+  - Workflow transition validation rejects invalid configurations
+  - Age limit calculations handle timestamp edge cases correctly
+  - Invalid rule configurations are rejected with detailed diagnostics
+  - BoardAccess integration failures result in partial evaluation results
+  - System continues operating despite individual rule evaluation failures
 
 **Test Case DT-LOGIC-002**: Rule Priority and Conflict Resolution
 - **Objective**: Test rule evaluation when multiple rules conflict or have complex priorities
@@ -203,12 +199,14 @@ This STP emphasizes breaking the system through:
 - LoggingUtility service integration for testing
 
 ### 7.2 Success Criteria
-- **100% Requirements Coverage**: All EARS requirements REQ-RULEENGINE-001 and REQ-RULEENGINE-002 have corresponding destructive tests
+- **100% Requirements Coverage**: All EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-005 have corresponding destructive tests
 - **Zero Critical Failures**: No crashes, memory leaks, or data corruption
 - **Race Detector Clean**: No race conditions detected under any scenario
 - **Performance Requirements Met**: 100 rules evaluated within 500ms requirement maintained under adverse conditions
-- **Graceful Error Handling**: All error conditions handled without service failures
-- **Complete Recovery**: Service recovers from all testable failure conditions
+- **BoardAccess Integration**: All enriched context scenarios tested including WIP counts, task history, and board metadata
+- **Kanban Rule Types**: All rule categories (validation, workflow, automation, notification) tested with destructive scenarios
+- **Graceful Error Handling**: All error conditions handled without service failures, including BoardAccess failures
+- **Complete Recovery**: Service recovers from all testable failure conditions including rule loading and board access errors
 - **Rule Evaluation Consistency**: Task change decisions remain consistent across all failure and recovery scenarios
 
 ---
