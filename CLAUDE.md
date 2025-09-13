@@ -101,7 +101,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 #### Phase Requirements
 1. **SRS Creation**: Create `doc/services/<ServiceName>_SRS.md` with EARS requirements with similar structure like other SRS documents, if existing, keeping requirements and interface contracts technology-agnostic except the requirements in section "Technical Constraints"
 2. **SRS Review**: Present to user, wait for explicit "SRS approved"
-3. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing
+3. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
 4. **STP Review**: Present to user, wait for explicit "STP approved"
 5. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
 6. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
