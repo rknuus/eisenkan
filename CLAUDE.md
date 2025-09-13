@@ -36,6 +36,16 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 ## Service Lifecycle Process
 
 ```
+                      ┌───────────────────┐
+                      │ Establish Context │
+                      └─────────┬─────────┘
+                                │
+                                ▼
+                      ┌───────────────────┐
+                      │   Context Review  │
+                      └─────────┬─────────┘
+                                │
+                                ▼
                              ┌─────┐
                              │ SRS │
                              └──┬──┘
@@ -99,17 +109,19 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 **CRITICAL**: Each step below MUST be followed exactly. No step may be skipped without explicit user approval.
 
 #### Phase Requirements
-1. **SRS Creation**: Create `doc/services/<ServiceName>_SRS.md` with EARS requirements with similar structure like other SRS documents, if existing, keeping requirements and interface contracts technology-agnostic except the requirements in section "Technical Constraints"
-2. **SRS Review**: Present to user, wait for explicit "SRS approved"
-3. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
-4. **STP Review**: Present to user, wait for explicit "STP approved"
-5. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
-6. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
-7. **Design Review**: Present complete design, wait for "Design approved"
-8. **Construction & Code Review**: Involve user in code review, wait for approval
-9. **Integration Testing**: Required for components basing on other components, skip for leaf-compontents
-10. **Acceptance Testing**: Demonstrate all STP tests pass, obtain user acceptance
-11. **STR Creation**: Create `doc/services/<ServiceName>_STR.md` with actual test execution results and requirements verification
+1. **Establish Context**: Brainstorm possible functionality of the service
+2. **Context Review**: Present to user, wait for explicit "Context approved"
+3. **SRS Creation**: Based on feedback about Context create `doc/services/<ServiceName>_SRS.md` with EARS requirements with similar structure like other SRS documents, if existing, keeping requirements and interface contracts technology-agnostic except the requirements in section "Technical Constraints"
+4. **SRS Review**: Present to user, wait for explicit "SRS approved"
+5. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
+6. **STP Review**: Present to user, wait for explicit "STP approved"
+7. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
+8. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
+9. **Design Review**: Present complete design, wait for "Design approved"
+10. **Construction & Code Review**: Involve user in code review, wait for approval
+11. **Integration Testing**: Required for components basing on other components, skip for leaf-compontents
+12. **Acceptance Testing**: Demonstrate all STP tests pass, obtain user acceptance
+13. **STR Creation**: Create `doc/services/<ServiceName>_STR.md` with actual test execution results and requirements verification
 
 #### Interaction Requirements
 - **MUST** ask explicit questions: "Please review this [SRS/STP/Design Prototype/Design]. Do you approve proceeding?"
