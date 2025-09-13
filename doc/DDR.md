@@ -1,5 +1,45 @@
 # Design Decision Records (DDR)
 
+## [2025-09-13] - Fractal Design Decision
+
+**Decision**: Option B - Integrate subtasks directly into existing interfaces
+
+**Context**: Whether to use fractal design (treating parent tasks as boards with separate instances) or integrate subtasks into existing interfaces.
+
+**Options Considered**:
+- **Option A: Fractal design** - Separate system instances per task with subtasks, elegant API but complex routing and UI integration
+- **Option B: Direct integration** - Single system instance managing both tasks and subtasks, simpler architecture
+
+**Rationale**: Could not solve routing/instance issues cleanly in fractal approach while maintaining iDesign principles.
+
+**Consequences**:
+- Interfaces are moderately more complicated and explicit
+- Subtask special cases mean the implementation is more complicated
+- Can still use the "task as a board" concept as mental model
+
+**User Approval**: Approved on [2025-09-13]
+
+## [2025-09-13] - Subtasks Design Decision
+
+**Decision**: Option A - Support subtasks
+
+**Context**: Need to organize related tasks within boards. Previous workarounds (extra columns, tags) were tedious for tracking task groups with same goal.
+
+**Options Considered**:
+- **Option A: Support subtasks** - Fulfills user need but increases complexity
+- **Option B: No subtasks** - Simpler but doesn't meet user need
+
+**Rationale**: User need trumps implementation effort.
+
+**Consequences**:
+- More complex interfaces requiring subtask-aware operations
+- Implementation complexity in storage, querying, and state management
+- Enhanced data model with parent-child relationships
+- Additional validation logic for subtask hierarchies
+- UI complexity for nested task visualization
+
+**User Approval**: Approved on [2025-09-13]
+
 ## [2025-09-12] - RulesAccess Design Decision: Concurrent Access Strategy
 
 **Decision**: Option C - VersioningUtility-Level Coordination
