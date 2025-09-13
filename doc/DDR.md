@@ -1,5 +1,49 @@
 # Design Decision Records (DDR)
 
+## [2025-09-13] - RuleEngine Design Decision: Rule Context Data Access Strategy
+
+**Decision**: Option C - Rule Engine with ResourceAccess Integration
+
+**Context**: RuleEngine needs broader board context for Kanban rules (WIP limits, subtask status, column timestamps, other tasks' priorities) beyond single task event context defined in current SRS.
+
+**Options Considered**:
+- **Option A: Minimal Context** - Single task only, simple but cannot implement complex Kanban rules
+- **Option B: Rich Context** - Manager provides board context, keeps Engine pure but increases Manager complexity
+- **Option C: ResourceAccess Integration** - RuleEngine calls ResourceAccess directly for board data when needed
+
+**Rationale**: Option C provides complete rule evaluation capabilities while maintaining architectural compliance (Engines can access ResourceAccess components per iDesign). This enables all identified Kanban rule types without overcomplicating the Manager layer.
+
+**Consequences**:
+- RuleEngine can implement WIP limits, age limits, subtask dependencies, and priority flow rules
+- Direct access to BoardAccess for task counts and timestamps
+- Direct access to task hierarchy information for subtask rules  
+- RuleEngine becomes more capable but retains stateless operation
+- Cleaner separation between rule logic (Engine) and workflow orchestration (Manager)
+
+**User Approval**: Approved on [2025-09-13]
+
+## [2025-09-13] - RuleEngine Design Decision: Rule Evaluation Architecture
+
+**Decision**: Option B - Complete Sequential Processor
+
+**Context**: Need to meet REQ-RULEENGINE-002 requirement to report all violations in one evaluation.
+
+**Options Considered**:
+- **Option A: Eager Sequential Processor** - Simple but cannot report all violations at once, because it stops at first violation
+- **Option B: Complete Sequential Processor** - Simple and can report all violations at once, because it aggregates all violations
+- **Option C: Parallel Evaluator** - Evaluate all rules in parallel, aggregate results to report all violations
+- **Option D: Hybrid Priority Groups** - Complex implementation with partial violation reporting
+
+**Rationale**: Option B meets REQ-RULEENGINE-002 requirement to evaluate all matching rules and report all violations. Parallel evaluation of option C) would provide better performance for large rule sets, but that's an implementation detail not considered critical and could be changed later on without breaking the interface.
+
+**Consequences**:
+- Can report all rule violations in single evaluation (meets SRS requirement)
+- Stateless evaluation per individual rule
+- Requires result aggregation
+- All applicable rules evaluated regardless of priority (violations sorted by priority in results)
+
+**User Approval**: Approved on [2025-09-13]
+
 ## [2025-09-13] - Fractal Design Decision
 
 **Decision**: Option B - Integrate subtasks directly into existing interfaces
