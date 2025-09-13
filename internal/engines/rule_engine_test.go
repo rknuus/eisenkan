@@ -1,0 +1,731 @@
+package engines
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/utilities"
+)
+
+// Mock implementations for testing
+
+type mockRulesAccess struct {
+	ruleSet *resource_access.RuleSet
+	err     error
+}
+
+func (m *mockRulesAccess) ReadRules(boardDirPath string) (*resource_access.RuleSet, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.ruleSet, nil
+}
+
+func (m *mockRulesAccess) ValidateRuleChanges(ruleSet *resource_access.RuleSet) (*resource_access.ValidationResult, error) {
+	return &resource_access.ValidationResult{Valid: true}, nil
+}
+
+func (m *mockRulesAccess) ChangeRules(boardDirPath string, ruleSet *resource_access.RuleSet) error {
+	return nil
+}
+
+func (m *mockRulesAccess) Close() error {
+	return nil
+}
+
+type mockBoardAccess struct {
+	tasks       []*resource_access.TaskWithTimestamps
+	history     []utilities.CommitInfo
+	config      *resource_access.BoardConfiguration
+	err         error
+}
+
+func (m *mockBoardAccess) CreateTask(task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) (string, error) {
+	return "", nil
+}
+
+func (m *mockBoardAccess) GetTasksData(taskIDs []string) ([]*resource_access.TaskWithTimestamps, error) {
+	return m.tasks, m.err
+}
+
+func (m *mockBoardAccess) ListTaskIdentifiers() ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockBoardAccess) ChangeTaskData(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+	return nil
+}
+
+func (m *mockBoardAccess) MoveTask(taskID string, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+	return nil
+}
+
+func (m *mockBoardAccess) ArchiveTask(taskID string) error {
+	return nil
+}
+
+func (m *mockBoardAccess) RemoveTask(taskID string) error {
+	return nil
+}
+
+func (m *mockBoardAccess) FindTasks(criteria *resource_access.QueryCriteria) ([]*resource_access.TaskWithTimestamps, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.tasks, nil
+}
+
+func (m *mockBoardAccess) GetTaskHistory(taskID string, limit int) ([]utilities.CommitInfo, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.history, nil
+}
+
+func (m *mockBoardAccess) GetBoardConfiguration() (*resource_access.BoardConfiguration, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.config == nil {
+		return &resource_access.BoardConfiguration{Name: "Test Board"}, nil
+	}
+	return m.config, nil
+}
+
+func (m *mockBoardAccess) UpdateBoardConfiguration(config *resource_access.BoardConfiguration) error {
+	return nil
+}
+
+func (m *mockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*resource_access.RulesData, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	
+	rulesData := &resource_access.RulesData{
+		WIPCounts:        make(map[string]int),
+		ColumnTasks:      make(map[string][]*resource_access.TaskWithTimestamps),
+		ColumnEnterTimes: make(map[string]time.Time),
+		BoardMetadata:    make(map[string]string),
+	}
+	
+	// Build WIP counts and organize tasks by column
+	for _, task := range m.tasks {
+		rulesData.WIPCounts[task.Status.Column]++
+		
+		// Group tasks by column (only for requested columns)
+		if len(targetColumns) == 0 || containsString(targetColumns, task.Status.Column) {
+			rulesData.ColumnTasks[task.Status.Column] = append(
+				rulesData.ColumnTasks[task.Status.Column], task)
+		}
+	}
+	
+	// Mock task history if taskID provided
+	if taskID != "" {
+		rulesData.TaskHistory = m.history
+		
+		// Mock column enter times
+		for _, column := range targetColumns {
+			rulesData.ColumnEnterTimes[column] = time.Now().Add(-time.Hour)
+		}
+	}
+	
+	// Mock board metadata
+	if m.config != nil {
+		rulesData.BoardMetadata["board_name"] = m.config.Name
+	} else {
+		rulesData.BoardMetadata["board_name"] = "Test Board"
+	}
+	
+	return rulesData, nil
+}
+
+// Helper function for mock
+func containsString(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *mockBoardAccess) Close() error {
+	return nil
+}
+
+// Test helper functions
+
+func createMockTask(id, title, column string) *resource_access.TaskWithTimestamps {
+	return &resource_access.TaskWithTimestamps{
+		Task: &resource_access.Task{
+			ID:    id,
+			Title: title,
+		},
+		Priority: resource_access.Priority{
+			Urgent:    false,
+			Important: true,
+			Label:     "not-urgent-important",
+		},
+		Status: resource_access.WorkflowStatus{
+			Column:   column,
+			Section:  "not-urgent-important",
+			Position: 1,
+		},
+		CreatedAt: time.Now().Add(-time.Hour),
+		UpdatedAt: time.Now(),
+	}
+}
+
+func TestNewRuleEngine(t *testing.T) {
+	t.Run("successful creation", func(t *testing.T) {
+		rulesAccess := &mockRulesAccess{}
+		boardAccess := &mockBoardAccess{}
+
+		engine, err := NewRuleEngine(rulesAccess, boardAccess)
+
+		if err != nil {
+			t.Errorf("NewRuleEngine() error = %v, want nil", err)
+		}
+		if engine == nil {
+			t.Error("NewRuleEngine() returned nil engine")
+		}
+	})
+
+	t.Run("nil rulesAccess", func(t *testing.T) {
+		boardAccess := &mockBoardAccess{}
+
+		engine, err := NewRuleEngine(nil, boardAccess)
+
+		if err == nil {
+			t.Error("NewRuleEngine() with nil rulesAccess should return error")
+		}
+		if engine != nil {
+			t.Error("NewRuleEngine() with nil rulesAccess should return nil engine")
+		}
+	})
+
+	t.Run("nil boardAccess", func(t *testing.T) {
+		rulesAccess := &mockRulesAccess{}
+
+		engine, err := NewRuleEngine(rulesAccess, nil)
+
+		if err == nil {
+			t.Error("NewRuleEngine() with nil boardAccess should return error")
+		}
+		if engine != nil {
+			t.Error("NewRuleEngine() with nil boardAccess should return nil engine")
+		}
+	})
+}
+
+func TestEvaluateTaskChange_NoRules(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules:   []resource_access.Rule{},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := TaskEvent{
+		EventType: "task_transition",
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:    "task1",
+				Title: "Test Task",
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Error("EvaluateTaskChange() with no rules should allow task change")
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestEvaluateTaskChange_WIPLimit(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "wip-limit-doing",
+					Name:        "WIP Limit for Doing Column",
+					Category:    "validation",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"max_wip_limit": 2,
+					},
+					Priority: 100,
+					Enabled:  true,
+				},
+			},
+		},
+	}
+
+	// Mock board access with 2 tasks already in "doing" column
+	boardAccess := &mockBoardAccess{
+		tasks: []*resource_access.TaskWithTimestamps{
+			createMockTask("task1", "Existing Task 1", "doing"),
+			createMockTask("task2", "Existing Task 2", "doing"),
+		},
+	}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Try to move a task from "todo" to "doing" (would exceed WIP limit)
+	event := TaskEvent{
+		EventType: "task_transition",
+		CurrentState: createMockTask("task3", "Moving Task", "todo"),
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:    "task3",
+				Title: "Moving Task",
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateTaskChange() should not allow task change when WIP limit exceeded")
+	}
+	if len(result.Violations) != 1 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 1", len(result.Violations))
+	}
+	if len(result.Violations) > 0 && result.Violations[0].RuleID != "wip-limit-doing" {
+		t.Errorf("EvaluateTaskChange() violation rule ID = %s, want wip-limit-doing", result.Violations[0].RuleID)
+	}
+}
+
+func TestEvaluateTaskChange_RequiredFields(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "required-fields",
+					Name:        "Required Fields Rule",
+					Category:    "validation",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"required_fields": []interface{}{"title", "description"},
+					},
+					Priority: 90,
+					Enabled:  true,
+				},
+			},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Task with missing description
+	event := TaskEvent{
+		EventType: "task_transition",
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:          "task1",
+				Title:       "Test Task",
+				Description: "", // Missing description
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateTaskChange() should not allow task with missing required fields")
+	}
+	if len(result.Violations) != 1 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 1", len(result.Violations))
+	}
+}
+
+func TestEvaluateTaskChange_WorkflowTransition(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "workflow-transition",
+					Name:        "Workflow Transition Rule",
+					Category:    "workflow",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"allowed_transitions": []interface{}{
+							"todo->doing",
+							"doing->done",
+						},
+					},
+					Priority: 80,
+					Enabled:  true,
+				},
+			},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Invalid transition: todo -> done (skipping doing)
+	event := TaskEvent{
+		EventType: "task_transition",
+		CurrentState: createMockTask("task1", "Test Task", "todo"),
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:    "task1",
+				Title: "Test Task",
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "done",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateTaskChange() should not allow invalid workflow transition")
+	}
+	if len(result.Violations) != 1 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 1", len(result.Violations))
+	}
+}
+
+func TestEvaluateTaskChange_MultipleRules(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "high-priority-rule",
+					Name:        "High Priority Rule",
+					Category:    "validation",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"required_fields": []interface{}{"title"},
+					},
+					Priority: 100,
+					Enabled:  true,
+				},
+				{
+					ID:          "low-priority-rule",
+					Name:        "Low Priority Rule",
+					Category:    "validation",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"required_fields": []interface{}{"description"},
+					},
+					Priority: 50,
+					Enabled:  true,
+				},
+			},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Task violating both rules
+	event := TaskEvent{
+		EventType: "task_transition",
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:          "task1",
+				Title:       "", // Missing title (high priority)
+				Description: "", // Missing description (low priority)
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateTaskChange() should not allow task with multiple rule violations")
+	}
+	if len(result.Violations) != 2 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 2", len(result.Violations))
+	}
+
+	// Check that violations are sorted by priority (high priority first)
+	if len(result.Violations) >= 2 {
+		if result.Violations[0].Priority < result.Violations[1].Priority {
+			t.Error("EvaluateTaskChange() violations should be sorted by priority (descending)")
+		}
+	}
+}
+
+func TestEvaluateTaskChange_DisabledRule(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "disabled-rule",
+					Name:        "Disabled Rule",
+					Category:    "validation",
+					TriggerType: "task_transition",
+					Conditions: map[string]interface{}{
+						"required_fields": []interface{}{"description"},
+					},
+					Priority: 100,
+					Enabled:  false, // Disabled
+				},
+			},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Task would violate the rule if it were enabled
+	event := TaskEvent{
+		EventType: "task_transition",
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:          "task1",
+				Title:       "Test Task",
+				Description: "", // Missing description
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Error("EvaluateTaskChange() should allow task change when rules are disabled")
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestEvaluateTaskChange_WrongEventType(t *testing.T) {
+	rulesAccess := &mockRulesAccess{
+		ruleSet: &resource_access.RuleSet{
+			Version: "1.0",
+			Rules: []resource_access.Rule{
+				{
+					ID:          "task-transition-rule",
+					Name:        "Task Transition Rule",
+					Category:    "validation",
+					TriggerType: "task_transition", // Only triggers on transitions
+					Conditions: map[string]interface{}{
+						"required_fields": []interface{}{"description"},
+					},
+					Priority: 100,
+					Enabled:  true,
+				},
+			},
+		},
+	}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Event type doesn't match rule trigger
+	event := TaskEvent{
+		EventType: "task_update", // Different from rule trigger type
+		FutureState: &TaskState{
+			Task: &resource_access.Task{
+				ID:          "task1",
+				Title:       "Test Task",
+				Description: "", // Missing description
+			},
+			Status: resource_access.WorkflowStatus{
+				Column: "doing",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateTaskChange(context.Background(), event, "/test/board")
+
+	if err != nil {
+		t.Errorf("EvaluateTaskChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Error("EvaluateTaskChange() should allow task change when event type doesn't match rule trigger")
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateTaskChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestParseIntValue(t *testing.T) {
+	engine := &RuleEngine{} // Don't need full setup for unit test
+
+	tests := []struct {
+		name    string
+		input   interface{}
+		want    int
+		wantErr bool
+	}{
+		{"int value", 42, 42, false},
+		{"float64 value", 42.0, 42, false},
+		{"string value", "42", 42, false},
+		{"invalid string", "not-a-number", 0, true},
+		{"nil value", nil, 0, true},
+		{"bool value", true, 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := engine.parseIntValue(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseIntValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("parseIntValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsAllowedTransition(t *testing.T) {
+	engine := &RuleEngine{} // Don't need full setup for unit test
+
+	tests := []struct {
+		name               string
+		from               string
+		to                 string
+		allowedTransitions interface{}
+		want               bool
+	}{
+		{
+			name: "simple array format - allowed",
+			from: "todo",
+			to:   "doing",
+			allowedTransitions: []interface{}{
+				"todo->doing",
+				"doing->done",
+			},
+			want: true,
+		},
+		{
+			name: "simple array format - not allowed",
+			from: "todo",
+			to:   "done",
+			allowedTransitions: []interface{}{
+				"todo->doing",
+				"doing->done",
+			},
+			want: false,
+		},
+		{
+			name: "map format - allowed",
+			from: "todo",
+			to:   "doing",
+			allowedTransitions: map[string]interface{}{
+				"todo":  []interface{}{"doing"},
+				"doing": []interface{}{"done"},
+			},
+			want: true,
+		},
+		{
+			name: "map format - not allowed",
+			from: "todo",
+			to:   "done",
+			allowedTransitions: map[string]interface{}{
+				"todo":  []interface{}{"doing"},
+				"doing": []interface{}{"done"},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := engine.isAllowedTransition(tt.from, tt.to, tt.allowedTransitions)
+			if got != tt.want {
+				t.Errorf("isAllowedTransition() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClose(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	err = engine.Close()
+	if err != nil {
+		t.Errorf("Close() error = %v, want nil", err)
+	}
+}
