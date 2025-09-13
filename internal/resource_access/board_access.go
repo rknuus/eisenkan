@@ -76,6 +76,15 @@ type TaskWithTimestamps struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 }
 
+// RulesData contains all rule-related context data in a single structure
+type RulesData struct {
+	WIPCounts        map[string]int                               `json:"wip_counts"`        // column -> task count
+	ColumnTasks      map[string][]*TaskWithTimestamps             `json:"column_tasks"`      // column -> tasks
+	TaskHistory      []utilities.CommitInfo                       `json:"task_history"`      // for age calculations
+	ColumnEnterTimes map[string]time.Time                         `json:"column_enter_times"` // column -> enter timestamp
+	BoardMetadata    map[string]string                            `json:"board_metadata"`    // board configuration data
+}
+
 // IBoardAccess defines the contract for board data operations
 type IBoardAccess interface {
 	CreateTask(task *Task, priority Priority, status WorkflowStatus) (string, error)
@@ -91,6 +100,9 @@ type IBoardAccess interface {
 	// Board Configuration Operations
 	GetBoardConfiguration() (*BoardConfiguration, error)
 	UpdateBoardConfiguration(config *BoardConfiguration) error
+
+	// Rule Engine Helper Operations
+	GetRulesData(taskID string, targetColumns []string) (*RulesData, error)
 
 	// Utility Operations
 	Close() error
@@ -1036,6 +1048,109 @@ func (ba *boardAccess) saveBoardConfiguration(config *BoardConfiguration) error 
 	}
 
 	return ba.commitChange(configPath, "Update board configuration")
+}
+
+// GetRulesData retrieves all rule-related context data in a single operation
+func (ba *boardAccess) GetRulesData(taskID string, targetColumns []string) (*RulesData, error) {
+	ba.mutex.RLock()
+	defer ba.mutex.RUnlock()
+
+	rulesData := &RulesData{
+		WIPCounts:        make(map[string]int),
+		ColumnTasks:      make(map[string][]*TaskWithTimestamps),
+		ColumnEnterTimes: make(map[string]time.Time),
+		BoardMetadata:    make(map[string]string),
+	}
+
+	// Get all active tasks for WIP counts and column tasks
+	criteria := &QueryCriteria{
+		Archived: func() *bool { b := false; return &b }(), // Not archived
+	}
+
+	allTasks, err := ba.FindTasks(criteria)
+	if err != nil {
+		return nil, fmt.Errorf("BoardAccess.GetRulesData failed to get tasks: %w", err)
+	}
+
+	// Build WIP counts and organize tasks by column
+	for _, task := range allTasks {
+		// Count for WIP
+		rulesData.WIPCounts[task.Status.Column]++
+		
+		// Group tasks by column (only for requested columns)
+		if len(targetColumns) == 0 || ba.containsColumn(targetColumns, task.Status.Column) {
+			rulesData.ColumnTasks[task.Status.Column] = append(
+				rulesData.ColumnTasks[task.Status.Column], task)
+		}
+	}
+
+	// Get task history if taskID is provided
+	if taskID != "" {
+		history, err := ba.GetTaskHistory(taskID, 50)
+		if err != nil {
+			ba.logger.LogMessage(utilities.Warning, "BoardAccess", 
+				fmt.Sprintf("Failed to get task history for %s: %v", taskID, err))
+			// Continue without history rather than failing
+		} else {
+			rulesData.TaskHistory = history
+			
+			// Calculate column enter times for each target column
+			for _, column := range targetColumns {
+				enterTime := ba.findColumnEnterTime(history, column)
+				if !enterTime.IsZero() {
+					rulesData.ColumnEnterTimes[column] = enterTime
+				}
+			}
+		}
+	}
+
+	// Get board metadata
+	boardConfig, err := ba.GetBoardConfiguration()
+	if err != nil {
+		ba.logger.LogMessage(utilities.Warning, "BoardAccess", 
+			fmt.Sprintf("Failed to get board configuration: %v", err))
+		// Continue with default metadata
+		rulesData.BoardMetadata["board_name"] = "Unknown Board"
+	} else {
+		rulesData.BoardMetadata["board_name"] = boardConfig.Name
+		rulesData.BoardMetadata["columns"] = strings.Join(boardConfig.Columns, ",")
+	}
+
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", 
+		fmt.Sprintf("Retrieved rules data: %d columns WIP, %d column task groups, %d history entries", 
+			len(rulesData.WIPCounts), len(rulesData.ColumnTasks), len(rulesData.TaskHistory)))
+
+	return rulesData, nil
+}
+
+// Helper method to check if a column is in the target list
+func (ba *boardAccess) containsColumn(columns []string, target string) bool {
+	for _, col := range columns {
+		if col == target {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper method to find when a task entered a specific column from history
+func (ba *boardAccess) findColumnEnterTime(history []utilities.CommitInfo, targetColumn string) time.Time {
+	if len(history) == 0 {
+		return time.Time{}
+	}
+
+	// Search backwards through history to find when task entered target column
+	for i := len(history) - 1; i >= 0; i-- {
+		commit := history[i]
+		// This is a simplified approach - in practice, we'd need to parse commit messages
+		// or maintain column transition timestamps more explicitly
+		if strings.Contains(commit.Message, fmt.Sprintf("to %s", targetColumn)) {
+			return commit.Timestamp
+		}
+	}
+
+	// Fallback to task creation time if no specific transition found
+	return history[0].Timestamp
 }
 
 // getDefaultBoardConfiguration returns a default board configuration
