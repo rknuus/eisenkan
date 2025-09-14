@@ -1,5 +1,51 @@
 # Design Decision Records (DDR)
 
+## [2025-09-14] - Subtask Position Storage Decision: Position in Filename Not Content
+
+**Decision**: Store task and subtask position information in the filename prefix, not in the JSON content
+
+**Context**: Need to determine where to store position information for tasks and subtasks within columns/sections for proper ordering while maintaining optimal git diff behavior and data consistency.
+
+**Options Considered**:
+
+### Option A: Position in JSON Content
+- **Structure**: Task JSON contains position field: `{"id": "12345", "position": 1, "title": "..."}`
+- **Filename**: Static names like `task-12345.json`, `subtask-67890.json`
+- **Advantages**:
+  - Position data travels with task content
+  - Simpler filename management
+  - No filename changes for position updates
+- **Disadvantages**:
+  - Position changes require JSON file content modification
+  - Larger git diffs for position updates
+  - Risk of position data inconsistency with file location
+  - Complex validation between JSON content and directory location
+
+### Option B: Position in Filename Prefix
+- **Structure**: Position encoded in filename prefix
+- **Task Filename**: `<position>-task-<id>.json` (e.g., `001-task-12345.json`)
+- **Subtask Filename**: `<position>-subtask-<id>.json` (e.g., `001-subtask-67890.json`)
+- **Directory Names**: No position prefix (e.g., `task-12345/` for subtask container)
+- **Advantages**:
+  - Optimal git diffs for position changes (file rename vs content change)
+  - Position immediately visible in directory listings
+  - Natural sorting by filename gives correct position order
+  - No risk of position data inconsistency
+  - JSON content focuses purely on task data
+
+**Rationale**: Choose Option B to optimize for REQ-FORMAT-002 (minimal git diffs for common operations). Position changes are common operations in Kanban boards (reordering tasks within columns/sections). Using filename prefixes makes position changes into git file renames rather than content modifications, resulting in cleaner version history and better merge conflict resolution.
+
+**Consequences**:
+- Task files: `001-task-12345.json`, `002-task-67890.json` etc.
+- Subtask files: `001-subtask-11111.json`, `002-subtask-22222.json` etc.  
+- Subtask directories: `task-12345/` (no position prefix to minimize directory moves)
+- Position changes become file rename operations (optimal for git)
+- Directory listings naturally sort by position
+- JSON content remains focused on task attributes only
+- File management operations must handle position prefix updates
+
+**User Approval**: Approved on [2025-09-14]
+
 ## [2025-09-13] - ValidationEngine Service Decision: Service Not Required
 
 **Decision**: Do not implement ValidationEngine service for EisenKan
