@@ -1,5 +1,113 @@
 # Design Decision Records (DDR)
 
+## [2025-09-14] - TaskManager: Interface Contract Design
+
+**Decision**: Option A - Single Comprehensive Interface
+
+**Context**: Need to determine how TaskManager should organize its operations and data contracts while maintaining interface consistency with SRS requirements.
+
+**Options Considered**:
+- **Option A: Single Comprehensive Interface** - All 7 operations in one interface with rich data contracts
+- **Option B: Separated CRUD and Workflow Interfaces** - Split between TaskCRUD and TaskWorkflow interfaces  
+- **Option C: Operation-Grouped Interfaces** - Three focused interfaces (TaskManagement, TaskQuery, TaskWorkflow)
+
+**Rationale**: Choose Option A because all operations concern the same "facet" of the manager.
+
+**Consequences**:
+- Single TaskManager interface with 7 operations as specified in SRS
+- Rich data contracts: TaskRequest, TaskResponse, WorkflowStatus, ValidationResult entities
+- Direct alignment with SRS service contract requirements
+- Simplified client integration with single interface
+- Future interface segregation possible if needed
+
+**User Approval**: Approved on [2025-09-14]
+
+## [2025-09-14] - TaskManager: Internal Architecture Structure
+
+**Decision**: Option A - Simple Manager with Direct Dependencies
+
+**Context**: Need to determine internal component organization for TaskManager while maintaining Manager layer architectural constraints.
+
+**Options Considered**:
+- **Option A: Simple Manager with Direct Dependencies** - TaskManager directly coordinates with BoardAccess, RuleEngine, LoggingUtility
+- **Option B: Manager with Internal Workflow Orchestrator** - Additional WorkflowOrchestrator internal component
+- **Option C: Manager with Specialized Internal Services** - Multiple internal components (TaskValidator, WorkflowOrchestrator, CascadeHandler)
+
+**Rationale**: Choose Option A because the TaskManager with its dependencies builds a subsystem accordign to iDesign.
+
+**Consequences**:
+- Single TaskManager service implementation
+- Direct calls to BoardAccess for data persistence
+- Direct calls to RuleEngine for business rule validation
+- Direct calls to LoggingUtility for operational logging
+- Embedded workflow orchestration logic within TaskManager
+- Simple implementation and maintenance approach
+
+**User Approval**: Approved on [2025-09-14]
+
+## [2025-09-14] - TaskManager: Subtask Workflow Coupling Strategy
+
+**Decision**: TaskManager-Orchestrated with RuleEngine Compliance Verification
+
+**Context**: Need to determine responsibility allocation between TaskManager and RuleEngine for subtask workflow coupling rules implementation.
+
+**User Specification**: "The RuleEngine shall verify compliance with the rules as specified in the RuleEngine SRS and the RuleEngine code. All the remaining responsibilities shall be covered by the TaskManager."
+
+**Rationale**: Clear separation of concerns where RuleEngine validates business rule compliance (as per its SRS) while TaskManager implements the actual workflow coupling orchestration. This maintains the Manager layer's orchestration responsibilities while leveraging RuleEngine for rule validation.
+
+**Consequences**:
+- TaskManager implements subtask workflow coupling logic (REQ-TASKMANAGER-016, REQ-TASKMANAGER-017)
+- RuleEngine validates rule compliance before TaskManager applies changes
+- TaskManager coordinates parent-child status transitions based on active policies
+- TaskManager handles cascade operations for task deletion/archival
+- Clear responsibility boundaries between rule validation and workflow orchestration
+
+**User Approval**: Approved on [2025-09-14]
+
+## [2025-09-14] - TaskManager: Error Handling Strategy
+
+**Decision**: Option B - Error Wrapping with Context
+
+**Context**: Need to choose error handling approach that provides structured information per SRS requirements while maintaining consistency with existing DDR patterns.
+
+**Options Considered**:
+- **Option A: Structured Error Types** - Custom error types with code, message, details, suggestions
+- **Option B: Error Wrapping with Context** - Go standard error wrapping following BoardAccess DDR pattern
+- **Option C: Hybrid Domain-Specific Errors** - Structured for workflow violations, wrapped for system failures
+
+**Rationale**: Choose Option B for consistency with existing BoardAccess DDR decision and Go idioms. Error wrapping with contextual information provides sufficient debugging capability while maintaining implementation simplicity and architectural consistency across ResourceAccess components.
+
+**Consequences**:
+- Go standard error wrapping with contextual information
+- Error chain preservation from dependencies (BoardAccess, RuleEngine)
+- Contextual annotations for TaskManager operations
+- Consistency with established DDR patterns
+- Good error debugging capability without over-engineering
+
+**User Approval**: Approved on [2025-09-14]
+
+## [2025-09-14] - TaskManager: Concurrency and Thread Safety Strategy
+
+**Decision**: Option A - Service-Level Mutex
+
+**Context**: Need to ensure thread-safe operations for concurrent task workflow orchestration while maintaining data consistency per SRS performance and reliability requirements.
+
+**Options Considered**:
+- **Option A: Service-Level Mutex** - Single RWMutex following BoardAccess DDR pattern
+- **Option B: Operation-Level Locking** - Fine-grained locking by operation type
+- **Option C: Stateless with Dependency Coordination** - Rely on dependency locking
+
+**Rationale**: Choose Option A for consistency with BoardAccess DDR decision and guaranteed data consistency. Service-level RWMutex ensures safe concurrent access to workflow orchestration operations while maintaining architectural consistency with other Manager components.
+
+**Consequences**:
+- Single RWMutex protecting all TaskManager operations
+- Multiple concurrent readers, exclusive writers
+- Guaranteed workflow consistency for parent-child operations
+- Consistency with established BoardAccess concurrency pattern
+- Simple implementation with reliable thread safety
+
+**User Approval**: Approved on [2025-09-14]
+
 ## [2025-09-14] - Subtask Position Storage Decision: Position in Filename Not Content
 
 **Decision**: Store task and subtask position information in the filename prefix, not in the JSON content
