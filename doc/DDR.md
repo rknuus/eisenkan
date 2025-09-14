@@ -1,5 +1,30 @@
 # Design Decision Records (DDR)
 
+## [2025-09-15] - CacheUtility: Implementation Architecture
+
+**Decision**: Option A - Map-Based with RWMutex
+
+**Context**: Need to determine the internal implementation approach for CacheUtility thread-safe caching operations while maintaining performance requirements (1ms Get, 5ms Set) and supporting TTL management, pattern-based invalidation, and LRU eviction.
+
+**Options Considered**:
+- **Option A: Map-Based with RWMutex** - Single map with read-write mutex protection, LRU tracking using doubly-linked list, simple implementation
+- **Option B: Segmented Cache with Fine-Grained Locking** - Multiple cache segments with separate locks, reduced contention but more complex
+- **Option C: Channel-Based Actor Model** - Single goroutine handling all operations via channels, serialized operations but channel overhead
+- **Option D: Sync.Map with Custom TTL Management** - Go's built-in concurrent map with separate TTL tracking, good read performance but complex TTL management
+
+**Rationale**: Choose Option A to align with the "start simple" approach used for TaskManagerAccess. Map-based implementation with RWMutex provides straightforward thread safety, meets performance requirements for expected cache sizes, and allows for clear LRU tracking and pattern invalidation implementation. Background cleanup goroutine handles TTL expiration efficiently.
+
+**Consequences**:
+- Simple implementation with clear thread safety guarantees
+- LRU tracking using doubly-linked list with map pointers for O(1) access
+- Background cleanup goroutine for automated expired entry removal
+- Pattern matching using filepath.Match() for wildcard support
+- Atomic operations for statistics to avoid mutex overhead during reads
+- Easy to test and debug with predictable behavior
+- Performance optimization opportunities preserved for future enhancement
+
+**User Approval**: Approved on [2025-09-15]
+
 ## [2025-09-14] - TaskManager: Interface Contract Design
 
 **Decision**: Option A - Single Comprehensive Interface
