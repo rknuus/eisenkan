@@ -6,7 +6,7 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the BoardAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [BoardAccess_SRS.md](BoardAccess_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships and subtask support.
+Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships, subtask support, and priority promotion date functionality.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
@@ -24,7 +24,8 @@ This STP emphasizes breaking the system through:
 - **Resource Exhaustion**: Memory limits, file handle exhaustion, concurrent limits
 - **External Dependency Failures**: VersioningUtility failures, file system errors, permission issues
 - **Configuration Corruption**: Invalid JSON data, corrupted task files
-- **Requirements Verification Tests**: Validate all EARS requirements with negative cases
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 with negative cases
+- **Priority Promotion Data Testing**: Invalid promotion dates, date format validation, promotion date queries
 - **Error Recovery Tests**: Test graceful degradation and recovery
 - **Concurrency Stress Testing**: Test race conditions and data corruption under stress
 
@@ -45,6 +46,9 @@ This STP emphasizes breaking the system through:
   - Task descriptions exceeding reasonable size limits (>10KB)
   - Task tags with special characters that could break JSON
   - Task due dates with invalid formats or extreme values
+  - Priority promotion dates with invalid formats (non-RFC3339, malformed timestamps)
+  - Priority promotion dates in the past or with extreme future values (year 3000+)
+  - Priority promotion dates with timezone manipulation attempts
   - Task data with circular references in nested structures
   - Task data with extremely nested priority or status objects
   - Task data containing channels, functions, unsafe pointers
@@ -69,6 +73,9 @@ This STP emphasizes breaking the system through:
   - Service handles nil gracefully without crashes
   - Missing required fields are detected and rejected with clear messages
   - Invalid priority and status values are validated and rejected
+  - Priority promotion dates are validated (proper format, reasonable ranges)
+  - Invalid promotion date formats are rejected with clear error messages
+  - Timezone handling in promotion dates is consistent and safe
   - Unicode and binary data are properly encoded or rejected
   - Large descriptions are handled or limited appropriately
   - JSON serialization handles special characters safely
@@ -155,13 +162,40 @@ This STP emphasizes breaking the system through:
   - Contradictory hierarchical filters are handled appropriately
   - Non-existent parent references are validated and handled
 
+**Test Case DT-API-005**: Priority Promotion Date Query Operations
+- **Objective**: Test priority promotion date storage, retrieval, and query functionality under destructive conditions
+- **Destructive Inputs**:
+  - Query tasks by promotion dates with malformed date criteria
+  - Query with promotion date ranges spanning centuries (year 1900 to 3000)
+  - Query with inverted date ranges (end date before start date)
+  - Query with promotion dates using invalid timezone specifications
+  - Query for promotion dates with null, empty, or malformed parameters
+  - Query operations combining promotion date filters with contradictory criteria
+  - Concurrent promotion date queries with overlapping date ranges
+  - Bulk queries for promotion dates returning 10,000+ tasks
+  - Query operations during promotion date updates
+  - Storage operations with promotion dates during query processing
+- **Expected**:
+  - Invalid date criteria are validated and rejected with clear error messages
+  - Extreme date ranges are handled or limited appropriately
+  - Inverted date ranges return appropriate validation errors
+  - Timezone handling is consistent and prevents manipulation
+  - Null/malformed parameters are rejected gracefully
+  - Contradictory criteria return empty results or clear error messages
+  - Concurrent operations maintain data consistency
+  - Large result sets are handled within performance limits
+  - Concurrent query/update operations maintain consistency
+  - All promotion date operations integrate properly with storage layer
+
 ### 3.2 Resource Exhaustion and Performance Testing
 
 **Test Case DT-RESOURCE-001**: Memory and Performance Exhaustion
 - **Objective**: Test behavior under memory pressure and data volume limits
 - **Method**:
   - Store 100,000+ tasks with large descriptions including hierarchical relationships
+  - Store 50,000+ tasks with priority promotion dates spanning decades
   - Query operations returning 50,000+ tasks with hierarchical data
+  - Query operations on priority promotion dates returning 25,000+ tasks
   - Bulk operations on 50,000+ tasks including parent-child operations
   - Individual tasks with 10KB+ descriptions
   - Parent tasks with 1,000+ subtasks each
@@ -272,16 +306,18 @@ This STP emphasizes breaking the system through:
 - CPU Profiling: Enabled (`go test -cpuprofile`)
 - File system permission control
 - JSON validation and manipulation tools
+- Date/time manipulation and validation tools for promotion date testing
 - Resource monitoring utilities (disk space and file handles)
 - Concurrent load generation tools
 - VersioningUtility service test doubles for failure simulation
 
 ### 6.2 Success Criteria
-- **100% Requirements Coverage**: Every EARS requirement has corresponding destructive tests
+- **100% Requirements Coverage**: Every EARS requirement REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 has corresponding destructive tests
 - **Zero Critical Failures**: No crashes, memory leaks, or data corruption
 - **Race Detector Clean**: No race conditions detected under any scenario
 - **Graceful Error Handling**: All error conditions handled without caller failures
 - **Performance Under Stress**: 2-second performance requirement maintained under adverse conditions
+- **Priority Promotion Data Integrity**: All promotion date storage, retrieval, and query operations maintain data consistency
 - **Complete Recovery**: Service recovers from all testable failure conditions
 - **Data Integrity**: Task data remains consistent across all failure and recovery scenarios
 

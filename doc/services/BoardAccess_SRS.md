@@ -111,6 +111,10 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-020**: The BoardAccess service shall support querying for top-level tasks only (tasks without parent task identifiers).
 
+**REQ-BOARDACCESS-023**: The BoardAccess service shall support querying tasks by priority promotion date to enable automated priority escalation processing.
+
+**REQ-BOARDACCESS-024**: When storing or updating tasks with priority promotion dates, the BoardAccess service shall validate the promotion date format and store it persistently with the task data.
+
 ### 3.5 Task Removal Requirements
 
 **REQ-BOARDACCESS-013**: When a task archive request is received, the BoardAccess service shall archive the task instead of permanently deleting it.
@@ -152,26 +156,26 @@ The following operations define the required behavior for BoardAccess:
 ### 5.1 Interface Operations
 The BoardAccess service shall provide the following behavioral operations:
 
-- **Create Task**: Accept task data with optional parent task identifier and return unique identifier with success confirmation
-- **Retrieve Single Task**: Accept task identifier and return complete task data or not-found indication
+- **Create Task**: Accept task data with optional parent task identifier and optional priority promotion date, return unique identifier with success confirmation
+- **Retrieve Single Task**: Accept task identifier and return complete task data
 - **List Task Identifiers**: Return list with identifiers of all tasks with optional hierarchical filtering
 - **Get Tasks Data**: Accept list of task identifiers and return corresponding task data with optional hierarchical information
 - **Change Task Data**: Accept task identifier and updated data, apply changes with version history while maintaining parent-child relationships
 - **Archive Task**: Accept task identifier and archive task data safely with cascade handling for subtasks
 - **Remove Task**: Accept task identifier and remove task permanently with cascade handling for subtasks
-- **Find Tasks**: Accept search criteria including parent task filters and return matching tasks
+- **Find Tasks**: Accept search criteria including parent task filters and priority promotion date filters and return matching tasks
 - **Get Task History**: Accept task identifier and return version history information
 
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
-**Task Data Entity**: Contains task identification, descriptive information, priority classification, workflow status, categorization tags, temporal tracking information, optional deadline specification, and optional parent task identifier for hierarchical relationships.
+**Task Data Entity**: Contains task identification, descriptive information, priority classification, workflow status, categorization tags, temporal tracking information, optional deadline specification, optional priority promotion date for Eisenhower matrix escalation, and optional parent task identifier for hierarchical relationships.
 
 **Priority Classification**: Represents Eisenhower matrix categorization with urgent and important dimensions for task prioritization.
 
 **Workflow Status**: Tracks current workflow position and maintains historical record of status transitions for task lifecycle management.
 
-**Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, temporal range specifications, parent task identifiers, and hierarchical level filters for task retrieval operations.
+**Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, temporal range specifications, priority promotion date filters, parent task identifiers, and hierarchical level filters for task retrieval operations.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -201,8 +205,9 @@ All errors shall include:
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-022 are met
+- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 are met
 - All operations OP-1 through OP-5 are fully supported
+- Priority promotion date functionality is fully supported for storage, retrieval, and querying
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
 
