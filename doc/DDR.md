@@ -1,5 +1,31 @@
 # Design Decision Records (DDR)
 
+## [2025-09-14] - Native GUI Framework Selection: Fyne
+
+**Decision**: Fyne for native GUI implementation
+
+**Context**: User prefers native GUIs over web UIs and needs drag-and-drop support for task management. Evaluated Go native GUI frameworks for cross-platform compatibility, drag-and-drop capabilities, and development simplicity.
+
+**Options Considered**:
+- **Fyne**: Built-in drag-and-drop via `fyne.Draggable` interface, cross-platform, Material Design-inspired, active development
+- **Wails v2**: HTML5 drag/drop API support, web frontend with native packaging, modern architecture
+- **Walk**: Native Windows drag/drop, Windows-only, lightweight, true native look
+- **Gio**: Gesture-based drag support, GPU-accelerated immediate mode GUI, steeper learning curve
+- **GTK (go-gtk)**: Full GTK drag/drop capabilities, Linux-native, comprehensive widgets
+- **Qt (therecipe/qt)**: Complete Qt drag/drop framework, professional feature set, complex setup
+
+**Rationale**: Fyne provides the optimal balance of simplicity, cross-platform support, and built-in drag-and-drop capabilities for a task management application. Material Design-inspired interface aligns well with modern user expectations, and the framework has active development with good documentation.
+
+**Consequences**:
+- Cross-platform native GUI (Windows, macOS, Linux, mobile)
+- Built-in drag-and-drop support via `fyne.Draggable` interface
+- Material Design-inspired UI components
+- Single dependency with good Go ecosystem integration
+- Active community and development support
+- Simple deployment and distribution
+
+**User Approval**: Approved on [2025-09-14]
+
 ## [2025-09-15] - CacheUtility: Implementation Architecture
 
 **Decision**: Option A - Map-Based with RWMutex
