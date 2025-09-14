@@ -25,6 +25,7 @@ type Task struct {
 	Tags        []string          `json:"tags,omitempty"`
 	DueDate     *time.Time        `json:"due_date,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
+	ParentTaskID *string          `json:"parent_task_id,omitempty"`
 }
 
 // Priority represents Eisenhower matrix categorization (excludes not-urgent-not-important)
@@ -50,15 +51,37 @@ type BoardConfiguration struct {
 	GitEmail string              `json:"git_email"` // Git commit email
 }
 
+// HierarchyFilter defines task hierarchy filtering options
+type HierarchyFilter int
+
+const (
+	AllTasks HierarchyFilter = iota
+	TopLevelOnly
+	SubtasksOnly
+)
+
+// CascadePolicy defines behavior for parent task operations affecting subtasks  
+type CascadePolicy int
+
+const (
+	NoAction CascadePolicy = iota
+	ArchiveSubtasks
+	DeleteSubtasks
+	PromoteSubtasks
+	ArchiveAndDelete
+)
+
 // QueryCriteria defines search parameters for task retrieval
 type QueryCriteria struct {
-	Columns   []string   `json:"columns,omitempty"`
-	Sections  []string   `json:"sections,omitempty"`
-	Priority  *Priority  `json:"priority,omitempty"`
-	Tags      []string   `json:"tags,omitempty"`
-	DateRange *DateRange `json:"date_range,omitempty"`
-	Archived  *bool      `json:"archived,omitempty"`
-	DateType  string     `json:"date_type,omitempty"` // "created" or "updated"
+	Columns      []string        `json:"columns,omitempty"`
+	Sections     []string        `json:"sections,omitempty"`
+	Priority     *Priority       `json:"priority,omitempty"`
+	Tags         []string        `json:"tags,omitempty"`
+	DateRange    *DateRange      `json:"date_range,omitempty"`
+	Archived     *bool           `json:"archived,omitempty"`
+	DateType     string          `json:"date_type,omitempty"` // "created" or "updated"
+	ParentTaskID *string         `json:"parent_task_id,omitempty"`
+	Hierarchy    HierarchyFilter `json:"hierarchy,omitempty"`
 }
 
 // DateRange specifies temporal constraints
@@ -83,19 +106,24 @@ type RulesData struct {
 	TaskHistory      []utilities.CommitInfo                       `json:"task_history"`      // for age calculations
 	ColumnEnterTimes map[string]time.Time                         `json:"column_enter_times"` // column -> enter timestamp
 	BoardMetadata    map[string]string                            `json:"board_metadata"`    // board configuration data
+	SubtaskWIPCounts map[string]int                               `json:"subtask_wip_counts"` // column -> subtask count
+	HierarchyMap     map[string][]string                          `json:"hierarchy_map"`     // parent_id -> child_ids
 }
 
 // IBoardAccess defines the contract for board data operations
 type IBoardAccess interface {
-	CreateTask(task *Task, priority Priority, status WorkflowStatus) (string, error)
-	GetTasksData(taskIDs []string) ([]*TaskWithTimestamps, error)
-	ListTaskIdentifiers() ([]string, error)
+	CreateTask(task *Task, priority Priority, status WorkflowStatus, parentTaskID *string) (string, error)
+	GetTasksData(taskIDs []string, includeHierarchy bool) ([]*TaskWithTimestamps, error)
+	ListTaskIdentifiers(hierarchyFilter HierarchyFilter) ([]string, error)
 	ChangeTaskData(taskID string, task *Task, priority Priority, status WorkflowStatus) error
 	MoveTask(taskID string, priority Priority, status WorkflowStatus) error
-	ArchiveTask(taskID string) error
-	RemoveTask(taskID string) error
+	ArchiveTask(taskID string, cascadePolicy CascadePolicy) error
+	RemoveTask(taskID string, cascadePolicy CascadePolicy) error
 	FindTasks(criteria *QueryCriteria) ([]*TaskWithTimestamps, error)
 	GetTaskHistory(taskID string, limit int) ([]utilities.CommitInfo, error)
+	
+	GetSubtasks(parentTaskID string) ([]*TaskWithTimestamps, error)
+	GetParentTask(subtaskID string) (*TaskWithTimestamps, error)
 
 	// Board Configuration Operations
 	GetBoardConfiguration() (*BoardConfiguration, error)
@@ -177,7 +205,7 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 }
 
 // CreateTask stores a new task and returns its ID
-func (ba *boardAccess) CreateTask(task *Task, priority Priority, status WorkflowStatus) (string, error) {
+func (ba *boardAccess) CreateTask(task *Task, priority Priority, status WorkflowStatus, parentTaskID *string) (string, error) {
 	ba.mutex.Lock()
 	defer ba.mutex.Unlock()
 
@@ -200,6 +228,14 @@ func (ba *boardAccess) CreateTask(task *Task, priority Priority, status Workflow
 
 	// Auto-correct priority label after validation
 	priority.Label = ba.generatePriorityLabel(priority.Urgent, priority.Important)
+
+	// Validate and set parent task relationship
+	if parentTaskID != nil {
+		if err := ba.validateParentTaskRelationship(*parentTaskID, ""); err != nil {
+			return "", fmt.Errorf("BoardAccess.CreateTask parent validation failed: %w", err)
+		}
+		task.ParentTaskID = parentTaskID
+	}
 
 	// Generate ID if not provided
 	if task.ID == "" {
@@ -226,8 +262,60 @@ func (ba *boardAccess) CreateTask(task *Task, priority Priority, status Workflow
 	return task.ID, nil
 }
 
+// ChangeTask updates task data, priority, and status
+func (ba *boardAccess) ChangeTask(taskID string, task *Task, priority Priority, status WorkflowStatus) error {
+	ba.mutex.Lock()
+	defer ba.mutex.Unlock()
+
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Changing task: %s", taskID))
+
+	// Validate task content
+	if err := ba.validateTask(task); err != nil {
+		return fmt.Errorf("BoardAccess.ChangeTask task validation failed: %w", err)
+	}
+
+	// Validate priority and status
+	if err := ba.validatePriority(priority); err != nil {
+		return fmt.Errorf("BoardAccess.ChangeTask priority validation failed: %w", err)
+	}
+
+	// Auto-correct priority label after validation
+	priority.Label = ba.generatePriorityLabel(priority.Urgent, priority.Important)
+
+	// Ensure task ID matches
+	task.ID = taskID
+
+	// Find current task file
+	oldPath, err := ba.findTaskFile(taskID)
+	if err != nil {
+		return fmt.Errorf("BoardAccess.ChangeTask failed to find task %s: %w", taskID, err)
+	}
+
+	// Get new file path
+	newPath, err := ba.getTaskFilePath(taskID, priority, status)
+	if err != nil {
+		return fmt.Errorf("BoardAccess.ChangeTask failed to determine new path: %w", err)
+	}
+
+	// If path changed, move the file; otherwise, update in place
+	if oldPath != newPath {
+		return ba.moveTaskFile(oldPath, task, newPath, fmt.Sprintf("Change task: %s", task.Title))
+	} else {
+		// Update in place
+		if err := ba.writeTaskFile(task, oldPath); err != nil {
+			return fmt.Errorf("BoardAccess.ChangeTask failed to write updated task: %w", err)
+		}
+		if err := ba.commitChange(oldPath, fmt.Sprintf("Update task: %s", task.Title)); err != nil {
+			return fmt.Errorf("BoardAccess.ChangeTask failed to commit changes: %w", err)
+		}
+	}
+
+	ba.logger.LogMessage(utilities.Info, "BoardAccess", fmt.Sprintf("Task changed successfully: %s", taskID))
+	return nil
+}
+
 // GetTasksData retrieves tasks by IDs (combined method)
-func (ba *boardAccess) GetTasksData(taskIDs []string) ([]*TaskWithTimestamps, error) {
+func (ba *boardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*TaskWithTimestamps, error) {
 	ba.mutex.RLock()
 	defer ba.mutex.RUnlock()
 
@@ -250,7 +338,7 @@ func (ba *boardAccess) GetTasksData(taskIDs []string) ([]*TaskWithTimestamps, er
 }
 
 // ListTaskIdentifiers returns all task IDs
-func (ba *boardAccess) ListTaskIdentifiers() ([]string, error) {
+func (ba *boardAccess) ListTaskIdentifiers(hierarchyFilter HierarchyFilter) ([]string, error) {
 	ba.mutex.RLock()
 	defer ba.mutex.RUnlock()
 
@@ -384,53 +472,154 @@ func (ba *boardAccess) MoveTask(taskID string, priority Priority, status Workflo
 	return ba.moveTaskFile(oldPath, task, newPath, fmt.Sprintf("Move task: %s", task.Title))
 }
 
-// ArchiveTask moves a task to the archived directory
-func (ba *boardAccess) ArchiveTask(taskID string) error {
+// ArchiveTask moves a task to the archived directory with cascade policy support
+func (ba *boardAccess) ArchiveTask(taskID string, cascadePolicy CascadePolicy) error {
 	ba.mutex.Lock()
 	defer ba.mutex.Unlock()
 
-	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Archiving task: %s", taskID))
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Archiving task: %s with policy: %v", taskID, cascadePolicy))
 
-	// Find and load current task
-	oldPath, err := ba.findTaskFile(taskID)
+	// Get the task first
+	task, err := ba.retrieveTaskWithTimestamps(taskID)
 	if err != nil {
-		return fmt.Errorf("BoardAccess.ArchiveTask failed to find task %s: %w", taskID, err)
+		return fmt.Errorf("BoardAccess.ArchiveTask failed to retrieve task %s: %w", taskID, err)
+	}
+	if task == nil {
+		// Task doesn't exist, return success (idempotent)
+		return nil
 	}
 
-	task, err := ba.loadTaskFromFile(oldPath)
-	if err != nil {
-		return fmt.Errorf("BoardAccess.ArchiveTask failed to load task: %w", err)
+	// Handle subtasks first if this is a parent task
+	if task.Task.ParentTaskID == nil { // This is a parent task
+		subtasks, err := ba.GetSubtasks(taskID)
+		if err != nil {
+			return fmt.Errorf("BoardAccess.ArchiveTask failed to get subtasks: %w", err)
+		}
+
+		if len(subtasks) > 0 {
+			switch cascadePolicy {
+			case NoAction:
+				return fmt.Errorf("cannot archive parent task %s: has %d active subtasks and cascade policy is NoAction", taskID, len(subtasks))
+			case ArchiveSubtasks:
+				// Archive all subtasks
+				for _, subtask := range subtasks {
+					if err := ba.ArchiveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to archive subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case DeleteSubtasks:
+				// Delete all subtasks
+				for _, subtask := range subtasks {
+					if err := ba.RemoveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to delete subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case PromoteSubtasks:
+				// Convert subtasks to top-level tasks
+				for _, subtask := range subtasks {
+					subtask.Task.ParentTaskID = nil
+					if err := ba.ChangeTask(subtask.Task.ID, subtask.Task, subtask.Priority, subtask.Status); err != nil {
+						return fmt.Errorf("failed to promote subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case ArchiveAndDelete:
+				// Archive all subtasks first, then delete them
+				for _, subtask := range subtasks {
+					if err := ba.ArchiveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to archive subtask %s: %w", subtask.Task.ID, err)
+					}
+					if err := ba.RemoveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to delete subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			}
+		}
 	}
 
-	// Create archived status
+	// Archive the task itself by moving to archived column
 	archivedStatus := WorkflowStatus{
 		Column:   "archived",
 		Section:  "",
-		Position: 1, // Could be made configurable
+		Position: 1, // Position doesn't matter for archived tasks
 	}
 
-	// Determine archive path
-	newPath, err := ba.getTaskFilePath(taskID, Priority{}, archivedStatus) // Priority doesn't matter for archived
-	if err != nil {
-		return fmt.Errorf("BoardAccess.ArchiveTask failed to determine archive path: %w", err)
+	if err := ba.ChangeTask(taskID, task.Task, task.Priority, archivedStatus); err != nil {
+		return fmt.Errorf("BoardAccess.ArchiveTask failed to move task to archived: %w", err)
 	}
 
-	// Move to archive
-	return ba.moveTaskFile(oldPath, task, newPath, fmt.Sprintf("Archive task: %s", task.Title))
+	ba.logger.LogMessage(utilities.Info, "BoardAccess", fmt.Sprintf("Task archived successfully: %s", taskID))
+	return nil
 }
 
-// RemoveTask permanently deletes a task
-func (ba *boardAccess) RemoveTask(taskID string) error {
+// RemoveTask permanently deletes a task with cascade policy support
+func (ba *boardAccess) RemoveTask(taskID string, cascadePolicy CascadePolicy) error {
 	ba.mutex.Lock()
 	defer ba.mutex.Unlock()
 
-	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Removing task: %s", taskID))
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Removing task: %s with policy: %v", taskID, cascadePolicy))
+
+	// Get the task first to handle cascades
+	task, err := ba.retrieveTaskWithTimestamps(taskID)
+	if err != nil {
+		// Task doesn't exist, return success (idempotent)
+		ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Task %s not found, removal complete", taskID))
+		return nil
+	}
+	if task == nil {
+		return nil
+	}
+
+	// Handle subtasks first if this is a parent task
+	if task.Task.ParentTaskID == nil { // This is a parent task
+		subtasks, err := ba.GetSubtasks(taskID)
+		if err != nil {
+			return fmt.Errorf("BoardAccess.RemoveTask failed to get subtasks: %w", err)
+		}
+
+		if len(subtasks) > 0 {
+			switch cascadePolicy {
+			case NoAction:
+				return fmt.Errorf("cannot remove parent task %s: has %d active subtasks and cascade policy is NoAction", taskID, len(subtasks))
+			case ArchiveSubtasks:
+				// Archive all subtasks
+				for _, subtask := range subtasks {
+					if err := ba.ArchiveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to archive subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case DeleteSubtasks:
+				// Delete all subtasks
+				for _, subtask := range subtasks {
+					if err := ba.RemoveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to delete subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case PromoteSubtasks:
+				// Convert subtasks to top-level tasks
+				for _, subtask := range subtasks {
+					subtask.Task.ParentTaskID = nil
+					if err := ba.ChangeTask(subtask.Task.ID, subtask.Task, subtask.Priority, subtask.Status); err != nil {
+						return fmt.Errorf("failed to promote subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			case ArchiveAndDelete:
+				// Archive and delete all subtasks
+				for _, subtask := range subtasks {
+					if err := ba.ArchiveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to archive subtask %s: %w", subtask.Task.ID, err)
+					}
+					if err := ba.RemoveTask(subtask.Task.ID, NoAction); err != nil {
+						return fmt.Errorf("failed to delete subtask %s: %w", subtask.Task.ID, err)
+					}
+				}
+			}
+		}
+	}
 
 	// Find task file
 	filePath, err := ba.findTaskFile(taskID)
 	if err != nil {
-		// Task not found - idempotent operation
-		ba.logger.LogMessage(utilities.Debug, "BoardAccess", "Task not found for removal (idempotent)")
+		ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Task file %s not found, removal complete", taskID))
 		return nil
 	}
 
@@ -439,12 +628,11 @@ func (ba *boardAccess) RemoveTask(taskID string) error {
 		return fmt.Errorf("BoardAccess.RemoveTask failed to remove file: %w", err)
 	}
 
-	if err := ba.commitChange(filePath, fmt.Sprintf("Remove task: %s", taskID)); err != nil {
+	if err := ba.commitChange(filePath, fmt.Sprintf("Remove task: %s", task.Task.Title)); err != nil {
 		return fmt.Errorf("BoardAccess.RemoveTask failed to commit removal: %w", err)
 	}
 
 	ba.logger.LogMessage(utilities.Info, "BoardAccess", fmt.Sprintf("Task removed successfully: %s", taskID))
-
 	return nil
 }
 
@@ -587,6 +775,31 @@ func (ba *boardAccess) validatePriority(priority Priority) error {
 	return nil
 }
 
+// validateParentTaskRelationship validates parent-child task relationships
+func (ba *boardAccess) validateParentTaskRelationship(parentTaskID, taskID string) error {
+	// Prevent self-referencing tasks
+	if parentTaskID == taskID {
+		return fmt.Errorf("task cannot be its own parent")
+	}
+	
+	// Check if parent task exists
+	parentTasks, err := ba.GetTasksData([]string{parentTaskID}, false)
+	if err != nil {
+		return fmt.Errorf("failed to verify parent task existence: %w", err)
+	}
+	if len(parentTasks) == 0 {
+		return fmt.Errorf("parent task %s does not exist", parentTaskID)
+	}
+	
+	// Enforce 1-2 level hierarchy constraint (subtasks cannot have children)
+	parentTask := parentTasks[0]
+	if parentTask.Task.ParentTaskID != nil {
+		return fmt.Errorf("cannot create subtask under existing subtask (violates 1-2 level hierarchy constraint)")
+	}
+	
+	return nil
+}
+
 // generatePriorityLabel generates priority label from urgent/important flags
 func (ba *boardAccess) generatePriorityLabel(urgent, important bool) string {
 	switch {
@@ -604,22 +817,51 @@ func (ba *boardAccess) generatePriorityLabel(urgent, important bool) string {
 // getTaskFilePath determines the file path for a task with position prefix
 func (ba *boardAccess) getTaskFilePath(taskID string, _ Priority, status WorkflowStatus) (string, error) {
 	repoPath := ba.repository.Path()
+	
+	// Determine if this is a subtask by checking if the task has a parent
+	task, err := ba.retrieveTaskWithTimestamps(taskID)
+	isSubtask := err == nil && task != nil && task.Task.ParentTaskID != nil
+	var parentTaskID string
+	if isSubtask {
+		parentTaskID = *task.Task.ParentTaskID
+	}
 
 	// Handle archived tasks
 	if status.Column == "archived" {
-		fileName := fmt.Sprintf("%04d-task-%s.json", status.Position, taskID)
-		return filepath.Join(repoPath, "archived", fileName), nil
+		var fileName string
+		if isSubtask {
+			fileName = fmt.Sprintf("%04d-subtask-%s.json", status.Position, taskID)
+			// Subtasks in archived parent directory
+			return filepath.Join(repoPath, "archived", fmt.Sprintf("task-%s", parentTaskID), fileName), nil
+		} else {
+			fileName = fmt.Sprintf("%04d-task-%s.json", status.Position, taskID)
+			return filepath.Join(repoPath, "archived", fileName), nil
+		}
 	}
 
 	// Handle active tasks with column position prefix
 	columnPath := ba.getColumnPath(status.Column)
-	fileName := fmt.Sprintf("%04d-task-%s.json", status.Position, taskID)
-
-	if status.Section != "" {
-		return filepath.Join(repoPath, columnPath, status.Section, fileName), nil
+	var fileName string
+	var basePath string
+	
+	if isSubtask {
+		fileName = fmt.Sprintf("%04d-subtask-%s.json", status.Position, taskID)
+		// Subtasks go in parent task directory
+		if status.Section != "" {
+			basePath = filepath.Join(repoPath, columnPath, status.Section, fmt.Sprintf("task-%s", parentTaskID))
+		} else {
+			basePath = filepath.Join(repoPath, columnPath, fmt.Sprintf("task-%s", parentTaskID))
+		}
+	} else {
+		fileName = fmt.Sprintf("%04d-task-%s.json", status.Position, taskID)
+		if status.Section != "" {
+			basePath = filepath.Join(repoPath, columnPath, status.Section)
+		} else {
+			basePath = filepath.Join(repoPath, columnPath)
+		}
 	}
 
-	return filepath.Join(repoPath, columnPath, fileName), nil
+	return filepath.Join(basePath, fileName), nil
 }
 
 // getColumnPath returns the directory path for a column (with position prefix)
@@ -675,9 +917,11 @@ func (ba *boardAccess) findTaskFile(taskID string) (string, error) {
 
 // isTaskFileForID checks if a filename matches a task ID
 func (ba *boardAccess) isTaskFileForID(filename, taskID string) bool {
-	// Pattern: XXXX-task-{taskID}.json
-	suffix := fmt.Sprintf("task-%s.json", taskID)
-	return strings.HasSuffix(filename, suffix) && strings.Contains(filename, "-task-")
+	// Pattern: XXXX-task-{taskID}.json or XXXX-subtask-{taskID}.json
+	taskSuffix := fmt.Sprintf("task-%s.json", taskID)
+	subtaskSuffix := fmt.Sprintf("subtask-%s.json", taskID)
+	return (strings.HasSuffix(filename, taskSuffix) && strings.Contains(filename, "-task-")) ||
+		   (strings.HasSuffix(filename, subtaskSuffix) && strings.Contains(filename, "-subtask-"))
 }
 
 // writeTaskFile writes a task to a file with proper directory creation
@@ -844,18 +1088,21 @@ func (ba *boardAccess) getAllTaskFiles() ([]string, error) {
 
 // isTaskFile checks if a filename is a task file
 func (ba *boardAccess) isTaskFile(filename string) bool {
-	return strings.Contains(filename, "-task-") && strings.HasSuffix(filename, ".json") && filename != "board.json"
+	return (strings.Contains(filename, "-task-") || strings.Contains(filename, "-subtask-")) && 
+		   strings.HasSuffix(filename, ".json") && filename != "board.json"
 }
 
 // extractTaskIDFromPath extracts task ID from file path
 func (ba *boardAccess) extractTaskIDFromPath(filePath string) string {
 	fileName := filepath.Base(filePath)
-	// Pattern: XXXX-task-{ID}.json
-	parts := strings.Split(fileName, "-task-")
-	if len(parts) != 2 {
-		return ""
+	// Pattern: XXXX-task-{ID}.json or XXXX-subtask-{ID}.json
+	if parts := strings.Split(fileName, "-task-"); len(parts) == 2 {
+		return strings.TrimSuffix(parts[1], ".json")
 	}
-	return strings.TrimSuffix(parts[1], ".json")
+	if parts := strings.Split(fileName, "-subtask-"); len(parts) == 2 {
+		return strings.TrimSuffix(parts[1], ".json")
+	}
+	return ""
 }
 
 // extractLocationFromPath derives priority and status from file path
@@ -870,10 +1117,12 @@ func (ba *boardAccess) extractLocationFromPath(filePath string) (Priority, Workf
 	parts := strings.Split(relPath, string(filepath.Separator))
 	fileName := filepath.Base(filePath)
 
-	// Extract position from filename (XXXX-task-ID.json)
+	// Extract position from filename (XXXX-task-ID.json or XXXX-subtask-ID.json)
 	positionStr := ""
 	if strings.Contains(fileName, "-task-") {
 		positionStr = strings.Split(fileName, "-task-")[0]
+	} else if strings.Contains(fileName, "-subtask-") {
+		positionStr = strings.Split(fileName, "-subtask-")[0]
 	}
 
 	position := 1 // Default position
@@ -947,6 +1196,27 @@ func (ba *boardAccess) taskMatchesCriteria(taskWithTimestamps *TaskWithTimestamp
 	task := taskWithTimestamps.Task
 	priority := taskWithTimestamps.Priority
 	status := taskWithTimestamps.Status
+
+	// Check hierarchy filter
+	isSubtask := task.ParentTaskID != nil
+	switch criteria.Hierarchy {
+	case TopLevelOnly:
+		if isSubtask {
+			return false
+		}
+	case SubtasksOnly:
+		if !isSubtask {
+			return false
+		}
+	// AllTasks: no filtering needed
+	}
+
+	// Check parent task ID for subtask filtering
+	if criteria.ParentTaskID != nil {
+		if task.ParentTaskID == nil || *task.ParentTaskID != *criteria.ParentTaskID {
+			return false
+		}
+	}
 
 	// Check archived status
 	if criteria.Archived != nil {
@@ -1057,9 +1327,11 @@ func (ba *boardAccess) GetRulesData(taskID string, targetColumns []string) (*Rul
 
 	rulesData := &RulesData{
 		WIPCounts:        make(map[string]int),
+		SubtaskWIPCounts: make(map[string]int),
 		ColumnTasks:      make(map[string][]*TaskWithTimestamps),
 		ColumnEnterTimes: make(map[string]time.Time),
 		BoardMetadata:    make(map[string]string),
+		HierarchyMap:     make(map[string][]string),
 	}
 
 	// Get all active tasks for WIP counts and column tasks
@@ -1074,8 +1346,18 @@ func (ba *boardAccess) GetRulesData(taskID string, targetColumns []string) (*Rul
 
 	// Build WIP counts and organize tasks by column
 	for _, task := range allTasks {
-		// Count for WIP
-		rulesData.WIPCounts[task.Status.Column]++
+		// Separate WIP counts for tasks and subtasks
+		if task.Task.ParentTaskID == nil {
+			// Top-level task
+			rulesData.WIPCounts[task.Status.Column]++
+		} else {
+			// Subtask
+			rulesData.SubtaskWIPCounts[task.Status.Column]++
+			
+			// Build hierarchy map (parent -> subtasks)
+			parentID := *task.Task.ParentTaskID
+			rulesData.HierarchyMap[parentID] = append(rulesData.HierarchyMap[parentID], task.Task.ID)
+		}
 		
 		// Group tasks by column (only for requested columns)
 		if len(targetColumns) == 0 || ba.containsColumn(targetColumns, task.Status.Column) {
@@ -1117,8 +1399,8 @@ func (ba *boardAccess) GetRulesData(taskID string, targetColumns []string) (*Rul
 	}
 
 	ba.logger.LogMessage(utilities.Debug, "BoardAccess", 
-		fmt.Sprintf("Retrieved rules data: %d columns WIP, %d column task groups, %d history entries", 
-			len(rulesData.WIPCounts), len(rulesData.ColumnTasks), len(rulesData.TaskHistory)))
+		fmt.Sprintf("Retrieved rules data: %d columns WIP, %d subtask columns WIP, %d column task groups, %d parent-child relationships, %d history entries", 
+			len(rulesData.WIPCounts), len(rulesData.SubtaskWIPCounts), len(rulesData.ColumnTasks), len(rulesData.HierarchyMap), len(rulesData.TaskHistory)))
 
 	return rulesData, nil
 }
@@ -1165,3 +1447,49 @@ func (ba *boardAccess) getDefaultBoardConfiguration() *BoardConfiguration {
 		GitEmail: "boardaccess@eisenkan.local",
 	}
 }
+
+// GetSubtasks retrieves all subtasks for a given parent task
+func (ba *boardAccess) GetSubtasks(parentTaskID string) ([]*TaskWithTimestamps, error) {
+	ba.mutex.RLock()
+	defer ba.mutex.RUnlock()
+
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Retrieving subtasks for parent: %s", parentTaskID))
+
+	// Find all tasks that have this parent ID
+	criteria := &QueryCriteria{
+		ParentTaskID: &parentTaskID,
+		Hierarchy:    SubtasksOnly,
+	}
+	
+	return ba.FindTasks(criteria)
+}
+
+// GetParentTask retrieves the parent task for a given subtask
+func (ba *boardAccess) GetParentTask(subtaskID string) (*TaskWithTimestamps, error) {
+	ba.mutex.RLock()
+	defer ba.mutex.RUnlock()
+
+	ba.logger.LogMessage(utilities.Debug, "BoardAccess", fmt.Sprintf("Retrieving parent for subtask: %s", subtaskID))
+
+	// First get the subtask to find its parent ID
+	subtasks, err := ba.GetTasksData([]string{subtaskID}, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve subtask: %w", err)
+	}
+	if len(subtasks) == 0 || subtasks[0].Task.ParentTaskID == nil {
+		return nil, nil // No parent or subtask doesn't exist
+	}
+
+	// Now get the parent task
+	parentTasks, err := ba.GetTasksData([]string{*subtasks[0].Task.ParentTaskID}, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve parent task: %w", err)
+	}
+	if len(parentTasks) == 0 {
+		return nil, nil // Parent doesn't exist
+	}
+
+	return parentTasks[0], nil
+}
+
+

@@ -101,12 +101,12 @@ func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess r
 	}
 
 	// Add tasks to doing column (should reach WIP limit)
-	_, err = boardAccess.CreateTask(task1, priority, doingStatus)
+	_, err = boardAccess.CreateTask(task1, priority, doingStatus, nil)
 	if err != nil {
 		t.Fatalf("Failed to create task1: %v", err)
 	}
 
-	_, err = boardAccess.CreateTask(task2, priority, doingStatus)
+	_, err = boardAccess.CreateTask(task2, priority, doingStatus, nil)
 	if err != nil {
 		t.Fatalf("Failed to create task2: %v", err)
 	}
@@ -297,13 +297,13 @@ func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rul
 		Position: 1,
 	}
 
-	taskID, err := boardAccess.CreateTask(task, priority, todoStatus)
+	taskID, err := boardAccess.CreateTask(task, priority, todoStatus, nil)
 	if err != nil {
 		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// Get the created task to use as current state
-	tasks, err := boardAccess.GetTasksData([]string{taskID})
+	tasks, err := boardAccess.GetTasksData([]string{taskID}, false)
 	if err != nil {
 		t.Fatalf("Failed to get task data: %v", err)
 	}
@@ -445,7 +445,7 @@ func testMultipleRulesIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAcc
 		Position: 1,
 	}
 
-	_, err = boardAccess.CreateTask(existingTask, priority, doingStatus)
+	_, err = boardAccess.CreateTask(existingTask, priority, doingStatus, nil)
 	if err != nil {
 		t.Fatalf("Failed to create existing task: %v", err)
 	}
@@ -538,7 +538,7 @@ func TestIntegration_RuleEngine_GetRulesDataPerformance(t *testing.T) {
 				Position: i + 1,
 			}
 
-			taskID, err := boardAccess.CreateTask(task, priority, status)
+			taskID, err := boardAccess.CreateTask(task, priority, status, nil)
 			if err != nil {
 				t.Fatalf("Failed to create task: %v", err)
 			}

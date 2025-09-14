@@ -59,7 +59,7 @@ func TestUnit_BoardAccess_StoreAndGetTasksData(t *testing.T) {
 	}
 
 	// Store task with priority and status parameters
-	taskID, err := ba.CreateTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestUnit_BoardAccess_StoreAndGetTasksData(t *testing.T) {
 	}
 
 	// Retrieve task using new combined method
-	tasksWithTimestamps, err := ba.GetTasksData([]string{taskID})
+	tasksWithTimestamps, err := ba.GetTasksData([]string{taskID}, false)
 	if err != nil {
 		t.Fatalf("Failed to retrieve tasks: %v", err)
 	}
@@ -206,13 +206,13 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 		Position: 1,
 	}
 
-	taskID, err := ba.CreateTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
 
 	// Archive task
-	err = ba.ArchiveTask(taskID)
+	err = ba.ArchiveTask(taskID, NoAction)
 	if err != nil {
 		t.Fatalf("Failed to archive task: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 	}
 
 	// Verify task can still be retrieved
-	archivedTasks, err := ba.GetTasksData([]string{taskID})
+	archivedTasks, err := ba.GetTasksData([]string{taskID}, false)
 	if err != nil {
 		t.Fatalf("Failed to retrieve archived task: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestUnit_BoardAccess_FindTasks(t *testing.T) {
 
 	// Store all tasks
 	for _, td := range testData {
-		_, err := ba.CreateTask(td.task, td.priority, td.status)
+		_, err := ba.CreateTask(td.task, td.priority, td.status, nil)
 		if err != nil {
 			t.Fatalf("Failed to store task %s: %v", td.task.Title, err)
 		}
@@ -354,7 +354,7 @@ func TestUnit_BoardAccess_GetTaskHistory(t *testing.T) {
 	priority := Priority{Urgent: true, Important: true}
 	status := WorkflowStatus{Column: "todo", Section: "urgent-important", Position: 1}
 
-	taskID, err := ba.CreateTask(task, priority, status)
+	taskID, err := ba.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}

@@ -77,12 +77,12 @@ func TestIntegration_ResourceAccess_SharedRepositoryInitialization(t *testing.T)
 		Position: 1,
 	}
 
-	taskID, err := boardAccess.CreateTask(task, priority, status)
+	taskID, err := boardAccess.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("BoardAccess.CreateTask failed: %v", err)
 	}
 
-	retrievedTasks, err := boardAccess.GetTasksData([]string{taskID})
+	retrievedTasks, err := boardAccess.GetTasksData([]string{taskID}, false)
 	if err != nil {
 		t.Fatalf("BoardAccess.GetTasksData failed: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
 	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
-	_, err = boardAccess.CreateTask(task, priority, status)
+	_, err = boardAccess.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 			priority := Priority{Urgent: true, Important: false, Label: "urgent-not-important"}
 			status := WorkflowStatus{Column: "todo", Section: "urgent-not-important", Position: i + 1}
 			
-			_, err := boardAccess.CreateTask(task, priority, status)
+			_, err := boardAccess.CreateTask(task, priority, status, nil)
 			if err != nil {
 				errors <- err
 				return
@@ -466,7 +466,7 @@ func TestIntegration_ResourceAccess_VersioningIntegration(t *testing.T) {
 	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
 	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
-	_, err = boardAccess.CreateTask(task, priority, status)
+	_, err = boardAccess.CreateTask(task, priority, status, nil)
 	if err != nil {
 		t.Fatalf("Failed to store task: %v", err)
 	}

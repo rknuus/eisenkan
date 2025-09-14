@@ -17,10 +17,12 @@ import (
 
 // TaskEvent represents a task state change event for rule evaluation
 type TaskEvent struct {
-	EventType    string                              `json:"event_type"` // "task_transition", "task_update", "task_create"
-	CurrentState *resource_access.TaskWithTimestamps `json:"current_state,omitempty"`
-	FutureState  *TaskState                          `json:"future_state"`
-	Timestamp    time.Time                           `json:"timestamp"`
+	EventType        string                              `json:"event_type"` // "task_transition", "task_update", "task_create"
+	CurrentState     *resource_access.TaskWithTimestamps `json:"current_state,omitempty"`
+	FutureState      *TaskState                          `json:"future_state"`
+	Timestamp        time.Time                           `json:"timestamp"`
+	ParentTask       *resource_access.TaskWithTimestamps `json:"parent_task,omitempty"`
+	AffectedSubtasks []*resource_access.TaskWithTimestamps `json:"affected_subtasks,omitempty"`
 }
 
 // TaskState represents the intended state of a task
@@ -48,12 +50,14 @@ type RuleEvaluationResult struct {
 // EnrichedContext contains all context needed for rule evaluation
 type EnrichedContext struct {
 	Event            TaskEvent                                        `json:"event"`
-	WIPCounts        map[string]int                                   `json:"wip_counts"`        // column -> count
+	WIPCounts        map[string]int                                   `json:"wip_counts"`        // column -> task count
+	SubtaskWIPCounts map[string]int                                   `json:"subtask_wip_counts"` // column -> subtask count
 	TaskHistory      []utilities.CommitInfo                           `json:"task_history"`      // for age calculations
 	Subtasks         []*resource_access.TaskWithTimestamps            `json:"subtasks"`          // for dependency rules
 	ColumnTasks      map[string][]*resource_access.TaskWithTimestamps `json:"column_tasks"`      // for priority comparisons
 	ColumnEnterTimes map[string]time.Time                             `json:"column_enter_times"` // column -> enter timestamp
 	BoardMetadata    map[string]string                                `json:"board_metadata"`    // for custom rules
+	HierarchyMap     map[string][]string                              `json:"hierarchy_map"`     // parent -> subtasks mapping
 }
 
 // IRuleEngine defines the interface for rule evaluation operations
@@ -181,21 +185,27 @@ func (re *RuleEngine) enrichContext(ctx context.Context, event TaskEvent, boardP
 		return nil, fmt.Errorf("RuleEngine.enrichContext failed to get rules data: %w", err)
 	}
 
-	// Get subtasks for dependency rules (still separate as it's not implemented in BoardAccess)
-	subtasks, err := re.getSubtasks(ctx, event)
-	if err != nil {
-		re.logger.LogMessage(utilities.Warning, "RuleEngine", fmt.Sprintf("Failed to get subtasks: %v", err))
-		subtasks = []*resource_access.TaskWithTimestamps{} // Continue with empty list
+	// Get subtasks for dependency rules using BoardAccess
+	var subtasks []*resource_access.TaskWithTimestamps
+	if taskID != "" {
+		var err error
+		subtasks, err = re.boardAccess.GetSubtasks(taskID)
+		if err != nil {
+			re.logger.LogMessage(utilities.Warning, "RuleEngine", fmt.Sprintf("Failed to get subtasks: %v", err))
+			subtasks = []*resource_access.TaskWithTimestamps{} // Continue with empty list
+		}
 	}
 
 	enriched := &EnrichedContext{
 		Event:            event,
 		WIPCounts:        rulesData.WIPCounts,
+		SubtaskWIPCounts: rulesData.SubtaskWIPCounts,
 		TaskHistory:      rulesData.TaskHistory,
 		Subtasks:         subtasks,
 		ColumnTasks:      rulesData.ColumnTasks,
 		ColumnEnterTimes: rulesData.ColumnEnterTimes,
 		BoardMetadata:    rulesData.BoardMetadata,
+		HierarchyMap:     rulesData.HierarchyMap,
 	}
 
 	return enriched, nil
@@ -251,7 +261,7 @@ func (re *RuleEngine) evaluateRule(rule resource_access.Rule, context *EnrichedC
 
 // evaluateValidationRule evaluates validation rules (e.g., required fields, WIP limits)
 func (re *RuleEngine) evaluateValidationRule(rule resource_access.Rule, context *EnrichedContext) *RuleViolation {
-	// WIP Limit Rule
+	// WIP Limit Rule for top-level tasks
 	if maxWIP, exists := rule.Conditions["max_wip_limit"]; exists {
 		targetColumn := context.Event.FutureState.Status.Column
 
@@ -266,17 +276,65 @@ func (re *RuleEngine) evaluateValidationRule(rule resource_access.Rule, context 
 			}
 		}
 
-		currentWIP := context.WIPCounts[targetColumn]
+		// Check if this is a subtask
+		isSubtask := context.Event.FutureState != nil && context.Event.FutureState.Task.ParentTaskID != nil
+		var currentWIP int
+		if isSubtask {
+			// Use subtask WIP counts for subtasks
+			currentWIP = context.SubtaskWIPCounts[targetColumn]
+		} else {
+			// Use regular WIP counts for top-level tasks
+			currentWIP = context.WIPCounts[targetColumn]
+		}
 
 		// If moving TO this column (not already in it), check if it would exceed limit
 		if context.Event.CurrentState == nil || context.Event.CurrentState.Status.Column != targetColumn {
 			if currentWIP >= maxWIPInt {
+				taskType := "tasks"
+				if isSubtask {
+					taskType = "subtasks"
+				}
 				return &RuleViolation{
 					RuleID:   rule.ID,
 					Priority: rule.Priority,
-					Message:  fmt.Sprintf("WIP limit exceeded: column '%s' has %d tasks, limit is %d", targetColumn, currentWIP, maxWIPInt),
+					Message:  fmt.Sprintf("WIP limit exceeded: column '%s' has %d %s, limit is %d", targetColumn, currentWIP, taskType, maxWIPInt),
 					Category: rule.Category,
 					Details:  fmt.Sprintf("Current WIP: %d, Limit: %d", currentWIP, maxWIPInt),
+				}
+			}
+		}
+	}
+
+	// Subtask-specific WIP Limit Rule 
+	if maxSubtaskWIP, exists := rule.Conditions["max_subtask_wip_limit"]; exists {
+		targetColumn := context.Event.FutureState.Status.Column
+
+		// Convert maxSubtaskWIP to integer
+		maxSubtaskWIPInt, err := re.parseIntValue(maxSubtaskWIP)
+		if err != nil {
+			return &RuleViolation{
+				RuleID:   rule.ID,
+				Priority: rule.Priority,
+				Message:  fmt.Sprintf("Invalid max_subtask_wip_limit value: %v", maxSubtaskWIP),
+				Category: rule.Category,
+			}
+		}
+
+		// Only apply to subtasks
+		isSubtask := context.Event.FutureState != nil && context.Event.FutureState.Task.ParentTaskID != nil
+		if isSubtask {
+			currentSubtaskWIP := context.SubtaskWIPCounts[targetColumn]
+
+			// If moving TO this column (not already in it), check if it would exceed limit
+			if context.Event.CurrentState == nil || context.Event.CurrentState.Status.Column != targetColumn {
+				if currentSubtaskWIP >= maxSubtaskWIPInt {
+					return &RuleViolation{
+						RuleID:   rule.ID,
+						Priority: rule.Priority,
+						Message:  fmt.Sprintf("Subtask WIP limit exceeded: column '%s' has %d subtasks, limit is %d", targetColumn, currentSubtaskWIP, maxSubtaskWIPInt),
+						Category: rule.Category,
+						Details:  fmt.Sprintf("Current Subtask WIP: %d, Limit: %d", currentSubtaskWIP, maxSubtaskWIPInt),
+					}
 				}
 			}
 		}

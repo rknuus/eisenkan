@@ -42,15 +42,15 @@ type mockBoardAccess struct {
 	err         error
 }
 
-func (m *mockBoardAccess) CreateTask(task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) (string, error) {
+func (m *mockBoardAccess) CreateTask(task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus, parentTaskID *string) (string, error) {
 	return "", nil
 }
 
-func (m *mockBoardAccess) GetTasksData(taskIDs []string) ([]*resource_access.TaskWithTimestamps, error) {
+func (m *mockBoardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*resource_access.TaskWithTimestamps, error) {
 	return m.tasks, m.err
 }
 
-func (m *mockBoardAccess) ListTaskIdentifiers() ([]string, error) {
+func (m *mockBoardAccess) ListTaskIdentifiers(hierarchyFilter resource_access.HierarchyFilter) ([]string, error) {
 	return nil, nil
 }
 
@@ -62,11 +62,11 @@ func (m *mockBoardAccess) MoveTask(taskID string, priority resource_access.Prior
 	return nil
 }
 
-func (m *mockBoardAccess) ArchiveTask(taskID string) error {
+func (m *mockBoardAccess) ArchiveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
 	return nil
 }
 
-func (m *mockBoardAccess) RemoveTask(taskID string) error {
+func (m *mockBoardAccess) RemoveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
 	return nil
 }
 
@@ -105,14 +105,27 @@ func (m *mockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*
 	
 	rulesData := &resource_access.RulesData{
 		WIPCounts:        make(map[string]int),
+		SubtaskWIPCounts: make(map[string]int),
 		ColumnTasks:      make(map[string][]*resource_access.TaskWithTimestamps),
 		ColumnEnterTimes: make(map[string]time.Time),
 		BoardMetadata:    make(map[string]string),
+		HierarchyMap:     make(map[string][]string),
 	}
 	
 	// Build WIP counts and organize tasks by column
 	for _, task := range m.tasks {
-		rulesData.WIPCounts[task.Status.Column]++
+		// Separate WIP counts for tasks and subtasks
+		if task.Task.ParentTaskID == nil {
+			// Top-level task
+			rulesData.WIPCounts[task.Status.Column]++
+		} else {
+			// Subtask
+			rulesData.SubtaskWIPCounts[task.Status.Column]++
+			
+			// Build hierarchy map (parent -> subtasks)
+			parentID := *task.Task.ParentTaskID
+			rulesData.HierarchyMap[parentID] = append(rulesData.HierarchyMap[parentID], task.Task.ID)
+		}
 		
 		// Group tasks by column (only for requested columns)
 		if len(targetColumns) == 0 || containsString(targetColumns, task.Status.Column) {
@@ -152,6 +165,56 @@ func containsString(slice []string, item string) bool {
 }
 
 func (m *mockBoardAccess) Close() error {
+	return nil
+}
+
+// GetSubtasks retrieves all subtasks for a given parent task
+func (m *mockBoardAccess) GetSubtasks(parentTaskID string) ([]*resource_access.TaskWithTimestamps, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	
+	// Filter mock tasks that have this parent ID
+	var subtasks []*resource_access.TaskWithTimestamps
+	for _, task := range m.tasks {
+		if task.Task.ParentTaskID != nil && *task.Task.ParentTaskID == parentTaskID {
+			subtasks = append(subtasks, task)
+		}
+	}
+	return subtasks, nil
+}
+
+// GetParentTask retrieves the parent task for a given subtask
+func (m *mockBoardAccess) GetParentTask(subtaskID string) (*resource_access.TaskWithTimestamps, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	
+	// Find the subtask first
+	var subtask *resource_access.TaskWithTimestamps
+	for _, task := range m.tasks {
+		if task.Task.ID == subtaskID {
+			subtask = task
+			break
+		}
+	}
+	
+	if subtask == nil || subtask.Task.ParentTaskID == nil {
+		return nil, nil // No parent or subtask doesn't exist
+	}
+	
+	// Find the parent task
+	parentID := *subtask.Task.ParentTaskID
+	for _, task := range m.tasks {
+		if task.Task.ID == parentID {
+			return task, nil
+		}
+	}
+	return nil, nil // Parent doesn't exist
+}
+
+// ChangeTask updates task data, priority, and status
+func (m *mockBoardAccess) ChangeTask(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
 	return nil
 }
 
