@@ -151,7 +151,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 | SRS | `doc/services/<ServiceName>_SRS.md` | Purpose, Operations, Quality Attributes, Interface Requirements |
 | STP | `doc/services/<ServiceName>_STP.md` | Test Strategy, Destructive Testing (NO Requirements Verification Matrix) |
 | STR | `doc/services/<ServiceName>_STR.md` | Requirements Verification Matrix, Test Execution Results, Acceptance Status |
-| Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval |
+| Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval ordered descending by date |
 | Architecture | `doc/ADR.md` | Same format as DDR |
 
 #### EARS Requirements Syntax
