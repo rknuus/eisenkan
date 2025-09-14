@@ -19,6 +19,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 4. **Choose Layer**: Place components in appropriate architectural layers
 5. **Design Contracts**: Define stable interfaces first
 6. **Implement Bottom-Up**: Start with engines, then managers, then clients
+7. **Quality Checks**: All tests and quality checks must pass. TEMPORARY EXCEPTIONS: the acceptance tests currently fail. That's OK for now.
 
 ### Code Review Focus Areas
 - Architectural layer compliance
