@@ -2,7 +2,10 @@ module github.com/rknuus/eisenkan
 
 go 1.24.3
 
-require github.com/go-git/go-git/v5 v5.16.2
+require (
+	github.com/go-git/go-git/v5 v5.16.2
+	github.com/google/uuid v1.6.0
+)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

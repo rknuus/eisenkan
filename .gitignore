@@ -1,2 +1,5 @@
 bin/
 .DS_Store
+cpu.prof
+mem.prof
+resource_access.test

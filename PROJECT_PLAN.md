@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement service TaskAccess
 - Implement service RulesAccess
 - Implement service RuleEngine
 - Implement service ValidationEngine

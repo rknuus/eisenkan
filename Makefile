@@ -31,8 +31,13 @@ run: build ## Build and run the application
 	@$(OUTPUT)
 
 # FIXME(RAKN): untested
-test: build ## Run tests
+test: build ## Run fast tests (skips slow, resource-intensive tests)
 	@echo "Running tests for $(APP_NAME)..."
+	go test -short ./...
+
+.PHONY: test-destructive
+test-destructive: build ## Run all tests including slow, resource-intensive destructive tests
+	@echo "Running destructive tests for $(APP_NAME) (this may take several minutes)..."
 	go test ./...
 
 .PHONY: install
