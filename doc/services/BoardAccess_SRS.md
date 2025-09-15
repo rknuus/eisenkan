@@ -7,10 +7,10 @@ This Software Requirements Specification defines the requirements for the BoardA
 
 ### 1.2 Scope
 BoardAccess is responsible for:
-- Persistent storage and retrieval of task data
+- Persistent storage and retrieval of task data including hierarchical task relationships
 - Version control integration for task history and change tracking  
-- Atomic operations for task lifecycle management
-- Data consistency and integrity enforcement
+- Atomic operations for task lifecycle management with subtask support
+- Data consistency and integrity enforcement for parent-child task relationships
 - Resource access abstraction for task-related operations
 
 ### 1.3 System Context
@@ -24,10 +24,10 @@ The following operations define the required behavior for BoardAccess:
 **Actors**: TaskManager, ValidationEngine
 **Trigger**: When a new task is created in the system  
 **Flow**:
-1. Receive task data with required attributes
-2. Validate task data completeness  
+1. Receive task data with required attributes and optional parent task identifier
+2. Validate task data completeness and parent-child relationship constraints
 3. Assign unique task identifier
-4. Persist task to version-controlled storage
+4. Persist task to version-controlled storage with hierarchical relationship
 5. Return task identifier and confirmation
 
 #### OP-2: Retrieve Task
@@ -48,22 +48,22 @@ The following operations define the required behavior for BoardAccess:
 4. Create version history entry
 5. Return update confirmation
 
-#### OP-4: Remove Task  
+#### OP-4: Archive or remove Task  
 **Actors**: TaskManager  
 **Trigger**: When task should be deleted from system  
 **Flow**:
 1. Receive task identifier for removal
-2. Locate task in storage
-3. Archive or remove task data
+2. Locate task and subtasks - if any - in storage
+3. Archive or remove task and - depending on the policy - subtasks data
 4. Return removal confirmation
 
 #### OP-5: Query Tasks by Criteria
 **Actors**: TaskManager  
 **Trigger**: When tasks need to be found by specific attributes  
 **Flow**:
-1. Receive query criteria (priority, status, tags, etc.)
-2. Search task storage using criteria
-3. Return matching task identifiers and data
+1. Receive query criteria (priority, status, tags, parent task, etc.)
+2. Search task storage using criteria including hierarchical filters
+3. Return matching task identifiers and data with optional hierarchical information
 
 ## 3. Functional Requirements
 
@@ -75,6 +75,10 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-003**: When task data is incomplete or invalid, the BoardAccess service shall reject the storage request with a structured error message.
 
+**REQ-BOARDACCESS-016**: When a task is created with a parent task identifier, the BoardAccess service shall validate that the parent task exists and enforce the 1-2 level hierarchy constraint (subtasks cannot have children).
+
+**REQ-BOARDACCESS-017**: When storing a task with parent relationship, the BoardAccess service shall maintain referential integrity between parent and child tasks.
+
 ### 3.2 Task Retrieval Requirements  
 
 **REQ-BOARDACCESS-004**: When a task identifier is provided, the BoardAccess service shall return the complete task data if it exists.
@@ -83,11 +87,15 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-006**: The BoardAccess service shall support bulk retrieval of multiple tasks using a list of task identifiers.
 
+**REQ-BOARDACCESS-018**: When a task identifier is provided with subtask inclusion parameter, the BoardAccess service shall return the task data along with its subtasks or parent task information.
+
 ### 3.3 Task Update Requirements
 
 **REQ-BOARDACCESS-007**: When a valid task update request is provided, the BoardAccess service shall store the task data persistently with version control tracking.
 
 **REQ-BOARDACCESS-008**: When task update data is invalid (e.g. non-existent task identifier), the BoardAccess service shall reject the update and leave the original data unchanged.
+
+**REQ-BOARDACCESS-022**: When a subtask update request attempts to modify the parent task identifier, the BoardAccess service shall reject the update with a structured error message indicating that parent task relationships are immutable.
 
 ### 3.4 Task Query Requirements
 
@@ -99,6 +107,10 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-012**: When query criteria match no tasks, the BoardAccess service shall return an empty result set without error.
 
+**REQ-BOARDACCESS-019**: The BoardAccess service shall support querying tasks by parent task identifier to retrieve all subtasks of a given parent.
+
+**REQ-BOARDACCESS-020**: The BoardAccess service shall support querying for top-level tasks only (tasks without parent task identifiers).
+
 ### 3.5 Task Removal Requirements
 
 **REQ-BOARDACCESS-013**: When a task archive request is received, the BoardAccess service shall archive the task instead of permanently deleting it.
@@ -106,6 +118,8 @@ The following operations define the required behavior for BoardAccess:
 **REQ-BOARDACCESS-015**: When a task removal request is received, the BoardAccess service shall permanently delete it.
 
 **REQ-BOARDACCESS-014**: When removing a non-existent task, the BoardAccess service shall return success without error (idempotent operation).
+
+**REQ-BOARDACCESS-021**: When a parent task is archived or deleted, the BoardAccess service shall handle cascade operations for all its subtasks according to configured cascade policy (archive subtasks, delete subtasks, or promote subtasks to top-level).
 
 ## 4. Quality Attributes
 
@@ -138,26 +152,26 @@ The following operations define the required behavior for BoardAccess:
 ### 5.1 Interface Operations
 The BoardAccess service shall provide the following behavioral operations:
 
-- **Create Task**: Accept task data and return unique identifier with success confirmation
+- **Create Task**: Accept task data with optional parent task identifier and return unique identifier with success confirmation
 - **Retrieve Single Task**: Accept task identifier and return complete task data or not-found indication
-- **List Task Identifiers**: Return list with identifiers of all tasks
-- **Get Tasks Data**: Accept list of task identifiers and return corresponding task data
-- **Change Task Data**: Accept task identifier and updated data, apply changes with version history
-- **Archive Task**: Accept task identifier and archive task data safely
-- **Remove Task**: Accept task identifier and remove task permanently
-- **Find Tasks**: Accept search criteria and return matching tasks
+- **List Task Identifiers**: Return list with identifiers of all tasks with optional hierarchical filtering
+- **Get Tasks Data**: Accept list of task identifiers and return corresponding task data with optional hierarchical information
+- **Change Task Data**: Accept task identifier and updated data, apply changes with version history while maintaining parent-child relationships
+- **Archive Task**: Accept task identifier and archive task data safely with cascade handling for subtasks
+- **Remove Task**: Accept task identifier and remove task permanently with cascade handling for subtasks
+- **Find Tasks**: Accept search criteria including parent task filters and return matching tasks
 - **Get Task History**: Accept task identifier and return version history information
 
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
-**Task Data Entity**: Contains task identification, descriptive information, priority classification, workflow status, categorization tags, temporal tracking information, and optional deadline specification.
+**Task Data Entity**: Contains task identification, descriptive information, priority classification, workflow status, categorization tags, temporal tracking information, optional deadline specification, and optional parent task identifier for hierarchical relationships.
 
 **Priority Classification**: Represents Eisenhower matrix categorization with urgent and important dimensions for task prioritization.
 
 **Workflow Status**: Tracks current workflow position and maintains historical record of status transitions for task lifecycle management.
 
-**Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, and temporal range specifications for task retrieval operations.
+**Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, temporal range specifications, parent task identifiers, and hierarchical level filters for task retrieval operations.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -182,10 +196,12 @@ All errors shall include:
 
 **REQ-FORMAT-003**: The BoardAccess service shall organize data of active tasks in one and data of archived tasks in another file.
 
+**REQ-FORMAT-004**: The BoardAccess service shall maintain parent-child relationships in the directory structure to support hierarchical queries.
+
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-015 are met
+- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-022 are met
 - All operations OP-1 through OP-5 are fully supported
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
@@ -203,4 +219,5 @@ All errors shall include:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-07  
-**Status**: Under Review
+**Updated**: 2025-09-14
+**Status**: Accepted

@@ -6,7 +6,7 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the BoardAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [BoardAccess_SRS.md](BoardAccess_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities.
+Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships and subtask support.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
@@ -57,6 +57,14 @@ This STP emphasizes breaking the system through:
   - Updates during version control conflicts
   - Updates with priority/status transitions that violate business rules
   - Updates that would corrupt JSON structure
+  - Parent task identifiers referencing non-existent tasks
+  - Parent task identifiers creating circular hierarchies (subtask referencing itself as parent)
+  - Parent task identifiers creating >2 level hierarchies (subtask with parent that has parent)
+  - Parent task identifiers with invalid formats or extreme values
+  - Subtasks referencing themselves as parent tasks
+  - Attempts to create subtasks under existing subtasks (violating 1-2 level constraint)
+  - Subtask update requests attempting to modify parent task identifier (immutable relationship)
+  - Subtask update requests with different parent task identifier than original
 - **Expected**:
   - Service handles nil gracefully without crashes
   - Missing required fields are detected and rejected with clear messages
@@ -72,6 +80,14 @@ This STP emphasizes breaking the system through:
   - Concurrent updates are handled safely
   - Version control integration maintains consistency
   - Business rule violations are detected and prevented
+  - Parent task validation prevents invalid hierarchical references
+  - Circular hierarchy detection prevents infinite loops
+  - Hierarchy depth constraints are enforced (1-2 levels only)
+  - Invalid parent task formats are rejected appropriately
+  - Self-referencing tasks are detected and prevented
+  - Subtask-under-subtask creation attempts are rejected
+  - Parent task identifier modifications for subtasks are rejected with structured errors
+  - Subtask parent relationships are enforced as immutable
 
 **Test Case DT-API-002**: Retrieve Task with invalid identifiers
 - **Objective**: Test task retrieval with malformed identifiers
@@ -93,6 +109,28 @@ This STP emphasizes breaking the system through:
   - Large bulk requests are handled or limited safely
   - Concurrent requests maintain data consistency
 
+**Test Case DT-API-003**: Hierarchical Task Operations with Destructive Inputs
+- **Objective**: Test subtask and parent-child relationship operations under extreme conditions
+- **Destructive Inputs**:
+  - Delete parent tasks with active subtasks without cascade policy
+  - Archive parent tasks with non-completed subtasks without cascade policy
+  - Bulk operations mixing parent and subtask identifiers randomly
+  - Query operations requesting hierarchical data with invalid depth parameters
+  - Concurrent creation of subtasks under same parent
+  - Simultaneous deletion of parent and subtask tasks
+  - Parent task modification during subtask operations
+  - Bulk retrieval with mixed parent/subtask identifiers (50,000+ items)
+  - Cascade operations on parent tasks with 1,000+ subtasks
+  - Operations on tasks while parent-child relationships are being modified
+- **Expected**:
+  - Cascade policies are correctly enforced during parent deletion/archival
+  - Bulk operations handle mixed hierarchical identifiers correctly
+  - Invalid depth parameters are validated and rejected
+  - Concurrent hierarchical operations maintain referential integrity
+  - Parent-subtask consistency is maintained during concurrent modifications
+  - Large hierarchical queries complete or are limited appropriately
+  - Cascade operations handle large subtask counts gracefully
+  - Concurrent relationship modifications are handled safely
 
 **Test Case DT-API-004**: Query Tasks with extreme criteria
 - **Objective**: Test task querying under boundary conditions
@@ -105,6 +143,8 @@ This STP emphasizes breaking the system through:
   - Queries with extremely complex filter combinations
   - Queries with unicode or special characters in criteria
   - Concurrent query operations with overlapping criteria
+  - Query criteria combining parent and subtask filters in contradictory ways
+  - Query criteria requesting subtasks for non-existent parents
 - **Expected**:
   - Invalid criteria are validated and rejected
   - Large result sets are handled or limited appropriately
@@ -112,16 +152,20 @@ This STP emphasizes breaking the system through:
   - Contradictory filters return empty results appropriately
   - Unicode handling in criteria is correct
   - Concurrent queries maintain consistency
+  - Contradictory hierarchical filters are handled appropriately
+  - Non-existent parent references are validated and handled
 
 ### 3.2 Resource Exhaustion and Performance Testing
 
 **Test Case DT-RESOURCE-001**: Memory and Performance Exhaustion
 - **Objective**: Test behavior under memory pressure and data volume limits
 - **Method**:
-  - Store 100,000+ tasks with large descriptions
-  - Query operations returning 50,000+ tasks
-  - Bulk operations on 50,000+ tasks
+  - Store 100,000+ tasks with large descriptions including hierarchical relationships
+  - Query operations returning 50,000+ tasks with hierarchical data
+  - Bulk operations on 50,000+ tasks including parent-child operations
   - Individual tasks with 10KB+ descriptions
+  - Parent tasks with 1,000+ subtasks each
+  - Hierarchical queries across 10,000+ parent-child relationships
   - Query operations across large datasets
   - Monitor memory usage, garbage collection, operation times and resource usage
   - Verify graceful degradation
@@ -245,4 +289,5 @@ This STP emphasizes breaking the system through:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-09  
+**Updated**: 2025-09-14
 **Status**: Accepted

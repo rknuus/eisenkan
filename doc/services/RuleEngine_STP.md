@@ -6,12 +6,12 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the RuleEngine service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [RuleEngine_SRS.md](RuleEngine_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for Kanban rule evaluation including WIP limits, workflow transitions, definition of ready/done, and age-based task management capabilities.
+Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for Kanban rule evaluation including WIP limits for tasks and subtasks, workflow transitions, definition of ready/done, subtask workflow coupling, parent-child dependency validation, and age-based task management capabilities.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
 - Memory and CPU profiling capabilities
-- Rule set test data with various complexity levels (WIP limits, workflow transitions, age limits)
+- Rule set test data with various complexity levels (WIP limits for tasks and subtasks, workflow transitions, subtask workflow coupling rules, subtask cascading rules, parent-child dependency rules, age limits)
 - Concurrent execution environment (goroutine support)
 - LoggingUtility service for operational logging
 - RulesAccess service for providing rule sets
@@ -26,7 +26,7 @@ This STP emphasizes breaking the system through:
 - **Resource Exhaustion**: Memory limits, large rule sets, complex rule conditions, oversized board data
 - **Rule Logic Edge Cases**: WIP limit boundary conditions, invalid workflow transitions, malformed rule expressions
 - **Performance Degradation**: Large rule sets, complex evaluation scenarios, concurrent load, BoardAccess integration overhead
-- **Requirements Verification Tests**: Validate all EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-005 with negative cases
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-007 and REQ-RULETYPE-001 through REQ-RULETYPE-009 with negative cases
 - **Error Recovery Tests**: Test graceful degradation when BoardAccess fails, rule loading errors
 - **Concurrency Stress Testing**: Test race conditions and consistency under concurrent rule evaluation with shared board access
 
@@ -50,6 +50,11 @@ This STP emphasizes breaking the system through:
   - Rules with missing required Actions field
   - Rules with invalid trigger types not matching event types
   - Rules with malformed condition expressions
+  - TaskEvent with invalid parent-child relationships (subtask without parent, circular references)
+  - TaskEvent for subtask operations with non-existent parent tasks
+  - TaskEvent attempting to create >2 level hierarchies
+  - TaskEvent with invalid subtask workflow coupling data
+  - TaskEvent with malformed hierarchical context information
 - **Expected**:
   - Service handles nil TaskEvent gracefully without crashes
   - Missing required fields are detected and return structured errors
@@ -58,14 +63,20 @@ This STP emphasizes breaking the system through:
   - Invalid board paths return appropriate error messages
   - Malformed rules are rejected with detailed error information
   - Unicode handling is correct throughout evaluation
+  - Invalid parent-child relationships are detected and rejected
+  - Non-existent parent task references are validated and rejected
+  - Hierarchy constraint violations are enforced (1-2 levels only)
+  - Invalid subtask workflow coupling data is handled appropriately
+  - Malformed hierarchical context is detected and rejected
 
 ### 3.2 Rule Logic Edge Cases
 
 **Test Case DT-LOGIC-001**: Rule Condition and Configuration Edge Cases
 - **Objective**: Test Kanban rule evaluation under complex conditions and edge cases
 - **Edge Case Scenarios**:
-  - WIP limit rules with zero or negative limits
-  - WIP limit rules with extremely high limits (>10000)
+  - WIP limit rules with zero or negative limits for tasks and subtasks
+  - WIP limit rules with extremely high limits (>10000) for tasks and subtasks
+  - WIP limit rules with mismatched task/subtask configurations
   - Required field rules referencing non-existent task properties
   - Workflow transition rules with invalid column names
   - Workflow transition rules with circular transition definitions
@@ -76,6 +87,11 @@ This STP emphasizes breaking the system through:
   - Rules with malformed Actions field structures
   - Rules with unsupported category values
   - Rules targeting non-existent event types
+  - Subtask workflow coupling rules with invalid parent-child combinations
+  - Subtask completion dependency rules with circular dependencies
+  - Subtask hierarchy rules with invalid depth specifications
+  - Parent task archival rules with conflicting cascade policies
+  - Subtask workflow coupling rules with invalid trigger conditions
   - Rules with disabled status but referenced by other rules
   - BoardAccess returning malformed WIP count data
   - BoardAccess returning invalid task history data
@@ -104,6 +120,32 @@ This STP emphasizes breaking the system through:
   - Invalid priority values are handled gracefully
   - Rule conflicts are detected and reported clearly
   - Dependency conflicts are resolved or reported appropriately
+
+**Test Case DT-LOGIC-003**: Subtask Rule Evaluation Edge Cases
+- **Objective**: Test subtask-specific rule evaluation scenarios including workflow coupling and dependency validation
+- **Edge Case Scenarios**:
+  - First subtask "todo"→"doing" transition with parent already in "doing" status
+  - First subtask "todo"→"doing" transition with parent in "done" status (invalid)
+  - Parent task "todo"→"done" and "doing"→"done" transition with non-done subtasks
+  - Parent task "todo"→"done" and "doing"→"done" transition with all subtasks done
+  - Simultaneous subtask completion attempts by multiple subtasks
+  - Parent task deletion with mixed subtask completion states
+  - Parent task archival with mixed subtask completion states
+  - Subtask creation under non-existent parent tasks
+  - Subtask creation under subtasks (violating 1-2 level constraint)
+  - WIP limit evaluation with separate task and subtask limits
+  - WIP limit evaluation when limits are exceeded for tasks but not subtasks
+  - WIP limit evaluation when limits are exceeded for subtasks but not tasks
+  - Concurrent subtask workflow changes affecting same parent
+  - Rule evaluation with corrupted hierarchical relationship data
+- **Expected**:
+  - Workflow coupling rules are enforced correctly
+  - Parent completion dependency rules prevent invalid transitions
+  - Hierarchy constraint violations are detected and rejected
+  - Separate WIP limits for tasks and subtasks are properly evaluated
+  - Concurrent subtask operations maintain parent-child consistency
+  - Corrupted hierarchical data is detected and handled gracefully
+  - Invalid parent task references are validated and rejected
 
 ## 4. Performance and Resource Testing
 
@@ -212,5 +254,6 @@ This STP emphasizes breaking the system through:
 ---
 
 **Document Version**: 1.0  
-**Created**: 2025-09-12  
+**Created**: 2025-09-12
+**Updated**: 2025-09-14
 **Status**: Accepted

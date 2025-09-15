@@ -6,7 +6,7 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the RulesAccess service. The plan emphasizes API boundary testing, rule validation failure scenarios, and complete traceability to all EARS requirements specified in [RulesAccess_SRS.md](RulesAccess_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, rule validation failure scenarios, and graceful degradation validation for all interface operations and rule data management capabilities.
+Testing covers destructive API testing, requirements verification, error condition handling, rule validation failure scenarios, and graceful degradation validation for all interface operations and rule data management capabilities including subtask-specific rule definitions and hierarchical rule validation.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
@@ -76,6 +76,12 @@ This STP emphasizes breaking the system through:
   - Rule sets containing channels, functions, unsafe pointers
   - Rule sets with thousands of rules
   - Rule sets with duplicate rule identifiers
+  - Rule sets with invalid subtask-specific rule definitions
+  - Rule sets with different WIP limits for tasks and subtasks (which is fine)
+  - Rule sets with invalid parent-child workflow coupling rules
+  - Rule sets with malformed subtask hierarchy constraints
+  - Rule sets with circular subtask dependency definitions
+  - Rule sets with invalid cascade policy specifications
 - **Expected**:
   - Service validates nil gracefully without crashes
   - Missing required fields are detected and rejected with clear messages
@@ -89,6 +95,12 @@ This STP emphasizes breaking the system through:
   - Unsupported types are rejected with structured errors
   - Large rule sets are handled or limited safely
   - Duplicate identifiers are detected and prevented
+  - Invalid subtask rule definitions are validated and rejected
+  - Conflicting WIP configurations are detected and reported
+  - Invalid workflow coupling rules are identified and rejected
+  - Malformed hierarchy constraints are validated and prevented
+  - Circular subtask dependencies are detected and prevented
+  - Invalid cascade policies are validated and rejected
 
 **Test Case DT-API-003**: Change Rules with invalid and extreme rule sets
 - **Objective**: Test rule storage with various invalid rule configurations
@@ -269,4 +281,5 @@ This STP emphasizes breaking the system through:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-12  
+**Updated**: 2025-09-14
 **Status**: Accepted

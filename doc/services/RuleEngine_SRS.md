@@ -7,12 +7,13 @@ This Software Requirements Specification defines the requirements for the RuleEn
 
 ### 1.2 Scope
 RuleEngine is responsible for:
-- Business rule evaluation for Kanban workflow management (WIP limits, workflow transitions, definition of ready/done)
-- Task change validation against configurable business rules with comprehensive board context
+- Business rule evaluation for Kanban workflow management (WIP limits for tasks and subtasks, workflow transitions, definition of ready/done)
+- Task change validation against configurable business rules with comprehensive board context including subtask relationships
 - Rule priority ordering and violation aggregation for complete violation reporting
-- Support for extensible rule categories (validation, workflow, automation, notification)
-- Integration with BoardAccess for enriched rule evaluation context (WIP counts, task history, column timestamps)
-- Age-based task management rules and subtask dependency validation
+- Policy for a task to be archived/deleted while containing non-done subtasks
+- Support for extensible rule categories (validation, workflow, automation, notification, subtask management)
+- Integration with BoardAccess for enriched rule evaluation context (WIP counts for tasks and subtasks, task history, column timestamps, hierarchical relationships)
+- Age-based task management rules and subtask dependency validation including parent-child workflow coupling
 
 ### 1.3 System Context
 RuleEngine operates in the Engines layer of the EisenKan architecture, accessing RulesAccess for rule definitions and BoardAccess for enriched board context. It provides stateless rule evaluation services to the Manager layer, supporting Kanban-specific business rules including WIP limits, workflow transitions, definition of ready/done criteria, and age-based task management.
@@ -28,8 +29,8 @@ The following operations define the required behavior for RuleEngine:
 1. Receive TaskEvent with current and future task states
 2. Fetch applicable rule set from RulesAccess for the board
 3. Filter rules based on event type and enabled status
-4. Enrich evaluation context with board data from BoardAccess (WIP counts, task history, column timestamps)
-5. Evaluate all applicable rules sequentially and aggregate violations
+4. Enrich evaluation context with board data from BoardAccess (WIP counts for tasks and subtasks, task history, column timestamps, hierarchical relationships)
+5. Evaluate all applicable rules including subtask-specific rules sequentially and aggregate violations
 6. Return RuleEvaluationResult with allowed status and violation details
 
 #### OP-2: Close Engine Resources
@@ -49,11 +50,15 @@ The following operations define the required behavior for RuleEngine:
 
 **REQ-RULEENGINE-002**: Where rule violations are detected during task change evaluation, the RuleEngine shall return violation details including rule ID, priority, message, category, and optional details.
 
-**REQ-RULEENGINE-003**: When evaluating rules, the RuleEngine shall access BoardAccess to obtain enriched context including WIP counts, task history, column timestamps, and board metadata for comprehensive rule evaluation.
+**REQ-RULEENGINE-003**: When evaluating rules, the RuleEngine shall access BoardAccess to obtain enriched context including WIP counts for tasks and subtasks, task history, column timestamps, hierarchical relationships, and board metadata for comprehensive rule evaluation.
 
 **REQ-RULEENGINE-004**: When multiple rules apply to the same task event, the RuleEngine shall evaluate all applicable rules and aggregate violations sorted by priority (higher priority first).
 
 **REQ-RULEENGINE-005**: When no applicable rules are found for a task event, the RuleEngine shall allow the task change by default.
+
+**REQ-RULEENGINE-006**: Depending on the policy, when the first subtask of a parent task moves from "todo" to "doing", the RuleEngine shall automatically trigger parent task workflow status change from "todo" to "doing" (if parent is currently in "todo") or reject the move.
+
+**REQ-RULEENGINE-007**: Depending on the policy, when evaluating parent task completion, the RuleEngine shall verify that all subtasks are in "done" status before allowing the parent task to move to "done".
 
 ## 4. Quality Attributes
 
@@ -126,7 +131,7 @@ All errors shall include:
 **REQ-FORMAT-003**: The RuleEngine service shall return rule evaluation results in structured JSON-serializable format suitable for Manager layer orchestration.
 
 ### 6.3 Rule Type Requirements
-**REQ-RULETYPE-001**: The RuleEngine service shall support WIP limit rules that prevent exceeding configurable task counts per column.
+**REQ-RULETYPE-001**: The RuleEngine service shall support WIP limit rules that prevent exceeding configurable task counts per column, with separate limits for tasks and subtasks.
 
 **REQ-RULETYPE-002**: The RuleEngine service shall support required field rules that validate task completeness before column transitions.
 
@@ -134,10 +139,20 @@ All errors shall include:
 
 **REQ-RULETYPE-004**: The RuleEngine service shall support age limit rules that warn when tasks remain in columns beyond configurable time thresholds.
 
+**REQ-RULETYPE-005**: The RuleEngine service shall support subtask workflow coupling rules that automatically move parent tasks when subtasks change status.
+
+**REQ-RULETYPE-006**: The RuleEngine service shall support a rule that a subtask start automatically starts the parent task.
+
+**REQ-RULETYPE-007**: The RuleEngine service shall support subtask completion dependency rules that prevent parent task completion until all subtasks are done.
+
+**REQ-RULETYPE-008**: The RuleEngine service shall support rejection of task archival/removal if it contains non-completed subtasks.
+
+**REQ-RULETYPE-009**: The RuleEngine service shall support subtask hierarchy rules that enforce the 1-2 level constraint (subtasks cannot have children).
+
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All functional requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-002 are met
+- All functional requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-007 are met
 - Operation OP-1 is fully supported  
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
@@ -160,5 +175,5 @@ All errors shall include:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-12
-**Updated**: 2025-09-13
+**Updated**: 2025-09-14
 **Status**: Accepted

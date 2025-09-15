@@ -114,6 +114,8 @@ The following operations define the required behavior for RulesAccess:
 
 **REQ-EXTENSIBILITY-002**: The RulesAccess service shall allow rule categories to be extended without requiring service modification.
 
+**REQ-EXTENSIBILITY-003**: The RulesAccess service shall support subtask-specific rule definitions including WIP limits for subtasks, parent-child workflow coupling rules, policies for a task to be archived/deleted while containing non-done subtasks, and subtask hierarchy constraints.
+
 ## 5. Service Contract Requirements
 
 ### 5.1 Interface Operations
@@ -187,4 +189,5 @@ All errors shall include:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-12  
+**Updated**: 2025-09-14
 **Status**: Accepted
