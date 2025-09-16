@@ -1,5 +1,29 @@
 # Design Decision Records (DDR)
 
+## [2025-09-16] - FormatUtility Design Decision: Implementation Architecture
+
+**Decision**: Option A - Simple Functional Approach
+
+**Context**: Need to determine the implementation approach for FormatUtility while maintaining consistency with existing utility patterns (LoggingUtility, CacheUtility) and supporting all 11 SRS interface operations with proper error handling and extensibility.
+
+**Options Considered**:
+- **Option A: Simple Functional Approach** - Direct functions, no state, minimal types, simple error handling
+- **Option B: Interface-Based Service Pattern** - IFormatUtility interface, struct implementation, rich error handling, consistent with existing utilities
+- **Option C: Hybrid Approach** - Core interface with functional helpers, mixed complexity
+
+**Rationale**: Choose Option A because FormatUtility operations are purely functional/stateless with no need for mocking in tests. Direct functions provide simpler implementation, easier testing, and optimal performance without interface overhead. The stateless nature makes interfaces unnecessary for abstraction.
+
+**Consequences**:
+- Direct functions for all 11 operations (TrimText, ConvertCase, etc.)
+- Minimal type definitions (TextCaseType, FileSizeUnit, ValidationRule enums/structs)
+- Standard Go error handling with contextual information
+- No interface overhead - direct function calls
+- Simpler implementation and testing
+- Thread-safe by design (stateless functions)
+- Easy to use without service instantiation
+
+**User Approval**: Approved on [2025-09-16]
+
 ## [2025-09-14] - TaskManagerAccess: Implementation Architecture
 
 **Decision**: Option A - Simple Channel-based Implementation
