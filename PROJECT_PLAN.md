@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement ValidationUtility - Basic validation functions
 - Implement FyneUtility - Fyne framework helpers
 - Implement TaskManagerAccess - Depends only on existing TaskManager interface
 - Implement UIStateAccess - Depends only on LoggingUtilities
