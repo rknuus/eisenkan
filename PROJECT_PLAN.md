@@ -1,23 +1,23 @@
 # EisenKan project plan
 ## Tasks
-- Implement UIStateAccess - Depends only on LoggingUtilities
-- Implement BoardConfigAccess - Depends only on LoggingUtilities
-- Implement FormValidationEngine - Depends only on ValidationUtilities
-- Implement FormattingEngine - Depends on FormatUtilities
-- Implement LayoutEngine - Depends only on FyneUtilities
-- Implement EventEngine - Depends on TaskManagerAccess + LoggingUtilities
-- Implement AnimationEngine - Depends on FyneUtilities + LayoutEngine
+- Implement UIStateAccess - Depends only on LoggingUtility
+- Implement BoardConfigAccess - Depends only on LoggingUtility
+- Implement FormValidationEngine - Depends only on Validation Utility
+- Implement FormattingEngine - Depends on Format Utility
+- Implement LayoutEngine - Depends only on Fyne Utility
+- Implement EventEngine - Depends on TaskManagerAccess + Logging Utility
+- Implement AnimationEngine - Depends on Fyne Utility + LayoutEngine
 - Implement DragDropEngine - Depends on EventEngine + FormValidationEngine + LayoutEngine
-- Implement UIStateManager - Depends on UIStateAccess + LoggingUtilities
-- Implement WindowManager - Depends on FyneUtilities + UIStateManager
+- Implement UIStateManager - Depends on UIStateAccess + Logging Utility
+- Implement WindowManager - Depends on Fyne Utility + UIStateManager
 - Implement NavigationManager - Depends on WindowManager + UIStateManager
-- Implement ErrorManager - Depends on LoggingUtilities + FormattingEngine
+- Implement ErrorManager - Depends on Logging Utility + FormattingEngine
 - Implement SearchManager - Depends on EventEngine + FormValidationEngine
 - Implement TaskManager - Depends on EventEngine + FormValidationEngine + DragDropEngine
 - Implement SubtaskManager - Depends on TaskManager + LayoutEngine + AnimationEngine
 - Implement BoardManager - Depends on TaskManager + SubtaskManager + DragDropEngine
 - Implement TaskWidget - Depends on TaskManager + FormattingEngine + AnimationEngine
-- Implement ColumnWidget - Depends on DragDropEngine + LayoutEngine + FyneUtilities
+- Implement ColumnWidget - Depends on DragDropEngine + LayoutEngine + Fyne Utility
 - Implement NewStoryFormArea - Depends on TaskManager + FormValidationEngine
 - Implement EisenhowerMatrixDialog - Depends on TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on TaskWidget + SubtaskManager + LayoutEngine
