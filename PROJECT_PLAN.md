@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement FyneUtility - Fyne framework helpers
 - Implement TaskManagerAccess - Depends only on existing TaskManager interface
 - Implement UIStateAccess - Depends only on LoggingUtilities
 - Implement BoardConfigAccess - Depends only on LoggingUtilities
