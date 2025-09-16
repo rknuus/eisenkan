@@ -1,4 +1,32 @@
 # EisenKan project plan
 ## Tasks
-- Implement service EisenKan Client
+- Implement FormatUtility - Text formatting helpers
+- Implement ValidationUtility - Basic validation functions
+- Implement FyneUtility - Fyne framework helpers
+- Implement TaskManagerAccess - Depends only on existing TaskManager interface
+- Implement UIStateAccess - Depends only on LoggingUtilities
+- Implement BoardConfigAccess - Depends only on LoggingUtilities
+- Implement FormValidationEngine - Depends only on ValidationUtilities
+- Implement FormattingEngine - Depends on FormatUtilities
+- Implement LayoutEngine - Depends only on FyneUtilities
+- Implement EventEngine - Depends on TaskManagerAccess + LoggingUtilities
+- Implement AnimationEngine - Depends on FyneUtilities + LayoutEngine
+- Implement DragDropEngine - Depends on EventEngine + FormValidationEngine + LayoutEngine
+- Implement UIStateManager - Depends on UIStateAccess + LoggingUtilities
+- Implement WindowManager - Depends on FyneUtilities + UIStateManager
+- Implement NavigationManager - Depends on WindowManager + UIStateManager
+- Implement ErrorManager - Depends on LoggingUtilities + FormattingEngine
+- Implement SearchManager - Depends on EventEngine + FormValidationEngine
+- Implement TaskManager - Depends on EventEngine + FormValidationEngine + DragDropEngine
+- Implement SubtaskManager - Depends on TaskManager + LayoutEngine + AnimationEngine
+- Implement BoardManager - Depends on TaskManager + SubtaskManager + DragDropEngine
+- Implement TaskWidget - Depends on TaskManager + FormattingEngine + AnimationEngine
+- Implement ColumnWidget - Depends on DragDropEngine + LayoutEngine + FyneUtilities
+- Implement NewStoryFormArea - Depends on TaskManager + FormValidationEngine
+- Implement EisenhowerMatrixDialog - Depends on TaskWidget + FormValidationEngine + LayoutEngine
+- Implement SubtaskExpansionView - Depends on TaskWidget + SubtaskManager + LayoutEngine
+- Implement TaskFormView - Depends on EisenhowerMatrixDialog + TaskManager + ErrorManager
+- Implement EntryView - Depends on BoardConfigAccess + NavigationManager + ErrorManager
+- Implement BoardView - Depends on BoardManager + ColumnWidget + TaskWidget + SubtaskExpansionView + SearchManager
+- Implement Application Root
 - Implement service EisenKan Admin Client
