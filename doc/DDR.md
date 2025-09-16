@@ -1,5 +1,30 @@
 # Design Decision Records (DDR)
 
+## [2025-09-16] - FyneUtility Design Decision: Implementation Architecture
+
+**Decision**: Option C - Hybrid Approach with Smart Defaults
+
+**Context**: Need to determine the implementation approach for FyneUtility while providing foundational Fyne framework abstraction that enables consistent widget creation, theme management, and resource handling across all client UI components. The service requires cross-platform compatibility, high performance (widget creation <1ms), and seamless integration with ValidationUtility and FormatUtility.
+
+**Options Considered**:
+- **Option A: Functional Library with Typed Configuration** - Pure functional approach with strongly-typed configuration structs, explicit parameters, complete type safety but complex function signatures
+- **Option B: Builder Pattern with Fluent Interface** - Builder pattern for complex configurations with method chaining, flexible but potentially stateful and complex state management
+- **Option C: Hybrid Approach with Smart Defaults** - Simple functions with smart defaults plus functional options pattern, clean API for common cases with power when needed
+
+**Rationale**: Choose Option C to provide excellent developer experience with simple API for common cases (`CreateButton("OK")`) while maintaining flexibility through functional options for advanced scenarios. This approach maintains stateless functional design for thread safety, enables easy extension without breaking changes, and provides self-documenting configuration through option function names. The pattern works well with ValidationUtility and FormatUtility integration requirements.
+
+**Consequences**:
+- Simple API for common cases: `CreateButton("Save")`
+- Advanced configuration through functional options: `CreateButton("Save", WithButtonStyle(PrimaryButton), WithButtonIcon(icon))`
+- 30+ core functions across 10 functional areas (widget creation, layout management, theme operations, etc.)
+- Maintains stateless design for thread safety
+- Easy extension with new option functions without breaking existing code
+- Integration points with ValidationUtility (`WithValidation()`) and FormatUtility (`WithFormatter()`)
+- Performance optimizations through resource caching, widget factories, and lazy loading
+- Cross-platform compatibility with graceful platform-specific fallbacks
+
+**User Approval**: Approved on [2025-09-16]
+
 ## [2025-09-16] - ValidationUtility Design Decision: Implementation Architecture
 
 **Decision**: Option A - Simple Functional Approach
