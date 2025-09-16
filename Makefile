@@ -15,6 +15,14 @@ SRC_DIR := ./cmd/$(APP_NAME)
 # Version can be set via environment variable: make build VERSION=1.0.0
 VERSION ?= dev
 
+# Build flags to suppress duplicate library warnings on macOS
+ifeq ($(shell uname),Darwin)
+	BUILD_FLAGS := -ldflags "-X main.version=$(VERSION) -w"
+	export CGO_LDFLAGS := $(CGO_LDFLAGS) -Wl,-no_warn_duplicate_libraries
+else
+	BUILD_FLAGS := -ldflags "-X main.version=$(VERSION)"
+endif
+
 .PHONY: help
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -23,7 +31,7 @@ help:
 build: ## Build the application
 	@echo "Building $(APP_NAME)..."
 	@mkdir -p $(BIN_DIR)
-	go build -ldflags "-X main.version=$(VERSION)" -o $(OUTPUT) $(SRC_DIR)
+	go build $(BUILD_FLAGS) -o $(OUTPUT) $(SRC_DIR)
 
 .PHONY: run
 run: build ## Build and run the application
