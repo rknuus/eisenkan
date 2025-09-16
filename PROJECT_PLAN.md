@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement FormatUtility - Text formatting helpers
 - Implement ValidationUtility - Basic validation functions
 - Implement FyneUtility - Fyne framework helpers
 - Implement TaskManagerAccess - Depends only on existing TaskManager interface

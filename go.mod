@@ -6,6 +6,7 @@ require (
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/text v0.24.0
 )
 
 require (
