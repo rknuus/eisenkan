@@ -1,5 +1,6 @@
-// Package utilities provides Utility layer components for the EisenKan system following iDesign methodology.
-// This package contains reusable components that provide infrastructure services across all system layers.
+// Package utilities provides Client Utility layer components for the EisenKan system following iDesign methodology.
+// This package contains reusable client-side components that provide infrastructure services across all client layers.
+// Following iDesign namespace: eisenkan.Client.Utilities
 package utilities
 
 import (

@@ -1,4 +1,4 @@
-package access
+package resource_access
 
 import (
 	"time"

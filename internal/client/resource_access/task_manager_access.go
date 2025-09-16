@@ -1,6 +1,7 @@
-// Package access provides Access layer components for the EisenKan Client following iDesign methodology.
+// Package resource_access provides ResourceAccess layer components for the EisenKan Client following iDesign methodology.
 // This package contains components that interface with service layers and provide UI-optimized data access.
-package access
+// Following iDesign namespace: eisenkan.Client.ResourceAccess
+package resource_access
 
 import (
 	"context"
