@@ -1,5 +1,29 @@
 # Design Decision Records (DDR)
 
+## [2025-09-16] - ValidationUtility Design Decision: Implementation Architecture
+
+**Decision**: Option A - Simple Functional Approach
+
+**Context**: Need to determine the implementation approach for ValidationUtility while maintaining consistency with FormatUtility's successful functional design and supporting all 13 SRS interface operations with proper error handling and validation result structures.
+
+**Options Considered**:
+- **Option A: Simple Functional Approach** - Direct functions, validation result structs, minimal types, standard error handling
+- **Option B: Interface-Based Service Pattern** - IValidationUtility interface, struct implementation, rich error handling, consistent with other services
+- **Option C: Hybrid Approach** - Core interface with functional helpers, mixed complexity
+
+**Rationale**: Choose Option A to maintain consistency with FormatUtility's proven functional design. ValidationUtility operations are stateless validation functions that benefit from direct function calls without interface overhead. The functional approach aligns with the universal utility pattern and provides optimal performance for validation operations.
+
+**Consequences**:
+- Direct functions for all 13 operations (ValidateString, ValidateNumber, etc.)
+- Rich data contracts (ValidationResult, ValidationRule, StringConstraints, NumericConstraints structs)
+- Standard Go error handling with structured validation results
+- No interface overhead - direct function calls
+- Consistent with FormatUtility design patterns
+- Thread-safe by design (stateless functions)
+- Easy to use without service instantiation
+
+**User Approval**: Accepted
+
 ## [2025-09-16] - FormatUtility Design Decision: Implementation Architecture
 
 **Decision**: Option A - Simple Functional Approach
