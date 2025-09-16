@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement TaskManagerAccess - Depends only on existing TaskManager interface
 - Implement UIStateAccess - Depends only on LoggingUtilities
 - Implement BoardConfigAccess - Depends only on LoggingUtilities
 - Implement FormValidationEngine - Depends only on ValidationUtilities
