@@ -41,7 +41,18 @@ func TestDestructive_TaskManager_PriorityPromotionEdgeCases(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("BulkPromotionWithMixedDates", func(t *testing.T) {
 		// Create tasks with various promotion date scenarios
@@ -174,7 +185,18 @@ func TestDestructive_TaskManager_PriorityPromotionBusinessLogic(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("PromoteAlreadyUrgentTask", func(t *testing.T) {
 		pastDate := time.Now().Add(-1 * time.Hour)

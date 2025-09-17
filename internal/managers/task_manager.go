@@ -86,6 +86,9 @@ type TaskManager interface {
 
 	// Priority Promotion Operations
 	ProcessPriorityPromotions() ([]TaskResponse, error)
+
+	// IContext facet operations for UI context management
+	IContext
 }
 
 // taskManager implements the TaskManager interface
@@ -95,15 +98,17 @@ type taskManager struct {
 	ruleEngine  engines.IRuleEngine
 	logger      utilities.ILoggingUtility
 	boardPath   string
+	IContext    // embedded context facet
 }
 
 // NewTaskManager creates a new TaskManager instance
-func NewTaskManager(boardAccess resource_access.IBoardAccess, ruleEngine engines.IRuleEngine, logger utilities.ILoggingUtility, boardPath string) TaskManager {
+func NewTaskManager(boardAccess resource_access.IBoardAccess, ruleEngine engines.IRuleEngine, logger utilities.ILoggingUtility, repository utilities.Repository, boardPath string) TaskManager {
 	return &taskManager{
 		boardAccess: boardAccess,
 		ruleEngine:  ruleEngine,
 		logger:      logger,
 		boardPath:   boardPath,
+		IContext:    newContextFacet(repository),
 	}
 }
 

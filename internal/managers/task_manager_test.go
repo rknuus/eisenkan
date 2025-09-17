@@ -89,6 +89,69 @@ func (m *MockBoardAccess) Close() error {
 	return nil
 }
 
+// IConfiguration facet mock methods
+func (m *MockBoardAccess) Load(configType string, identifier string) (resource_access.ConfigurationData, error) {
+	return resource_access.ConfigurationData{
+		Type:       configType,
+		Identifier: identifier,
+		Version:    "1.0",
+		Settings:   make(map[string]interface{}),
+		Schema:     "default",
+		Metadata:   make(map[string]string),
+	}, nil
+}
+
+func (m *MockBoardAccess) Store(configType string, identifier string, data resource_access.ConfigurationData) error {
+	return nil
+}
+
+// MockRepository implements Repository for testing
+type MockRepository struct{}
+
+func (m *MockRepository) Path() string {
+	return "/mock/path"
+}
+
+func (m *MockRepository) Status() (*utilities.RepositoryStatus, error) {
+	return &utilities.RepositoryStatus{}, nil
+}
+
+func (m *MockRepository) Stage(patterns []string) error {
+	return nil
+}
+
+func (m *MockRepository) Commit(message string) (string, error) {
+	return "mock-hash", nil
+}
+
+func (m *MockRepository) GetHistory(limit int) ([]utilities.CommitInfo, error) {
+	return []utilities.CommitInfo{}, nil
+}
+
+func (m *MockRepository) GetHistoryStream() <-chan utilities.CommitInfo {
+	ch := make(chan utilities.CommitInfo)
+	close(ch)
+	return ch
+}
+
+func (m *MockRepository) GetFileHistory(filePath string, limit int) ([]utilities.CommitInfo, error) {
+	return []utilities.CommitInfo{}, nil
+}
+
+func (m *MockRepository) GetFileHistoryStream(filePath string) <-chan utilities.CommitInfo {
+	ch := make(chan utilities.CommitInfo)
+	close(ch)
+	return ch
+}
+
+func (m *MockRepository) GetFileDifferences(hash1, hash2 string) ([]byte, error) {
+	return []byte{}, nil
+}
+
+func (m *MockRepository) Close() error {
+	return nil
+}
+
 // MockRuleEngine implements IRuleEngine for testing
 type MockRuleEngine struct{}
 
@@ -120,9 +183,10 @@ func TestTaskManagerCreation(t *testing.T) {
 	boardAccess := &MockBoardAccess{}
 	ruleEngine := &MockRuleEngine{}
 	logger := &MockLogger{}
+	repository := &MockRepository{}
 	boardPath := "/test/path"
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, boardPath)
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, boardPath)
 	if taskManager == nil {
 		t.Fatal("Expected TaskManager to be created, got nil")
 	}
@@ -132,9 +196,10 @@ func TestCreateTask(t *testing.T) {
 	boardAccess := &MockBoardAccess{}
 	ruleEngine := &MockRuleEngine{}
 	logger := &MockLogger{}
+	repository := &MockRepository{}
 	boardPath := "/test/path"
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, boardPath)
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, boardPath)
 
 	request := TaskRequest{
 		Description:    "Test task",

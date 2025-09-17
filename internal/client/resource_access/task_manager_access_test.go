@@ -62,6 +62,17 @@ func (m *MockTaskManager) ProcessPriorityPromotions() ([]managers.TaskResponse, 
 	return args.Get(0).([]managers.TaskResponse), args.Error(1)
 }
 
+// IContext facet mock methods
+func (m *MockTaskManager) Load(contextType string) (managers.ContextData, error) {
+	args := m.Called(contextType)
+	return args.Get(0).(managers.ContextData), args.Error(1)
+}
+
+func (m *MockTaskManager) Store(contextType string, data managers.ContextData) error {
+	args := m.Called(contextType, data)
+	return args.Error(0)
+}
+
 // MockCacheUtility is a mock implementation of ICacheUtility
 type MockCacheUtility struct {
 	mock.Mock

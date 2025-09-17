@@ -39,7 +39,18 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("NilTaskData", func(t *testing.T) {
 		// Test zero-value TaskRequest (equivalent to nil fields)
@@ -260,7 +271,18 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("InvalidStatusTransition", func(t *testing.T) {
 		// Create task in "done" state
@@ -376,7 +398,18 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("FirstSubtaskTransitionWithParentAlreadyDoing", func(t *testing.T) {
 		// Create parent in "doing" state
@@ -518,7 +551,18 @@ func TestDestructive_TaskManager_ResourceExhaustion(t *testing.T) {
 	defer ruleEngine.Close()
 
 	logger := utilities.NewLoggingUtility()
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	t.Run("LargeSubtaskHierarchy", func(t *testing.T) {
 		// Create parent task

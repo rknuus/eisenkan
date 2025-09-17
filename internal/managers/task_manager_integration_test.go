@@ -40,8 +40,19 @@ func TestIntegration_TaskManager_WithRealDependencies(t *testing.T) {
 
 	logger := utilities.NewLoggingUtility()
 
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
 	// Create TaskManager with real dependencies
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 	if taskManager == nil {
 		t.Fatal("Expected TaskManager to be created, got nil")
 	}
@@ -100,7 +111,18 @@ func TestIntegration_TaskManager_PriorityPromotion(t *testing.T) {
 
 	logger := utilities.NewLoggingUtility()
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	// Create task with promotion date in the past
 	pastDate := time.Now().Add(-24 * time.Hour)
@@ -167,7 +189,18 @@ func TestIntegration_TaskManager_SubtaskWorkflows(t *testing.T) {
 
 	logger := utilities.NewLoggingUtility()
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	// Create parent task
 	parentRequest := TaskRequest{
@@ -239,7 +272,18 @@ func TestIntegration_TaskManager_RuleEngineIntegration(t *testing.T) {
 
 	logger := utilities.NewLoggingUtility()
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	// Test that rule engine is being called (should succeed with default empty rules)
 	request := TaskRequest{
@@ -291,7 +335,18 @@ func TestIntegration_TaskManager_FullWorkflow(t *testing.T) {
 
 	logger := utilities.NewLoggingUtility()
 
-	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, tempDir)
+	// Create repository for TaskManager
+	gitConfig := &utilities.AuthorConfiguration{
+		User:  "Test User",
+		Email: "test@example.com",
+	}
+	repository, err := utilities.InitializeRepositoryWithConfig(tempDir, gitConfig)
+	if err != nil {
+		t.Fatalf("Failed to create repository: %v", err)
+	}
+	defer repository.Close()
+
+	taskManager := NewTaskManager(boardAccess, ruleEngine, logger, repository, tempDir)
 
 	// Test workflow: Create -> Update
 	request := TaskRequest{

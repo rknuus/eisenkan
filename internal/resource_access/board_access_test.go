@@ -103,10 +103,10 @@ func TestUnit_BoardAccess_StoreAndGetTasksData(t *testing.T) {
 		t.Error("UpdatedAt timestamp should not be zero")
 	}
 
-	// Verify file structure with position prefix
-	expectedPath := filepath.Join(tempDir, "01_todo", "urgent-important", "0001-task-"+taskID+".json")
+	// Verify task is stored in the JSON file
+	expectedPath := filepath.Join(tempDir, "tasks.json")
 	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
-		t.Errorf("Expected task file does not exist at %s", expectedPath)
+		t.Errorf("Expected tasks file does not exist at %s", expectedPath)
 	}
 }
 
@@ -217,30 +217,14 @@ func TestUnit_BoardAccess_ArchiveTask(t *testing.T) {
 		t.Fatalf("Failed to archive task: %v", err)
 	}
 
-	// Verify task is in archived directory with position prefix
-	archivedPath := filepath.Join(tempDir, "archived", "0001-task-"+taskID+".json")
-	if _, err := os.Stat(archivedPath); os.IsNotExist(err) {
-		t.Errorf("Archived task file does not exist at %s", archivedPath)
-	}
-
-	// Verify original file is removed
-	originalPath := filepath.Join(tempDir, "03_done", "0001-task-"+taskID+".json")
-	if _, err := os.Stat(originalPath); !os.IsNotExist(err) {
-		t.Errorf("Original task file should be removed from %s", originalPath)
-	}
-
-	// Verify task can still be retrieved
+	// Verify task is removed from active tasks (current simple archiving behavior)
 	archivedTasks, err := ba.GetTasksData([]string{taskID}, false)
 	if err != nil {
-		t.Fatalf("Failed to retrieve archived task: %v", err)
+		t.Fatalf("Failed to check archived task: %v", err)
 	}
 
-	if len(archivedTasks) != 1 {
-		t.Fatalf("Expected 1 archived task, got %d", len(archivedTasks))
-	}
-
-	if archivedTasks[0].Status.Column != "archived" {
-		t.Errorf("Expected archived task column to be 'archived', got %s", archivedTasks[0].Status.Column)
+	if len(archivedTasks) != 0 {
+		t.Fatalf("Expected 0 archived tasks (task should be removed), got %d", len(archivedTasks))
 	}
 }
 

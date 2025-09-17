@@ -1101,6 +1101,10 @@ func TestUnit_CacheUtility_PerformanceRequirements(t *testing.T) {
 
 // TestUnit_CacheUtility_MemoryLeak tests for memory leaks
 func TestUnit_CacheUtility_MemoryLeak(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping memory leak test in short mode")
+	}
+
 	cache := createTestCache()
 	defer cache.Shutdown()
 

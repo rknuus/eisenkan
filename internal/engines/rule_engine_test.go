@@ -213,6 +213,24 @@ func (m *mockBoardAccess) GetParentTask(subtaskID string) (*resource_access.Task
 	return nil, nil // Parent doesn't exist
 }
 
+// IConfiguration facet mock methods
+func (m *mockBoardAccess) Load(configType string, identifier string) (resource_access.ConfigurationData, error) {
+	// Return empty configuration data for tests
+	return resource_access.ConfigurationData{
+		Type:       configType,
+		Identifier: identifier,
+		Version:    "1.0",
+		Settings:   make(map[string]interface{}),
+		Schema:     "default",
+		Metadata:   make(map[string]string),
+	}, nil
+}
+
+func (m *mockBoardAccess) Store(configType string, identifier string, data resource_access.ConfigurationData) error {
+	// Mock store operation does nothing for tests
+	return nil
+}
+
 // ChangeTask updates task data, priority, and status
 func (m *mockBoardAccess) ChangeTask(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
 	return nil
