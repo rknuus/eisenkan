@@ -1,5 +1,48 @@
 # Design Decision Records (DDR)
 
+## [2025-09-17] - IContext and IConfiguration Facets Design Decision: Implementation Architecture
+
+**Decision**: Option 1 - Separate Interface Extensions with Embedded Structs
+
+**Context**: Need to implement git-based JSON configuration management by extending existing TaskManager and BoardAccess services with facet interfaces. After UIStateAccess build failure, user directed pivot to simpler approach using git repository for configuration storage instead of OS-specific directories.
+
+**Options Considered**:
+
+### Option 1: Separate Interface Extensions with Embedded Structs
+- **Approach**: Create separate interface definitions for IContext and IConfiguration
+- **Implementation**: Use Go interface embedding and type assertion
+- **Storage**: Direct git operations through VersioningUtility
+- **Data Format**: Separate JSON files for context vs configuration
+- **Integration**: Services contain facet instances as fields
+
+### Option 2: Facet Pattern with Service Composition
+- **Approach**: Implement facets as composable service components
+- **Implementation**: Services contain facet instances as fields
+- **Storage**: Unified storage abstraction with type-specific handlers
+- **Data Format**: Single JSON structure with facet-specific sections
+- **Integration**: Shared facet container accessed by multiple services
+
+### Option 3: Method Extensions with Context Parameters
+- **Approach**: Extend existing services with context-aware methods
+- **Implementation**: Add context parameter to existing operations
+- **Storage**: Context-driven storage routing
+- **Data Format**: Context-determined JSON schema
+- **Integration**: Additional methods on existing service interfaces
+
+**Rationale**: Choose Option 1 for clear separation of concerns between context and configuration data, follows Go interface composition patterns, maintains architectural layer integrity, and supports independent testing and evolution. This approach provides optimal git diff behavior for configuration changes and enables clean delegation from Manager layer to Resource Access layer.
+
+**Consequences**:
+- **TaskManager IContext Facet**: `Load(contextType string) (ContextData, error)` and `Store(contextType string, data ContextData) error` for UI context management
+- **BoardAccess IConfiguration Facet**: `Load(configType, identifier string) (ConfigurationData, error)` and `Store(configType, identifier string, data ConfigurationData) error` for board configuration management
+- **Git Repository Structure**: `.eisenkan/context/` for UI state/preferences/sessions, `.eisenkan/config/boards/` for board configurations, `.eisenkan/config/workflows/` for workflow rules
+- **Data Contracts**: ContextData and ConfigurationData structs with type, version, metadata, and JSON-serializable content
+- **Error Handling**: Structured error responses with recovery suggestions following established patterns
+- **Validation**: JSON schema validation for both context and configuration data
+- **Layer Integration**: TaskManager delegates to git storage, BoardAccess coordinates with VersioningUtility
+- **Requirements Coverage**: Extends existing SRS documents REQ-TASKMANAGER-019 through REQ-TASKMANAGER-022 and REQ-BOARDACCESS-025 through REQ-BOARDACCESS-029
+
+**User Approval**: Approved on [2025-09-17]
+
 ## [2025-09-17] - UIStateAccess Design Decision: Implementation Architecture
 
 **Decision**: Option C - Hybrid Platform-Optimized Approach
