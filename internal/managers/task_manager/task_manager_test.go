@@ -1,4 +1,4 @@
-package managers
+package task_manager
 
 import (
 	"context"
@@ -6,83 +6,83 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/engines"
-	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
 // MockBoardAccess implements IBoardAccess for testing
 type MockBoardAccess struct{}
 
-func (m *MockBoardAccess) CreateTask(task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus, parentTaskID *string) (string, error) {
+func (m *MockBoardAccess) CreateTask(task *board_access.Task, priority board_access.Priority, status board_access.WorkflowStatus, parentTaskID *string) (string, error) {
 	return "test-task-id", nil
 }
 
-func (m *MockBoardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*resource_access.TaskWithTimestamps, error) {
+func (m *MockBoardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*board_access.TaskWithTimestamps, error) {
 	if len(taskIDs) == 0 {
 		return nil, nil
 	}
 	
-	return []*resource_access.TaskWithTimestamps{
+	return []*board_access.TaskWithTimestamps{
 		{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          taskIDs[0],
 				Title:       "Test Task",
 				Description: "Test Description",
 			},
-			Priority:  resource_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"},
-			Status:    resource_access.WorkflowStatus{Column: "todo"},
+			Priority:  board_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"},
+			Status:    board_access.WorkflowStatus{Column: "todo"},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
 	}, nil
 }
 
-func (m *MockBoardAccess) ListTaskIdentifiers(hierarchyFilter resource_access.HierarchyFilter) ([]string, error) {
+func (m *MockBoardAccess) ListTaskIdentifiers(hierarchyFilter board_access.HierarchyFilter) ([]string, error) {
 	return []string{"test-task-id"}, nil
 }
 
-func (m *MockBoardAccess) ChangeTaskData(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+func (m *MockBoardAccess) ChangeTaskData(taskID string, task *board_access.Task, priority board_access.Priority, status board_access.WorkflowStatus) error {
 	return nil
 }
 
-func (m *MockBoardAccess) MoveTask(taskID string, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+func (m *MockBoardAccess) MoveTask(taskID string, priority board_access.Priority, status board_access.WorkflowStatus) error {
 	return nil
 }
 
-func (m *MockBoardAccess) ArchiveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
+func (m *MockBoardAccess) ArchiveTask(taskID string, cascadePolicy board_access.CascadePolicy) error {
 	return nil
 }
 
-func (m *MockBoardAccess) RemoveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
+func (m *MockBoardAccess) RemoveTask(taskID string, cascadePolicy board_access.CascadePolicy) error {
 	return nil
 }
 
-func (m *MockBoardAccess) FindTasks(criteria *resource_access.QueryCriteria) ([]*resource_access.TaskWithTimestamps, error) {
-	return []*resource_access.TaskWithTimestamps{}, nil
+func (m *MockBoardAccess) FindTasks(criteria *board_access.QueryCriteria) ([]*board_access.TaskWithTimestamps, error) {
+	return []*board_access.TaskWithTimestamps{}, nil
 }
 
 func (m *MockBoardAccess) GetTaskHistory(taskID string, limit int) ([]utilities.CommitInfo, error) {
 	return []utilities.CommitInfo{}, nil
 }
 
-func (m *MockBoardAccess) GetSubtasks(parentTaskID string) ([]*resource_access.TaskWithTimestamps, error) {
-	return []*resource_access.TaskWithTimestamps{}, nil
+func (m *MockBoardAccess) GetSubtasks(parentTaskID string) ([]*board_access.TaskWithTimestamps, error) {
+	return []*board_access.TaskWithTimestamps{}, nil
 }
 
-func (m *MockBoardAccess) GetParentTask(subtaskID string) (*resource_access.TaskWithTimestamps, error) {
+func (m *MockBoardAccess) GetParentTask(subtaskID string) (*board_access.TaskWithTimestamps, error) {
 	return nil, nil
 }
 
-func (m *MockBoardAccess) GetBoardConfiguration() (*resource_access.BoardConfiguration, error) {
-	return &resource_access.BoardConfiguration{}, nil
+func (m *MockBoardAccess) GetBoardConfiguration() (*board_access.BoardConfiguration, error) {
+	return &board_access.BoardConfiguration{}, nil
 }
 
-func (m *MockBoardAccess) UpdateBoardConfiguration(config *resource_access.BoardConfiguration) error {
+func (m *MockBoardAccess) UpdateBoardConfiguration(config *board_access.BoardConfiguration) error {
 	return nil
 }
 
-func (m *MockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*resource_access.RulesData, error) {
-	return &resource_access.RulesData{}, nil
+func (m *MockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*board_access.RulesData, error) {
+	return &board_access.RulesData{}, nil
 }
 
 func (m *MockBoardAccess) Close() error {
@@ -90,8 +90,8 @@ func (m *MockBoardAccess) Close() error {
 }
 
 // IConfiguration facet mock methods
-func (m *MockBoardAccess) Load(configType string, identifier string) (resource_access.ConfigurationData, error) {
-	return resource_access.ConfigurationData{
+func (m *MockBoardAccess) Load(configType string, identifier string) (board_access.ConfigurationData, error) {
+	return board_access.ConfigurationData{
 		Type:       configType,
 		Identifier: identifier,
 		Version:    "1.0",
@@ -101,7 +101,7 @@ func (m *MockBoardAccess) Load(configType string, identifier string) (resource_a
 	}, nil
 }
 
-func (m *MockBoardAccess) Store(configType string, identifier string, data resource_access.ConfigurationData) error {
+func (m *MockBoardAccess) Store(configType string, identifier string, data board_access.ConfigurationData) error {
 	return nil
 }
 
@@ -203,7 +203,7 @@ func TestCreateTask(t *testing.T) {
 
 	request := TaskRequest{
 		Description:    "Test task",
-		Priority:       resource_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"},
+		Priority:       board_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"},
 		WorkflowStatus: Todo,
 		Tags:           []string{"test"},
 	}

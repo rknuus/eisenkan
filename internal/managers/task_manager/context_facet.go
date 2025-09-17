@@ -1,6 +1,6 @@
 // Package managers provides Manager layer components implementing the iDesign methodology.
 // This file implements the IContext facet for TaskManager to handle UI context persistence.
-package managers
+package task_manager
 
 import (
 	"encoding/json"

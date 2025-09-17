@@ -1,4 +1,4 @@
-package resource_access
+package board_access
 
 import (
 	"fmt"

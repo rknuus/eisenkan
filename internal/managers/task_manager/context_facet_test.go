@@ -1,4 +1,4 @@
-package managers
+package task_manager
 
 import (
 	"fmt"

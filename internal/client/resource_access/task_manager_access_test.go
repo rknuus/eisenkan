@@ -10,31 +10,31 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/rknuus/eisenkan/internal/engines"
-	"github.com/rknuus/eisenkan/internal/managers"
-	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/managers/task_manager"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
 // Mock implementations for testing
 
-// MockTaskManager is a mock implementation of managers.TaskManager
+// MockTaskManager is a mock implementation of task_manager.TaskManager
 type MockTaskManager struct {
 	mock.Mock
 }
 
-func (m *MockTaskManager) CreateTask(request managers.TaskRequest) (managers.TaskResponse, error) {
+func (m *MockTaskManager) CreateTask(request task_manager.TaskRequest) (task_manager.TaskResponse, error) {
 	args := m.Called(request)
-	return args.Get(0).(managers.TaskResponse), args.Error(1)
+	return args.Get(0).(task_manager.TaskResponse), args.Error(1)
 }
 
-func (m *MockTaskManager) UpdateTask(taskID string, request managers.TaskRequest) (managers.TaskResponse, error) {
+func (m *MockTaskManager) UpdateTask(taskID string, request task_manager.TaskRequest) (task_manager.TaskResponse, error) {
 	args := m.Called(taskID, request)
-	return args.Get(0).(managers.TaskResponse), args.Error(1)
+	return args.Get(0).(task_manager.TaskResponse), args.Error(1)
 }
 
-func (m *MockTaskManager) GetTask(taskID string) (managers.TaskResponse, error) {
+func (m *MockTaskManager) GetTask(taskID string) (task_manager.TaskResponse, error) {
 	args := m.Called(taskID)
-	return args.Get(0).(managers.TaskResponse), args.Error(1)
+	return args.Get(0).(task_manager.TaskResponse), args.Error(1)
 }
 
 func (m *MockTaskManager) DeleteTask(taskID string) error {
@@ -42,33 +42,33 @@ func (m *MockTaskManager) DeleteTask(taskID string) error {
 	return args.Error(0)
 }
 
-func (m *MockTaskManager) ListTasks(criteria managers.QueryCriteria) ([]managers.TaskResponse, error) {
+func (m *MockTaskManager) ListTasks(criteria task_manager.QueryCriteria) ([]task_manager.TaskResponse, error) {
 	args := m.Called(criteria)
-	return args.Get(0).([]managers.TaskResponse), args.Error(1)
+	return args.Get(0).([]task_manager.TaskResponse), args.Error(1)
 }
 
-func (m *MockTaskManager) ChangeTaskStatus(taskID string, status managers.WorkflowStatus) (managers.TaskResponse, error) {
+func (m *MockTaskManager) ChangeTaskStatus(taskID string, status task_manager.WorkflowStatus) (task_manager.TaskResponse, error) {
 	args := m.Called(taskID, status)
-	return args.Get(0).(managers.TaskResponse), args.Error(1)
+	return args.Get(0).(task_manager.TaskResponse), args.Error(1)
 }
 
-func (m *MockTaskManager) ValidateTask(request managers.TaskRequest) (managers.ValidationResult, error) {
+func (m *MockTaskManager) ValidateTask(request task_manager.TaskRequest) (task_manager.ValidationResult, error) {
 	args := m.Called(request)
-	return args.Get(0).(managers.ValidationResult), args.Error(1)
+	return args.Get(0).(task_manager.ValidationResult), args.Error(1)
 }
 
-func (m *MockTaskManager) ProcessPriorityPromotions() ([]managers.TaskResponse, error) {
+func (m *MockTaskManager) ProcessPriorityPromotions() ([]task_manager.TaskResponse, error) {
 	args := m.Called()
-	return args.Get(0).([]managers.TaskResponse), args.Error(1)
+	return args.Get(0).([]task_manager.TaskResponse), args.Error(1)
 }
 
 // IContext facet mock methods
-func (m *MockTaskManager) Load(contextType string) (managers.ContextData, error) {
+func (m *MockTaskManager) Load(contextType string) (task_manager.ContextData, error) {
 	args := m.Called(contextType)
-	return args.Get(0).(managers.ContextData), args.Error(1)
+	return args.Get(0).(task_manager.ContextData), args.Error(1)
 }
 
-func (m *MockTaskManager) Store(contextType string, data managers.ContextData) error {
+func (m *MockTaskManager) Store(contextType string, data task_manager.ContextData) error {
 	args := m.Called(contextType, data)
 	return args.Error(0)
 }
@@ -142,12 +142,12 @@ func createValidUITaskRequest() UITaskRequest {
 	}
 }
 
-func createValidTaskResponse() managers.TaskResponse {
-	return managers.TaskResponse{
+func createValidTaskResponse() task_manager.TaskResponse {
+	return task_manager.TaskResponse{
 		ID:             "task-123",
 		Description:    "Test task",
-		Priority:       resource_access.Priority{Urgent: true, Important: false, Label: "urgent"},
-		WorkflowStatus: managers.Todo,
+		Priority:       board_access.Priority{Urgent: true, Important: false, Label: "urgent"},
+		WorkflowStatus: task_manager.Todo,
 		Tags:           []string{"test", "unit"},
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
@@ -176,7 +176,7 @@ func TestUnit_TaskManagerAccess_CreateTaskAsync_Success(t *testing.T) {
 	expectedResponse := createValidTaskResponse()
 	
 	// Setup mocks
-	mockTaskManager.On("CreateTask", mock.AnythingOfType("managers.TaskRequest")).Return(expectedResponse, nil)
+	mockTaskManager.On("CreateTask", mock.AnythingOfType("task_manager.TaskRequest")).Return(expectedResponse, nil)
 	mockCache.On("InvalidatePattern", "tasks_*").Return()
 	mockCache.On("InvalidatePattern", "board_summary").Return()
 	mockLogger.On("Log", utilities.Info, "TaskManagerAccess", "Task created successfully", mock.Anything).Return()
@@ -241,7 +241,7 @@ func TestUnit_TaskManagerAccess_CreateTaskAsync_ServiceError(t *testing.T) {
 	serviceError := fmt.Errorf("task creation failed")
 	
 	// Setup mocks
-	mockTaskManager.On("CreateTask", mock.AnythingOfType("managers.TaskRequest")).Return(managers.TaskResponse{}, serviceError)
+	mockTaskManager.On("CreateTask", mock.AnythingOfType("task_manager.TaskRequest")).Return(task_manager.TaskResponse{}, serviceError)
 	mockLogger.On("LogError", "TaskManagerAccess", serviceError, mock.Anything).Return()
 	
 	// Execute
@@ -273,7 +273,7 @@ func TestUnit_TaskManagerAccess_UpdateTaskAsync_Success(t *testing.T) {
 	expectedResponse := createValidTaskResponse()
 	
 	// Setup mocks
-	mockTaskManager.On("UpdateTask", taskID, mock.AnythingOfType("managers.TaskRequest")).Return(expectedResponse, nil)
+	mockTaskManager.On("UpdateTask", taskID, mock.AnythingOfType("task_manager.TaskRequest")).Return(expectedResponse, nil)
 	mockCache.On("Invalidate", "task_task-123").Return()
 	mockCache.On("InvalidatePattern", "tasks_*").Return()
 	mockCache.On("InvalidatePattern", "board_summary").Return()
@@ -483,11 +483,11 @@ func TestUnit_TaskManagerAccess_ListTasksAsync_Success(t *testing.T) {
 	criteria := UIQueryCriteria{
 		Columns: []string{"todo", "in-progress"},
 	}
-	expectedTasks := []managers.TaskResponse{createValidTaskResponse()}
+	expectedTasks := []task_manager.TaskResponse{createValidTaskResponse()}
 	
 	// Setup mocks - cache miss, then service call
 	mockCache.On("Get", mock.AnythingOfType("string")).Return(nil, false)
-	mockTaskManager.On("ListTasks", mock.AnythingOfType("managers.QueryCriteria")).Return(expectedTasks, nil)
+	mockTaskManager.On("ListTasks", mock.AnythingOfType("task_manager.QueryCriteria")).Return(expectedTasks, nil)
 	mockCache.On("Set", mock.AnythingOfType("string"), mock.Anything, 2*time.Minute).Return()
 	
 	// Execute
@@ -516,10 +516,10 @@ func TestUnit_TaskManagerAccess_ChangeTaskStatusAsync_Success(t *testing.T) {
 	taskID := "task-123"
 	newStatus := UIInProgress
 	expectedResponse := createValidTaskResponse()
-	expectedResponse.WorkflowStatus = managers.InProgress
+	expectedResponse.WorkflowStatus = task_manager.InProgress
 	
 	// Setup mocks
-	mockTaskManager.On("ChangeTaskStatus", taskID, managers.InProgress).Return(expectedResponse, nil)
+	mockTaskManager.On("ChangeTaskStatus", taskID, task_manager.InProgress).Return(expectedResponse, nil)
 	mockCache.On("Invalidate", "task_task-123").Return()
 	mockCache.On("InvalidatePattern", "tasks_*").Return()
 	mockCache.On("InvalidatePattern", "board_summary").Return()
@@ -550,13 +550,13 @@ func TestUnit_TaskManagerAccess_ValidateTaskAsync_Success(t *testing.T) {
 	access, mockTaskManager, _, _ := createTestTaskManagerAccess()
 	
 	uiRequest := createValidUITaskRequest()
-	validationResult := managers.ValidationResult{
+	validationResult := task_manager.ValidationResult{
 		Valid:      true,
 		Violations: []engines.RuleViolation{},
 	}
 	
 	// Setup mocks
-	mockTaskManager.On("ValidateTask", mock.AnythingOfType("managers.TaskRequest")).Return(validationResult, nil)
+	mockTaskManager.On("ValidateTask", mock.AnythingOfType("task_manager.TaskRequest")).Return(validationResult, nil)
 	
 	// Execute
 	ctx := context.Background()
@@ -608,7 +608,7 @@ func TestUnit_TaskManagerAccess_ValidateTaskAsync_UIValidationFailure(t *testing
 func TestUnit_TaskManagerAccess_ProcessPriorityPromotionsAsync_Success(t *testing.T) {
 	access, mockTaskManager, mockCache, mockLogger := createTestTaskManagerAccess()
 	
-	promotedTasks := []managers.TaskResponse{createValidTaskResponse()}
+	promotedTasks := []task_manager.TaskResponse{createValidTaskResponse()}
 	
 	// Setup mocks
 	mockTaskManager.On("ProcessPriorityPromotions").Return(promotedTasks, nil)
@@ -641,7 +641,7 @@ func TestUnit_TaskManagerAccess_ProcessPriorityPromotionsAsync_NoPromotions(t *t
 	access, mockTaskManager, _, _ := createTestTaskManagerAccess()
 	
 	// Setup mocks - no promotions
-	mockTaskManager.On("ProcessPriorityPromotions").Return([]managers.TaskResponse{}, nil)
+	mockTaskManager.On("ProcessPriorityPromotions").Return([]task_manager.TaskResponse{}, nil)
 	
 	// Execute
 	ctx := context.Background()
@@ -665,11 +665,11 @@ func TestUnit_TaskManagerAccess_ProcessPriorityPromotionsAsync_NoPromotions(t *t
 func TestUnit_TaskManagerAccess_GetBoardSummaryAsync_Success(t *testing.T) {
 	access, mockTaskManager, mockCache, _ := createTestTaskManagerAccess()
 	
-	allTasks := []managers.TaskResponse{createValidTaskResponse()}
+	allTasks := []task_manager.TaskResponse{createValidTaskResponse()}
 	
 	// Setup mocks - cache miss, then service call
 	mockCache.On("Get", "board_summary").Return(nil, false)
-	mockTaskManager.On("ListTasks", managers.QueryCriteria{}).Return(allTasks, nil)
+	mockTaskManager.On("ListTasks", task_manager.QueryCriteria{}).Return(allTasks, nil)
 	mockCache.On("Set", "board_summary", mock.AnythingOfType("UIBoardSummary"), 1*time.Minute).Return()
 	
 	// Execute
@@ -730,11 +730,11 @@ func TestUnit_TaskManagerAccess_SearchTasksAsync_Success(t *testing.T) {
 	access, mockTaskManager, mockCache, _ := createTestTaskManagerAccess()
 	
 	query := "test"
-	allTasks := []managers.TaskResponse{createValidTaskResponse()}
+	allTasks := []task_manager.TaskResponse{createValidTaskResponse()}
 	
 	// Setup mocks - cache miss, then service call
 	mockCache.On("Get", "search_test").Return(nil, false)
-	mockTaskManager.On("ListTasks", managers.QueryCriteria{}).Return(allTasks, nil)
+	mockTaskManager.On("ListTasks", task_manager.QueryCriteria{}).Return(allTasks, nil)
 	mockCache.On("Set", "search_test", mock.Anything, 30*time.Second).Return()
 	
 	// Execute
@@ -785,11 +785,11 @@ func TestUnit_TaskManagerAccess_QueryTasksAsync_Success(t *testing.T) {
 	criteria := UIQueryCriteria{
 		Columns: []string{"todo"},
 	}
-	expectedTasks := []managers.TaskResponse{createValidTaskResponse()}
+	expectedTasks := []task_manager.TaskResponse{createValidTaskResponse()}
 	
 	// Setup mocks - cache miss, then service call
 	mockCache.On("Get", mock.AnythingOfType("string")).Return(nil, false)
-	mockTaskManager.On("ListTasks", mock.AnythingOfType("managers.QueryCriteria")).Return(expectedTasks, nil)
+	mockTaskManager.On("ListTasks", mock.AnythingOfType("task_manager.QueryCriteria")).Return(expectedTasks, nil)
 	mockCache.On("Set", mock.AnythingOfType("string"), mock.Anything, 2*time.Minute).Return()
 	
 	// Execute
@@ -826,7 +826,7 @@ func TestUnit_TaskManagerAccess_CreateTaskAsync_ContextCancellation(t *testing.T
 	
 	// Setup mocks - the current implementation doesn't check context cancellation
 	// so it will still call the service
-	mockTaskManager.On("CreateTask", mock.AnythingOfType("managers.TaskRequest")).Return(expectedResponse, nil)
+	mockTaskManager.On("CreateTask", mock.AnythingOfType("task_manager.TaskRequest")).Return(expectedResponse, nil)
 	mockCache.On("InvalidatePattern", "tasks_*").Return()
 	mockCache.On("InvalidatePattern", "board_summary").Return()
 	mockLogger.On("Log", utilities.Info, "TaskManagerAccess", "Task created successfully", mock.Anything).Return()
@@ -894,7 +894,7 @@ func TestUnit_TaskManagerAccess_ErrorHandling_CategoryMapping(t *testing.T) {
 			uiRequest := createValidUITaskRequest()
 			
 			// Setup mock to return the test error
-			mockTaskManager.On("CreateTask", mock.AnythingOfType("managers.TaskRequest")).Return(managers.TaskResponse{}, tc.serviceError).Once()
+			mockTaskManager.On("CreateTask", mock.AnythingOfType("task_manager.TaskRequest")).Return(task_manager.TaskResponse{}, tc.serviceError).Once()
 			mockLogger.On("LogError", "TaskManagerAccess", tc.serviceError, mock.Anything).Return().Once()
 			
 			// Execute

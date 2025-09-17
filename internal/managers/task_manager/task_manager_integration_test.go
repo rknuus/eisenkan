@@ -1,4 +1,4 @@
-package managers
+package task_manager
 
 import (
 	"os"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/rknuus/eisenkan/internal/engines"
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -20,7 +21,7 @@ func TestIntegration_TaskManager_WithRealDependencies(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real dependencies
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -60,7 +61,7 @@ func TestIntegration_TaskManager_WithRealDependencies(t *testing.T) {
 	t.Run("CreateTask", func(t *testing.T) {
 		request := TaskRequest{
 			Description:    "Integration test task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 			Tags:           []string{"integration", "test"},
 		}
@@ -91,7 +92,7 @@ func TestIntegration_TaskManager_PriorityPromotion(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real dependencies
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestIntegration_TaskManager_PriorityPromotion(t *testing.T) {
 	pastDate := time.Now().Add(-24 * time.Hour)
 	request := TaskRequest{
 		Description:           "Task needing promotion",
-		Priority:              resource_access.Priority{Urgent: false, Important: true},
+		Priority:              board_access.Priority{Urgent: false, Important: true},
 		WorkflowStatus:        Todo,
 		PriorityPromotionDate: &pastDate,
 	}
@@ -169,7 +170,7 @@ func TestIntegration_TaskManager_SubtaskWorkflows(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real dependencies
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -205,7 +206,7 @@ func TestIntegration_TaskManager_SubtaskWorkflows(t *testing.T) {
 	// Create parent task
 	parentRequest := TaskRequest{
 		Description:    "Parent task",
-		Priority:       resource_access.Priority{Urgent: true, Important: true},
+		Priority:       board_access.Priority{Urgent: true, Important: true},
 		WorkflowStatus: Todo,
 	}
 
@@ -217,7 +218,7 @@ func TestIntegration_TaskManager_SubtaskWorkflows(t *testing.T) {
 	// Create subtask
 	subtaskRequest := TaskRequest{
 		Description:    "Subtask",
-		Priority:       resource_access.Priority{Urgent: false, Important: true},
+		Priority:       board_access.Priority{Urgent: false, Important: true},
 		WorkflowStatus: Todo,
 		ParentTaskID:   &parentResponse.ID,
 	}
@@ -252,7 +253,7 @@ func TestIntegration_TaskManager_RuleEngineIntegration(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real dependencies
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -288,7 +289,7 @@ func TestIntegration_TaskManager_RuleEngineIntegration(t *testing.T) {
 	// Test that rule engine is being called (should succeed with default empty rules)
 	request := TaskRequest{
 		Description:    "Rule engine test task",
-		Priority:       resource_access.Priority{Urgent: true, Important: true},
+		Priority:       board_access.Priority{Urgent: true, Important: true},
 		WorkflowStatus: Todo,
 	}
 
@@ -315,7 +316,7 @@ func TestIntegration_TaskManager_FullWorkflow(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create real dependencies
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -351,7 +352,7 @@ func TestIntegration_TaskManager_FullWorkflow(t *testing.T) {
 	// Test workflow: Create -> Update
 	request := TaskRequest{
 		Description:    "Workflow test task",
-		Priority:       resource_access.Priority{Urgent: true, Important: true},
+		Priority:       board_access.Priority{Urgent: true, Important: true},
 		WorkflowStatus: Todo,
 		Tags:           []string{"workflow", "test"},
 	}
@@ -366,7 +367,7 @@ func TestIntegration_TaskManager_FullWorkflow(t *testing.T) {
 	// 2. Update task
 	updateRequest := TaskRequest{
 		Description:    "Updated workflow test task",
-		Priority:       resource_access.Priority{Urgent: true, Important: true},
+		Priority:       board_access.Priority{Urgent: true, Important: true},
 		WorkflowStatus: Todo,
 		Tags:           []string{"workflow", "test", "updated"},
 	}

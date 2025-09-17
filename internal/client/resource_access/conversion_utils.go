@@ -5,32 +5,32 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rknuus/eisenkan/internal/managers"
-	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/managers/task_manager"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 )
 
 // convertUIRequestToTaskRequest converts UI request to TaskManager request format
-func (t *taskManagerAccess) convertUIRequestToTaskRequest(uiRequest UITaskRequest) (managers.TaskRequest, error) {
-	// Convert UI priority to resource_access priority
-	priority := resource_access.Priority{
+func (t *taskManagerAccess) convertUIRequestToTaskRequest(uiRequest UITaskRequest) (task_manager.TaskRequest, error) {
+	// Convert UI priority to board_access priority
+	priority := board_access.Priority{
 		Urgent:    uiRequest.Priority.Urgent,
 		Important: uiRequest.Priority.Important,
 	}
 
 	// Convert UI workflow status to TaskManager workflow status
-	var workflowStatus managers.WorkflowStatus
+	var workflowStatus task_manager.WorkflowStatus
 	switch uiRequest.WorkflowStatus {
 	case UITodo:
-		workflowStatus = managers.Todo
+		workflowStatus = task_manager.Todo
 	case UIInProgress:
-		workflowStatus = managers.InProgress
+		workflowStatus = task_manager.InProgress
 	case UIDone:
-		workflowStatus = managers.Done
+		workflowStatus = task_manager.Done
 	default:
-		workflowStatus = managers.Todo // Default fallback
+		workflowStatus = task_manager.Todo // Default fallback
 	}
 
-	return managers.TaskRequest{
+	return task_manager.TaskRequest{
 		Description:           uiRequest.Description,
 		Priority:              priority,
 		WorkflowStatus:        workflowStatus,
@@ -42,7 +42,7 @@ func (t *taskManagerAccess) convertUIRequestToTaskRequest(uiRequest UITaskReques
 }
 
 // convertTaskResponseToUI converts TaskManager response to UI format
-func (t *taskManagerAccess) convertTaskResponseToUI(response managers.TaskResponse) UITaskResponse {
+func (t *taskManagerAccess) convertTaskResponseToUI(response task_manager.TaskResponse) UITaskResponse {
 	// Convert priority
 	uiPriority := UIPriority{
 		Urgent:    response.Priority.Urgent,
@@ -54,11 +54,11 @@ func (t *taskManagerAccess) convertTaskResponseToUI(response managers.TaskRespon
 	// Convert workflow status
 	var uiStatus UIWorkflowStatus
 	switch response.WorkflowStatus {
-	case managers.Todo:
+	case task_manager.Todo:
 		uiStatus = UITodo
-	case managers.InProgress:
+	case task_manager.InProgress:
 		uiStatus = UIInProgress
-	case managers.Done:
+	case task_manager.Done:
 		uiStatus = UIDone
 	default:
 		uiStatus = UITodo
@@ -94,8 +94,8 @@ func (t *taskManagerAccess) convertTaskResponseToUI(response managers.TaskRespon
 }
 
 // convertUIQueryCriteriaToTaskCriteria converts UI criteria to TaskManager format
-func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQueryCriteria) managers.QueryCriteria {
-	criteria := managers.QueryCriteria{
+func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQueryCriteria) task_manager.QueryCriteria {
+	criteria := task_manager.QueryCriteria{
 		Columns:      uiCriteria.Columns,
 		Sections:     uiCriteria.Sections,
 		Tags:         uiCriteria.Tags,
@@ -104,7 +104,7 @@ func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQu
 
 	// Convert priority if specified
 	if uiCriteria.Priority != nil {
-		criteria.Priority = &resource_access.Priority{
+		criteria.Priority = &board_access.Priority{
 			Urgent:    uiCriteria.Priority.Urgent,
 			Important: uiCriteria.Priority.Important,
 		}
@@ -112,7 +112,7 @@ func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQu
 
 	// Convert date range if specified
 	if uiCriteria.DateRange != nil {
-		criteria.DateRange = &resource_access.DateRange{
+		criteria.DateRange = &board_access.DateRange{
 			From: uiCriteria.DateRange.Start,
 			To:   uiCriteria.DateRange.End,
 		}
@@ -120,7 +120,7 @@ func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQu
 
 	// Convert priority promotion date range if specified
 	if uiCriteria.PriorityPromotionDate != nil {
-		criteria.PriorityPromotionDate = &resource_access.DateRange{
+		criteria.PriorityPromotionDate = &board_access.DateRange{
 			From: uiCriteria.PriorityPromotionDate.Start,
 			To:   uiCriteria.PriorityPromotionDate.End,
 		}
@@ -129,32 +129,32 @@ func (t *taskManagerAccess) convertUIQueryCriteriaToTaskCriteria(uiCriteria UIQu
 	// Convert hierarchy filter
 	switch uiCriteria.Hierarchy {
 	case UIHierarchyTopLevel:
-		criteria.Hierarchy = resource_access.TopLevelOnly
+		criteria.Hierarchy = board_access.TopLevelOnly
 	case UIHierarchySubtasksOnly:
-		criteria.Hierarchy = resource_access.SubtasksOnly
+		criteria.Hierarchy = board_access.SubtasksOnly
 	default:
-		criteria.Hierarchy = resource_access.AllTasks
+		criteria.Hierarchy = board_access.AllTasks
 	}
 
 	return criteria
 }
 
 // convertUIWorkflowStatusToTaskStatus converts UI status to TaskManager format
-func (t *taskManagerAccess) convertUIWorkflowStatusToTaskStatus(uiStatus UIWorkflowStatus) managers.WorkflowStatus {
+func (t *taskManagerAccess) convertUIWorkflowStatusToTaskStatus(uiStatus UIWorkflowStatus) task_manager.WorkflowStatus {
 	switch uiStatus {
 	case UITodo:
-		return managers.Todo
+		return task_manager.Todo
 	case UIInProgress:
-		return managers.InProgress
+		return task_manager.InProgress
 	case UIDone:
-		return managers.Done
+		return task_manager.Done
 	default:
-		return managers.Todo
+		return task_manager.Todo
 	}
 }
 
 // convertValidationResultToUI converts TaskManager validation to UI format
-func (t *taskManagerAccess) convertValidationResultToUI(validation managers.ValidationResult) UIValidationResult {
+func (t *taskManagerAccess) convertValidationResultToUI(validation task_manager.ValidationResult) UIValidationResult {
 	// Convert rule violations to field errors
 	fieldErrors := make(map[string]string)
 	var suggestions []string
@@ -190,7 +190,7 @@ func (t *taskManagerAccess) convertValidationResultToUI(validation managers.Vali
 }
 
 // calculatePrioritySortOrder determines sort order for UI priority display
-func (t *taskManagerAccess) calculatePrioritySortOrder(priority resource_access.Priority) int {
+func (t *taskManagerAccess) calculatePrioritySortOrder(priority board_access.Priority) int {
 	if priority.Urgent && priority.Important {
 		return 1 // Highest priority
 	} else if priority.Urgent && !priority.Important {
@@ -203,7 +203,7 @@ func (t *taskManagerAccess) calculatePrioritySortOrder(priority resource_access.
 }
 
 // generateDisplayName creates UI-optimized display text for tasks
-func (t *taskManagerAccess) generateDisplayName(response managers.TaskResponse) string {
+func (t *taskManagerAccess) generateDisplayName(response task_manager.TaskResponse) string {
 	displayName := response.Description
 	
 	// Truncate long descriptions for display
@@ -284,7 +284,7 @@ func (t *taskManagerAccess) isTaskOverdue(deadline *time.Time) bool {
 }
 
 // calculateBoardSummary generates board statistics from task list
-func (t *taskManagerAccess) calculateBoardSummary(tasks []managers.TaskResponse) UIBoardSummary {
+func (t *taskManagerAccess) calculateBoardSummary(tasks []task_manager.TaskResponse) UIBoardSummary {
 	summary := UIBoardSummary{
 		TotalTasks:      len(tasks),
 		TasksByStatus:   make(map[UIWorkflowStatus]int),
@@ -323,7 +323,7 @@ func (t *taskManagerAccess) calculateBoardSummary(tasks []managers.TaskResponse)
 		}
 		if task.ParentTaskID != nil {
 			totalSubtasks++
-			if task.WorkflowStatus == managers.Done {
+			if task.WorkflowStatus == task_manager.Done {
 				completedSubtasks++
 			}
 		}
@@ -339,13 +339,13 @@ func (t *taskManagerAccess) calculateBoardSummary(tasks []managers.TaskResponse)
 }
 
 // convertWorkflowStatusToUI converts TaskManager status to UI format
-func (t *taskManagerAccess) convertWorkflowStatusToUI(status managers.WorkflowStatus) UIWorkflowStatus {
+func (t *taskManagerAccess) convertWorkflowStatusToUI(status task_manager.WorkflowStatus) UIWorkflowStatus {
 	switch status {
-	case managers.Todo:
+	case task_manager.Todo:
 		return UITodo
-	case managers.InProgress:
+	case task_manager.InProgress:
 		return UIInProgress
-	case managers.Done:
+	case task_manager.Done:
 		return UIDone
 	default:
 		return UITodo

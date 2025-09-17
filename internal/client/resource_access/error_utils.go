@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rknuus/eisenkan/internal/managers"
+	"github.com/rknuus/eisenkan/internal/managers/task_manager"
 )
 
 // translateServiceError converts TaskManager service errors to UI-friendly errors
@@ -315,7 +315,7 @@ func (t *taskManagerAccess) generateCacheKeyFromCriteria(criteria UIQueryCriteri
 }
 
 // taskMatchesQuery checks if a task matches a search query
-func (t *taskManagerAccess) taskMatchesQuery(task managers.TaskResponse, query string) bool {
+func (t *taskManagerAccess) taskMatchesQuery(task task_manager.TaskResponse, query string) bool {
 	queryLower := strings.ToLower(query)
 	
 	// Search in description

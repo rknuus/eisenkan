@@ -1,4 +1,4 @@
-package managers
+package task_manager
 
 import (
 	"os"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/rknuus/eisenkan/internal/engines"
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -22,7 +23,7 @@ func TestDestructive_TaskManager_PriorityPromotionEdgeCases(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -74,7 +75,7 @@ func TestDestructive_TaskManager_PriorityPromotionEdgeCases(t *testing.T) {
 		for _, tc := range testCases {
 			request := TaskRequest{
 				Description:           "Bulk promotion test: " + tc.name,
-				Priority:              resource_access.Priority{Urgent: false, Important: true},
+				Priority:              board_access.Priority{Urgent: false, Important: true},
 				WorkflowStatus:        Todo,
 				PriorityPromotionDate: tc.date,
 			}
@@ -129,7 +130,7 @@ func TestDestructive_TaskManager_PriorityPromotionEdgeCases(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				request := TaskRequest{
 					Description:           "Boundary test: " + tc.name,
-					Priority:              resource_access.Priority{Urgent: false, Important: true},
+					Priority:              board_access.Priority{Urgent: false, Important: true},
 					WorkflowStatus:        Todo,
 					PriorityPromotionDate: &tc.date,
 				}
@@ -166,7 +167,7 @@ func TestDestructive_TaskManager_PriorityPromotionBusinessLogic(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -202,7 +203,7 @@ func TestDestructive_TaskManager_PriorityPromotionBusinessLogic(t *testing.T) {
 		pastDate := time.Now().Add(-1 * time.Hour)
 		request := TaskRequest{
 			Description:           "Already urgent task",
-			Priority:              resource_access.Priority{Urgent: true, Important: true}, // Already urgent
+			Priority:              board_access.Priority{Urgent: true, Important: true}, // Already urgent
 			WorkflowStatus:        Todo,
 			PriorityPromotionDate: &pastDate,
 		}
@@ -229,10 +230,10 @@ func TestDestructive_TaskManager_PriorityPromotionBusinessLogic(t *testing.T) {
 		// Create task with specific priority combinations
 		testCases := []struct {
 			name     string
-			priority resource_access.Priority
+			priority board_access.Priority
 		}{
-			{"not_urgent_not_important", resource_access.Priority{Urgent: false, Important: false}},
-			{"urgent_not_important", resource_access.Priority{Urgent: true, Important: false}},
+			{"not_urgent_not_important", board_access.Priority{Urgent: false, Important: false}},
+			{"urgent_not_important", board_access.Priority{Urgent: true, Important: false}},
 		}
 
 		for _, tc := range testCases {
@@ -280,7 +281,7 @@ func TestDestructive_TaskManager_PriorityPromotionBusinessLogic(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			request := TaskRequest{
 				Description:           "Concurrent promotion task",
-				Priority:              resource_access.Priority{Urgent: false, Important: true},
+				Priority:              board_access.Priority{Urgent: false, Important: true},
 				WorkflowStatus:        Todo,
 				PriorityPromotionDate: &pastDate,
 			}

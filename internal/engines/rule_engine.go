@@ -12,24 +12,25 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
 // TaskEvent represents a task state change event for rule evaluation
 type TaskEvent struct {
 	EventType        string                              `json:"event_type"` // "task_transition", "task_update", "task_create"
-	CurrentState     *resource_access.TaskWithTimestamps `json:"current_state,omitempty"`
+	CurrentState     *board_access.TaskWithTimestamps `json:"current_state,omitempty"`
 	FutureState      *TaskState                          `json:"future_state"`
 	Timestamp        time.Time                           `json:"timestamp"`
-	ParentTask       *resource_access.TaskWithTimestamps `json:"parent_task,omitempty"`
-	AffectedSubtasks []*resource_access.TaskWithTimestamps `json:"affected_subtasks,omitempty"`
+	ParentTask       *board_access.TaskWithTimestamps `json:"parent_task,omitempty"`
+	AffectedSubtasks []*board_access.TaskWithTimestamps `json:"affected_subtasks,omitempty"`
 }
 
 // TaskState represents the intended state of a task
 type TaskState struct {
-	Task     *resource_access.Task          `json:"task"`
-	Priority resource_access.Priority       `json:"priority"`
-	Status   resource_access.WorkflowStatus `json:"status"`
+	Task     *board_access.Task          `json:"task"`
+	Priority board_access.Priority       `json:"priority"`
+	Status   board_access.WorkflowStatus `json:"status"`
 }
 
 // RuleViolation represents a single rule violation
@@ -53,8 +54,8 @@ type EnrichedContext struct {
 	WIPCounts        map[string]int                                   `json:"wip_counts"`        // column -> task count
 	SubtaskWIPCounts map[string]int                                   `json:"subtask_wip_counts"` // column -> subtask count
 	TaskHistory      []utilities.CommitInfo                           `json:"task_history"`      // for age calculations
-	Subtasks         []*resource_access.TaskWithTimestamps            `json:"subtasks"`          // for dependency rules
-	ColumnTasks      map[string][]*resource_access.TaskWithTimestamps `json:"column_tasks"`      // for priority comparisons
+	Subtasks         []*board_access.TaskWithTimestamps            `json:"subtasks"`          // for dependency rules
+	ColumnTasks      map[string][]*board_access.TaskWithTimestamps `json:"column_tasks"`      // for priority comparisons
 	ColumnEnterTimes map[string]time.Time                             `json:"column_enter_times"` // column -> enter timestamp
 	BoardMetadata    map[string]string                                `json:"board_metadata"`    // for custom rules
 	HierarchyMap     map[string][]string                              `json:"hierarchy_map"`     // parent -> subtasks mapping
@@ -72,12 +73,12 @@ type IRuleEngine interface {
 // RuleEngine implements IRuleEngine interface
 type RuleEngine struct {
 	rulesAccess resource_access.IRulesAccess
-	boardAccess resource_access.IBoardAccess
+	boardAccess board_access.IBoardAccess
 	logger      utilities.ILoggingUtility
 }
 
 // NewRuleEngine creates a new RuleEngine instance
-func NewRuleEngine(rulesAccess resource_access.IRulesAccess, boardAccess resource_access.IBoardAccess) (*RuleEngine, error) {
+func NewRuleEngine(rulesAccess resource_access.IRulesAccess, boardAccess board_access.IBoardAccess) (*RuleEngine, error) {
 	if rulesAccess == nil {
 		return nil, fmt.Errorf("RuleEngine.NewRuleEngine: rulesAccess cannot be nil")
 	}
@@ -186,13 +187,13 @@ func (re *RuleEngine) enrichContext(ctx context.Context, event TaskEvent, boardP
 	}
 
 	// Get subtasks for dependency rules using BoardAccess
-	var subtasks []*resource_access.TaskWithTimestamps
+	var subtasks []*board_access.TaskWithTimestamps
 	if taskID != "" {
 		var err error
 		subtasks, err = re.boardAccess.GetSubtasks(taskID)
 		if err != nil {
 			re.logger.LogMessage(utilities.Warning, "RuleEngine", fmt.Sprintf("Failed to get subtasks: %v", err))
-			subtasks = []*resource_access.TaskWithTimestamps{} // Continue with empty list
+			subtasks = []*board_access.TaskWithTimestamps{} // Continue with empty list
 		}
 	}
 
@@ -213,10 +214,10 @@ func (re *RuleEngine) enrichContext(ctx context.Context, event TaskEvent, boardP
 
 
 // getSubtasks retrieves subtasks for dependency rules (placeholder implementation)
-func (re *RuleEngine) getSubtasks(ctx context.Context, event TaskEvent) ([]*resource_access.TaskWithTimestamps, error) {
+func (re *RuleEngine) getSubtasks(ctx context.Context, event TaskEvent) ([]*board_access.TaskWithTimestamps, error) {
 	// TODO: Implement subtask retrieval when subtask support is added to BoardAccess
 	// For now, return empty list as subtasks are not yet implemented in BoardAccess
-	return []*resource_access.TaskWithTimestamps{}, nil
+	return []*board_access.TaskWithTimestamps{}, nil
 }
 
 
@@ -442,7 +443,7 @@ func (re *RuleEngine) parseIntValue(value interface{}) (int, error) {
 	}
 }
 
-func (re *RuleEngine) checkRequiredField(fieldName string, task *resource_access.Task, rule resource_access.Rule) *RuleViolation {
+func (re *RuleEngine) checkRequiredField(fieldName string, task *board_access.Task, rule resource_access.Rule) *RuleViolation {
 	switch fieldName {
 	case "title":
 		if strings.TrimSpace(task.Title) == "" {

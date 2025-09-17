@@ -1,6 +1,6 @@
 // Package resource_access provides ResourceAccess layer components implementing the iDesign methodology.
 // This file implements the IConfiguration facet for BoardAccess to handle board configuration persistence.
-package resource_access
+package board_access
 
 import (
 	"encoding/json"

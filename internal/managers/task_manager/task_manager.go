@@ -1,7 +1,7 @@
 // Package managers provides Manager layer components implementing the iDesign methodology.
 // This package contains components that orchestrate business workflows and coordinate
 // between different components in the application architecture.
-package managers
+package task_manager
 
 import (
 	"context"
@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/engines"
-	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
 // TaskRequest represents the input data for task operations
 type TaskRequest struct {
 	Description           string                   `json:"description"`
-	Priority              resource_access.Priority `json:"priority"`
+	Priority              board_access.Priority `json:"priority"`
 	WorkflowStatus        WorkflowStatus           `json:"workflow_status"`
 	Tags                  []string                 `json:"tags,omitempty"`
 	Deadline              *time.Time               `json:"deadline,omitempty"`
@@ -29,7 +29,7 @@ type TaskRequest struct {
 type TaskResponse struct {
 	ID                    string                   `json:"id"`
 	Description           string                   `json:"description"`
-	Priority              resource_access.Priority `json:"priority"`
+	Priority              board_access.Priority `json:"priority"`
 	WorkflowStatus        WorkflowStatus           `json:"workflow_status"`
 	Tags                  []string                 `json:"tags,omitempty"`
 	Deadline              *time.Time               `json:"deadline,omitempty"`
@@ -53,12 +53,12 @@ const (
 type QueryCriteria struct {
 	Columns               []string                        `json:"columns,omitempty"`
 	Sections              []string                        `json:"sections,omitempty"`
-	Priority              *resource_access.Priority       `json:"priority,omitempty"`
+	Priority              *board_access.Priority       `json:"priority,omitempty"`
 	Tags                  []string                        `json:"tags,omitempty"`
-	DateRange             *resource_access.DateRange      `json:"date_range,omitempty"`
-	PriorityPromotionDate *resource_access.DateRange      `json:"priority_promotion_date,omitempty"`
+	DateRange             *board_access.DateRange      `json:"date_range,omitempty"`
+	PriorityPromotionDate *board_access.DateRange      `json:"priority_promotion_date,omitempty"`
 	ParentTaskID          *string                         `json:"parent_task_id,omitempty"`
-	Hierarchy             resource_access.HierarchyFilter `json:"hierarchy,omitempty"`
+	Hierarchy             board_access.HierarchyFilter `json:"hierarchy,omitempty"`
 }
 
 // ValidationResult represents the outcome of task validation
@@ -94,7 +94,7 @@ type TaskManager interface {
 // taskManager implements the TaskManager interface
 type taskManager struct {
 	mu          sync.RWMutex
-	boardAccess resource_access.IBoardAccess
+	boardAccess board_access.IBoardAccess
 	ruleEngine  engines.IRuleEngine
 	logger      utilities.ILoggingUtility
 	boardPath   string
@@ -102,7 +102,7 @@ type taskManager struct {
 }
 
 // NewTaskManager creates a new TaskManager instance
-func NewTaskManager(boardAccess resource_access.IBoardAccess, ruleEngine engines.IRuleEngine, logger utilities.ILoggingUtility, repository utilities.Repository, boardPath string) TaskManager {
+func NewTaskManager(boardAccess board_access.IBoardAccess, ruleEngine engines.IRuleEngine, logger utilities.ILoggingUtility, repository utilities.Repository, boardPath string) TaskManager {
 	return &taskManager{
 		boardAccess: boardAccess,
 		ruleEngine:  ruleEngine,
@@ -129,7 +129,7 @@ func (tm *taskManager) CreateTask(request TaskRequest) (TaskResponse, error) {
 	}
 
 	// Create Task struct for BoardAccess
-	task := &resource_access.Task{
+	task := &board_access.Task{
 		Title:                 request.Description, // Using description as title for now
 		Description:           request.Description,
 		Tags:                  request.Tags,
@@ -167,7 +167,7 @@ func (tm *taskManager) UpdateTask(taskID string, request TaskRequest) (TaskRespo
 	}
 
 	// Create updated Task struct
-	task := &resource_access.Task{
+	task := &board_access.Task{
 		ID:                    taskID,
 		Title:                 request.Description,
 		Description:           request.Description,
@@ -226,7 +226,7 @@ func (tm *taskManager) DeleteTask(taskID string) error {
 	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Deleting task: %s", taskID))
 
 	// Handle cascade operations for subtasks (implementation depends on cascade policy)
-	err := tm.boardAccess.RemoveTask(taskID, resource_access.DeleteSubtasks) // Default cascade policy
+	err := tm.boardAccess.RemoveTask(taskID, board_access.DeleteSubtasks) // Default cascade policy
 	if err != nil {
 		return fmt.Errorf("task deletion failed: %w", err)
 	}
@@ -318,8 +318,8 @@ func (tm *taskManager) ProcessPriorityPromotions() ([]TaskResponse, error) {
 
 	// Query tasks with promotion dates that have been reached
 	now := time.Now()
-	criteria := &resource_access.QueryCriteria{
-		PriorityPromotionDate: &resource_access.DateRange{
+	criteria := &board_access.QueryCriteria{
+		PriorityPromotionDate: &board_access.DateRange{
 			To: &now, // Tasks with promotion date <= now
 		},
 	}
@@ -337,7 +337,7 @@ func (tm *taskManager) ProcessPriorityPromotions() ([]TaskResponse, error) {
 			tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Promoting task priority: %s", taskWithTimestamps.Task.ID))
 
 			// Create new priority: urgent-important
-			newPriority := resource_access.Priority{
+			newPriority := board_access.Priority{
 				Urgent:    true,
 				Important: true,
 				Label:     "urgent-important",
@@ -380,7 +380,7 @@ func (tm *taskManager) ProcessPriorityPromotions() ([]TaskResponse, error) {
 func (tm *taskManager) validateTaskRequest(request TaskRequest) (ValidationResult, error) {
 	// Create TaskEvent for rule validation
 	futureState := &engines.TaskState{
-		Task: &resource_access.Task{
+		Task: &board_access.Task{
 			Title:                 request.Description,
 			Description:           request.Description,
 			Tags:                  request.Tags,
@@ -414,7 +414,7 @@ func (tm *taskManager) validateTaskRequest(request TaskRequest) (ValidationResul
 func (tm *taskManager) validateWorkflowTransition(currentTask TaskResponse, newStatus WorkflowStatus) error {
 	// Create TaskEvent for workflow transition validation
 	futureState := &engines.TaskState{
-		Task: &resource_access.Task{
+		Task: &board_access.Task{
 			ID:                    currentTask.ID,
 			Title:                 currentTask.Description,
 			Description:           currentTask.Description,
@@ -512,7 +512,7 @@ func (tm *taskManager) handleParentTaskCompletion(parentTaskID string) error {
 }
 
 // convertToTaskResponse converts BoardAccess types to TaskManager response format
-func (tm *taskManager) convertToTaskResponse(taskWithTimestamps *resource_access.TaskWithTimestamps, subtasks []*resource_access.TaskWithTimestamps) TaskResponse {
+func (tm *taskManager) convertToTaskResponse(taskWithTimestamps *board_access.TaskWithTimestamps, subtasks []*board_access.TaskWithTimestamps) TaskResponse {
 	subtaskIDs := make([]string, 0, len(subtasks))
 	for _, subtask := range subtasks {
 		subtaskIDs = append(subtaskIDs, subtask.Task.ID)
@@ -534,8 +534,8 @@ func (tm *taskManager) convertToTaskResponse(taskWithTimestamps *resource_access
 }
 
 // convertToBoardCriteria converts TaskManager criteria to BoardAccess format
-func (tm *taskManager) convertToBoardCriteria(criteria QueryCriteria) *resource_access.QueryCriteria {
-	return &resource_access.QueryCriteria{
+func (tm *taskManager) convertToBoardCriteria(criteria QueryCriteria) *board_access.QueryCriteria {
+	return &board_access.QueryCriteria{
 		Columns:               criteria.Columns,
 		Sections:              criteria.Sections,
 		Priority:              criteria.Priority,
@@ -548,8 +548,8 @@ func (tm *taskManager) convertToBoardCriteria(criteria QueryCriteria) *resource_
 }
 
 // mapWorkflowStatusWithPriority converts TaskManager WorkflowStatus to BoardAccess WorkflowStatus with priority-based section
-func mapWorkflowStatusWithPriority(status WorkflowStatus, priority resource_access.Priority) resource_access.WorkflowStatus {
-	result := resource_access.WorkflowStatus{
+func mapWorkflowStatusWithPriority(status WorkflowStatus, priority board_access.Priority) board_access.WorkflowStatus {
+	result := board_access.WorkflowStatus{
 		Column: string(status),
 	}
 	
@@ -568,6 +568,6 @@ func mapWorkflowStatusWithPriority(status WorkflowStatus, priority resource_acce
 }
 
 // mapFromBoardStatus converts BoardAccess WorkflowStatus to TaskManager WorkflowStatus
-func mapFromBoardStatus(status resource_access.WorkflowStatus) WorkflowStatus {
+func mapFromBoardStatus(status board_access.WorkflowStatus) WorkflowStatus {
 	return WorkflowStatus(status.Column)
 }

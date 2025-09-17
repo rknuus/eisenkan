@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 )
 
 // TestAcceptance_RuleEngine_APIContractViolations tests API contract violations (STP DT-API-001)
@@ -60,7 +61,7 @@ func TestAcceptance_RuleEngine_APIContractViolations(t *testing.T) {
 			EventType: "task_transition",
 			FutureState: &TaskState{
 				Task: nil, // Invalid nil task
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -84,12 +85,12 @@ func TestAcceptance_RuleEngine_APIContractViolations(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:          "large-desc-task",
 					Title:       "Task with Large Description",
 					Description: largeDescription,
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -110,7 +111,7 @@ func TestAcceptance_RuleEngine_APIContractViolations(t *testing.T) {
 
 	t.Run("TaskEventWithInvalidUnicodeCharacters", func(t *testing.T) {
 		// Test with various Unicode characters including potentially problematic ones
-		unicodeTask := &resource_access.Task{
+		unicodeTask := &board_access.Task{
 			ID:          "unicode-task",
 			Title:       "Unicode Test: 🚀🔥💯 中文 العربية русский ñáéíóú",
 			Description: "Testing unicode: \u0000\u001F\uFFFD\U0001F4A9", // Including control chars
@@ -120,7 +121,7 @@ func TestAcceptance_RuleEngine_APIContractViolations(t *testing.T) {
 			EventType: "task_transition",
 			FutureState: &TaskState{
 				Task: unicodeTask,
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -184,12 +185,12 @@ func TestAcceptance_RuleEngine_RuleLogicEdgeCases(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:          "complex-test-task",
 					Title:       "Test Task",
 					Description: "Test Description",
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -234,11 +235,11 @@ func TestAcceptance_RuleEngine_RuleLogicEdgeCases(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:    "test-task",
 					Title: "Valid Task",
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -284,11 +285,11 @@ func TestAcceptance_RuleEngine_RuleLogicEdgeCases(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:    "boundary-test-task",
 					Title: "Boundary Test",
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -360,12 +361,12 @@ func TestAcceptance_RuleEngine_RulePriorityAndConflicts(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:          "test-task",
 					Title:       "", // Missing title
 					Description: "", // Missing description
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -420,11 +421,11 @@ func TestAcceptance_RuleEngine_RulePriorityAndConflicts(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:    "test-task",
 					Title: "", // Violates rule
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -497,11 +498,11 @@ func TestAcceptance_RuleEngine_PerformanceDegradation(t *testing.T) {
 			event := TaskEvent{
 				EventType: "task_transition",
 				FutureState: &TaskState{
-					Task: &resource_access.Task{
+					Task: &board_access.Task{
 						ID:    "performance-test-task",
 						Title: "", // Violates all rules
 					},
-					Status: resource_access.WorkflowStatus{
+					Status: board_access.WorkflowStatus{
 						Column: "doing",
 					},
 				},
@@ -583,11 +584,11 @@ func TestAcceptance_RuleEngine_ResourceExhaustion(t *testing.T) {
 		event := TaskEvent{
 			EventType: "task_transition",
 			FutureState: &TaskState{
-				Task: &resource_access.Task{
+				Task: &board_access.Task{
 					ID:    "exhaustion-test-task",
 					Title: "Test Task",
 				},
-				Status: resource_access.WorkflowStatus{
+				Status: board_access.WorkflowStatus{
 					Column: "doing",
 				},
 			},
@@ -673,11 +674,11 @@ func TestAcceptance_RuleEngine_ConcurrentAccess(t *testing.T) {
 					event := TaskEvent{
 						EventType: "task_transition",
 						FutureState: &TaskState{
-							Task: &resource_access.Task{
+							Task: &board_access.Task{
 								ID:    fmt.Sprintf("concurrent-task-%d-%d", goroutineID, j),
 								Title: "Valid Title", // Should pass
 							},
-							Status: resource_access.WorkflowStatus{
+							Status: board_access.WorkflowStatus{
 								Column: "doing",
 							},
 						},
@@ -745,13 +746,13 @@ func setupTestEnvironment(t *testing.T) (string, func()) {
 	return tempDir, cleanup
 }
 
-func createTestComponents(t *testing.T, tempDir string) (resource_access.IRulesAccess, resource_access.IBoardAccess, *RuleEngine) {
+func createTestComponents(t *testing.T, tempDir string) (resource_access.IRulesAccess, board_access.IBoardAccess, *RuleEngine) {
 	rulesAccess, err := resource_access.NewRulesAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create RulesAccess: %v", err)
 	}
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}

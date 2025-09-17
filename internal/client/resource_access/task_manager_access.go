@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rknuus/eisenkan/internal/managers"
+	"github.com/rknuus/eisenkan/internal/managers/task_manager"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -42,13 +42,13 @@ type ICacheUtility interface {
 
 // taskManagerAccess implements ITaskManagerAccess with simple channel-based async operations
 type taskManagerAccess struct {
-	taskManager managers.TaskManager
+	taskManager task_manager.TaskManager
 	cache       ICacheUtility
 	logger      utilities.ILoggingUtility
 }
 
 // NewTaskManagerAccess creates a new TaskManagerAccess instance
-func NewTaskManagerAccess(taskManager managers.TaskManager, cache ICacheUtility, logger utilities.ILoggingUtility) ITaskManagerAccess {
+func NewTaskManagerAccess(taskManager task_manager.TaskManager, cache ICacheUtility, logger utilities.ILoggingUtility) ITaskManagerAccess {
 	return &taskManagerAccess{
 		taskManager: taskManager,
 		cache:       cache,
@@ -430,7 +430,7 @@ func (t *taskManagerAccess) GetBoardSummaryAsync(ctx context.Context) (<-chan UI
 		}
 
 		// Get all tasks to calculate summary
-		allTasks, err := t.taskManager.ListTasks(managers.QueryCriteria{})
+		allTasks, err := t.taskManager.ListTasks(task_manager.QueryCriteria{})
 		if err != nil {
 			errorChan <- t.translateServiceError("GetBoardSummary", err)
 			return
@@ -474,14 +474,14 @@ func (t *taskManagerAccess) SearchTasksAsync(ctx context.Context, query string) 
 
 		// Get all tasks and filter by search query
 		// Note: In a real implementation, this might use a dedicated search service
-		allTasks, err := t.taskManager.ListTasks(managers.QueryCriteria{})
+		allTasks, err := t.taskManager.ListTasks(task_manager.QueryCriteria{})
 		if err != nil {
 			errorChan <- t.translateServiceError("SearchTasks", err)
 			return
 		}
 
 		// Filter tasks by search query
-		var matchingTasks []managers.TaskResponse
+		var matchingTasks []task_manager.TaskResponse
 		for _, task := range allTasks {
 			if t.taskMatchesQuery(task, query) {
 				matchingTasks = append(matchingTasks, task)

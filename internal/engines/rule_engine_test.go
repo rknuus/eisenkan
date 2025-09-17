@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -36,41 +37,41 @@ func (m *mockRulesAccess) Close() error {
 }
 
 type mockBoardAccess struct {
-	tasks       []*resource_access.TaskWithTimestamps
+	tasks       []*board_access.TaskWithTimestamps
 	history     []utilities.CommitInfo
-	config      *resource_access.BoardConfiguration
+	config      *board_access.BoardConfiguration
 	err         error
 }
 
-func (m *mockBoardAccess) CreateTask(task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus, parentTaskID *string) (string, error) {
+func (m *mockBoardAccess) CreateTask(task *board_access.Task, priority board_access.Priority, status board_access.WorkflowStatus, parentTaskID *string) (string, error) {
 	return "", nil
 }
 
-func (m *mockBoardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*resource_access.TaskWithTimestamps, error) {
+func (m *mockBoardAccess) GetTasksData(taskIDs []string, includeHierarchy bool) ([]*board_access.TaskWithTimestamps, error) {
 	return m.tasks, m.err
 }
 
-func (m *mockBoardAccess) ListTaskIdentifiers(hierarchyFilter resource_access.HierarchyFilter) ([]string, error) {
+func (m *mockBoardAccess) ListTaskIdentifiers(hierarchyFilter board_access.HierarchyFilter) ([]string, error) {
 	return nil, nil
 }
 
-func (m *mockBoardAccess) ChangeTaskData(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+func (m *mockBoardAccess) ChangeTaskData(taskID string, task *board_access.Task, priority board_access.Priority, status board_access.WorkflowStatus) error {
 	return nil
 }
 
-func (m *mockBoardAccess) MoveTask(taskID string, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+func (m *mockBoardAccess) MoveTask(taskID string, priority board_access.Priority, status board_access.WorkflowStatus) error {
 	return nil
 }
 
-func (m *mockBoardAccess) ArchiveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
+func (m *mockBoardAccess) ArchiveTask(taskID string, cascadePolicy board_access.CascadePolicy) error {
 	return nil
 }
 
-func (m *mockBoardAccess) RemoveTask(taskID string, cascadePolicy resource_access.CascadePolicy) error {
+func (m *mockBoardAccess) RemoveTask(taskID string, cascadePolicy board_access.CascadePolicy) error {
 	return nil
 }
 
-func (m *mockBoardAccess) FindTasks(criteria *resource_access.QueryCriteria) ([]*resource_access.TaskWithTimestamps, error) {
+func (m *mockBoardAccess) FindTasks(criteria *board_access.QueryCriteria) ([]*board_access.TaskWithTimestamps, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -84,29 +85,29 @@ func (m *mockBoardAccess) GetTaskHistory(taskID string, limit int) ([]utilities.
 	return m.history, nil
 }
 
-func (m *mockBoardAccess) GetBoardConfiguration() (*resource_access.BoardConfiguration, error) {
+func (m *mockBoardAccess) GetBoardConfiguration() (*board_access.BoardConfiguration, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	if m.config == nil {
-		return &resource_access.BoardConfiguration{Name: "Test Board"}, nil
+		return &board_access.BoardConfiguration{Name: "Test Board"}, nil
 	}
 	return m.config, nil
 }
 
-func (m *mockBoardAccess) UpdateBoardConfiguration(config *resource_access.BoardConfiguration) error {
+func (m *mockBoardAccess) UpdateBoardConfiguration(config *board_access.BoardConfiguration) error {
 	return nil
 }
 
-func (m *mockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*resource_access.RulesData, error) {
+func (m *mockBoardAccess) GetRulesData(taskID string, targetColumns []string) (*board_access.RulesData, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	
-	rulesData := &resource_access.RulesData{
+	rulesData := &board_access.RulesData{
 		WIPCounts:        make(map[string]int),
 		SubtaskWIPCounts: make(map[string]int),
-		ColumnTasks:      make(map[string][]*resource_access.TaskWithTimestamps),
+		ColumnTasks:      make(map[string][]*board_access.TaskWithTimestamps),
 		ColumnEnterTimes: make(map[string]time.Time),
 		BoardMetadata:    make(map[string]string),
 		HierarchyMap:     make(map[string][]string),
@@ -169,13 +170,13 @@ func (m *mockBoardAccess) Close() error {
 }
 
 // GetSubtasks retrieves all subtasks for a given parent task
-func (m *mockBoardAccess) GetSubtasks(parentTaskID string) ([]*resource_access.TaskWithTimestamps, error) {
+func (m *mockBoardAccess) GetSubtasks(parentTaskID string) ([]*board_access.TaskWithTimestamps, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	
 	// Filter mock tasks that have this parent ID
-	var subtasks []*resource_access.TaskWithTimestamps
+	var subtasks []*board_access.TaskWithTimestamps
 	for _, task := range m.tasks {
 		if task.Task.ParentTaskID != nil && *task.Task.ParentTaskID == parentTaskID {
 			subtasks = append(subtasks, task)
@@ -185,13 +186,13 @@ func (m *mockBoardAccess) GetSubtasks(parentTaskID string) ([]*resource_access.T
 }
 
 // GetParentTask retrieves the parent task for a given subtask
-func (m *mockBoardAccess) GetParentTask(subtaskID string) (*resource_access.TaskWithTimestamps, error) {
+func (m *mockBoardAccess) GetParentTask(subtaskID string) (*board_access.TaskWithTimestamps, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	
 	// Find the subtask first
-	var subtask *resource_access.TaskWithTimestamps
+	var subtask *board_access.TaskWithTimestamps
 	for _, task := range m.tasks {
 		if task.Task.ID == subtaskID {
 			subtask = task
@@ -214,9 +215,9 @@ func (m *mockBoardAccess) GetParentTask(subtaskID string) (*resource_access.Task
 }
 
 // IConfiguration facet mock methods
-func (m *mockBoardAccess) Load(configType string, identifier string) (resource_access.ConfigurationData, error) {
+func (m *mockBoardAccess) Load(configType string, identifier string) (board_access.ConfigurationData, error) {
 	// Return empty configuration data for tests
-	return resource_access.ConfigurationData{
+	return board_access.ConfigurationData{
 		Type:       configType,
 		Identifier: identifier,
 		Version:    "1.0",
@@ -226,30 +227,30 @@ func (m *mockBoardAccess) Load(configType string, identifier string) (resource_a
 	}, nil
 }
 
-func (m *mockBoardAccess) Store(configType string, identifier string, data resource_access.ConfigurationData) error {
+func (m *mockBoardAccess) Store(configType string, identifier string, data board_access.ConfigurationData) error {
 	// Mock store operation does nothing for tests
 	return nil
 }
 
 // ChangeTask updates task data, priority, and status
-func (m *mockBoardAccess) ChangeTask(taskID string, task *resource_access.Task, priority resource_access.Priority, status resource_access.WorkflowStatus) error {
+func (m *mockBoardAccess) ChangeTask(taskID string, task *board_access.Task, priority board_access.Priority, status board_access.WorkflowStatus) error {
 	return nil
 }
 
 // Test helper functions
 
-func createMockTask(id, title, column string) *resource_access.TaskWithTimestamps {
-	return &resource_access.TaskWithTimestamps{
-		Task: &resource_access.Task{
+func createMockTask(id, title, column string) *board_access.TaskWithTimestamps {
+	return &board_access.TaskWithTimestamps{
+		Task: &board_access.Task{
 			ID:    id,
 			Title: title,
 		},
-		Priority: resource_access.Priority{
+		Priority: board_access.Priority{
 			Urgent:    false,
 			Important: true,
 			Label:     "not-urgent-important",
 		},
-		Status: resource_access.WorkflowStatus{
+		Status: board_access.WorkflowStatus{
 			Column:   column,
 			Section:  "not-urgent-important",
 			Position: 1,
@@ -318,11 +319,11 @@ func TestEvaluateTaskChange_NoRules(t *testing.T) {
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:    "task1",
 				Title: "Test Task",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -364,7 +365,7 @@ func TestEvaluateTaskChange_WIPLimit(t *testing.T) {
 
 	// Mock board access with 2 tasks already in "doing" column
 	boardAccess := &mockBoardAccess{
-		tasks: []*resource_access.TaskWithTimestamps{
+		tasks: []*board_access.TaskWithTimestamps{
 			createMockTask("task1", "Existing Task 1", "doing"),
 			createMockTask("task2", "Existing Task 2", "doing"),
 		},
@@ -380,11 +381,11 @@ func TestEvaluateTaskChange_WIPLimit(t *testing.T) {
 		EventType: "task_transition",
 		CurrentState: createMockTask("task3", "Moving Task", "todo"),
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:    "task3",
 				Title: "Moving Task",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -437,12 +438,12 @@ func TestEvaluateTaskChange_RequiredFields(t *testing.T) {
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "task1",
 				Title:       "Test Task",
 				Description: "", // Missing description
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -496,11 +497,11 @@ func TestEvaluateTaskChange_WorkflowTransition(t *testing.T) {
 		EventType: "task_transition",
 		CurrentState: createMockTask("task1", "Test Task", "todo"),
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:    "task1",
 				Title: "Test Task",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "done",
 			},
 		},
@@ -561,12 +562,12 @@ func TestEvaluateTaskChange_MultipleRules(t *testing.T) {
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "task1",
 				Title:       "", // Missing title (high priority)
 				Description: "", // Missing description (low priority)
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -623,12 +624,12 @@ func TestEvaluateTaskChange_DisabledRule(t *testing.T) {
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "task1",
 				Title:       "Test Task",
 				Description: "", // Missing description
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -678,12 +679,12 @@ func TestEvaluateTaskChange_WrongEventType(t *testing.T) {
 	event := TaskEvent{
 		EventType: "task_update", // Different from rule trigger type
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "task1",
 				Title:       "Test Task",
 				Description: "", // Missing description
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},

@@ -1,7 +1,7 @@
-// Package resource_access provides ResourceAccess layer components implementing the iDesign methodology.
+// Package board_access provides BoardAccess layer components implementing the iDesign methodology.
 // This package contains components that provide data access and persistence services
 // to higher-level components in the application architecture.
-package resource_access
+package board_access
 
 import (
 	"encoding/json"

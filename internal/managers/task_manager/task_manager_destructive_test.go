@@ -1,4 +1,4 @@
-package managers
+package task_manager
 
 import (
 	"os"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/rknuus/eisenkan/internal/engines"
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -20,7 +21,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -69,7 +70,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 	t.Run("MissingRequiredFields", func(t *testing.T) {
 		// Task with missing description
 		request := TaskRequest{
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		_, err := taskManager.CreateTask(request)
@@ -82,7 +83,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Test with priority derivation - system should handle any Priority struct
 		request := TaskRequest{
 			Description:    "Test task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -97,7 +98,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		largeDesc := strings.Repeat("A", 10240)
 		request := TaskRequest{
 			Description:    largeDesc,
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -119,7 +120,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		nonExistentID := "non-existent-parent-id"
 		request := TaskRequest{
 			Description:    "Child task with invalid parent",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &nonExistentID,
 		}
@@ -134,7 +135,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Create parent task
 		parentRequest := TaskRequest{
 			Description:    "Parent task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -146,7 +147,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Create child task
 		childRequest := TaskRequest{
 			Description:    "Child task",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &parentResponse.ID,
 		}
@@ -159,7 +160,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Try to make parent a child of child (circular reference)
 		updateRequest := TaskRequest{
 			Description:    "Parent task updated",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &childResponse.ID,
 		}
@@ -174,7 +175,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Create parent task
 		parentRequest := TaskRequest{
 			Description:    "Level 1 Parent",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -186,7 +187,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Create level 2 child
 		level2Request := TaskRequest{
 			Description:    "Level 2 Child",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &parentResponse.ID,
 		}
@@ -199,7 +200,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		// Try to create level 3 child (should violate 1-2 level constraint)
 		level3Request := TaskRequest{
 			Description:    "Level 3 Child",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &level2Response.ID,
 		}
@@ -214,7 +215,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		pastDate := time.Now().Add(-24 * time.Hour)
 		request := TaskRequest{
 			Description:           "Task with past promotion date",
-			Priority:              resource_access.Priority{Urgent: false, Important: true},
+			Priority:              board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus:        Todo,
 			PriorityPromotionDate: &pastDate,
 		}
@@ -231,7 +232,7 @@ func TestDestructive_TaskManager_APIContractViolations(t *testing.T) {
 		futureDate := time.Now().Add(24 * time.Hour)
 		request := TaskRequest{
 			Description:           "Urgent task with promotion date",
-			Priority:              resource_access.Priority{Urgent: true, Important: true}, // Already urgent
+			Priority:              board_access.Priority{Urgent: true, Important: true}, // Already urgent
 			WorkflowStatus:        Todo,
 			PriorityPromotionDate: &futureDate,
 		}
@@ -252,7 +253,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -288,7 +289,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 		// Create task in "done" state
 		request := TaskRequest{
 			Description:    "Completed task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Done,
 		}
 		
@@ -300,7 +301,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 		// Try to transition from "done" back to "todo" (invalid)
 		updateRequest := TaskRequest{
 			Description:    "Completed task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -314,7 +315,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 		// Create parent task
 		parentRequest := TaskRequest{
 			Description:    "Parent task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -326,7 +327,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 		// Create subtask in "todo" state
 		subtaskRequest := TaskRequest{
 			Description:    "Incomplete subtask",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &parentResponse.ID,
 		}
@@ -339,7 +340,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 		// Try to mark parent as "done" while subtask is "todo"
 		updateRequest := TaskRequest{
 			Description:    "Parent task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Done,
 		}
 		
@@ -355,7 +356,7 @@ func TestDestructive_TaskManager_InvalidWorkflowTransitions(t *testing.T) {
 	t.Run("MalformedTaskIdentifier", func(t *testing.T) {
 		updateRequest := TaskRequest{
 			Description:    "Test task",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: InProgress,
 		}
 		
@@ -379,7 +380,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -415,7 +416,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 		// Create parent in "doing" state
 		parentRequest := TaskRequest{
 			Description:    "Parent already doing",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: InProgress,
 		}
 		
@@ -427,7 +428,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 		// Create subtask
 		subtaskRequest := TaskRequest{
 			Description:    "First subtask",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: Todo,
 			ParentTaskID:   &parentResponse.ID,
 		}
@@ -440,7 +441,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 		// Try first subtask "todo"->"doing" with parent already "doing"
 		updateRequest := TaskRequest{
 			Description:    "First subtask",
-			Priority:       resource_access.Priority{Urgent: false, Important: true},
+			Priority:       board_access.Priority{Urgent: false, Important: true},
 			WorkflowStatus: InProgress,
 			ParentTaskID:   &parentResponse.ID,
 		}
@@ -458,7 +459,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 		// Create parent task
 		parentRequest := TaskRequest{
 			Description:    "Parent for concurrent test",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -472,7 +473,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			subtaskRequest := TaskRequest{
 				Description:    "Concurrent subtask",
-				Priority:       resource_access.Priority{Urgent: false, Important: true},
+				Priority:       board_access.Priority{Urgent: false, Important: true},
 				WorkflowStatus: Todo,
 				ParentTaskID:   &parentResponse.ID,
 			}
@@ -494,7 +495,7 @@ func TestDestructive_TaskManager_SubtaskWorkflowCoupling(t *testing.T) {
 				defer wg.Done()
 				updateRequest := TaskRequest{
 					Description:    "Concurrent subtask",
-					Priority:       resource_access.Priority{Urgent: false, Important: true},
+					Priority:       board_access.Priority{Urgent: false, Important: true},
 					WorkflowStatus: InProgress,
 					ParentTaskID:   &parentResponse.ID,
 				}
@@ -532,7 +533,7 @@ func TestDestructive_TaskManager_ResourceExhaustion(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -568,7 +569,7 @@ func TestDestructive_TaskManager_ResourceExhaustion(t *testing.T) {
 		// Create parent task
 		parentRequest := TaskRequest{
 			Description:    "Parent with many subtasks",
-			Priority:       resource_access.Priority{Urgent: true, Important: true},
+			Priority:       board_access.Priority{Urgent: true, Important: true},
 			WorkflowStatus: Todo,
 		}
 		
@@ -584,7 +585,7 @@ func TestDestructive_TaskManager_ResourceExhaustion(t *testing.T) {
 		for i := 0; i < subtaskCount; i++ {
 			subtaskRequest := TaskRequest{
 				Description:    "Mass subtask",
-				Priority:       resource_access.Priority{Urgent: false, Important: true},
+				Priority:       board_access.Priority{Urgent: false, Important: true},
 				WorkflowStatus: Todo,
 				ParentTaskID:   &parentResponse.ID,
 			}
@@ -622,7 +623,7 @@ func TestDestructive_TaskManager_ResourceExhaustion(t *testing.T) {
 		for i := 0; i < taskCount; i++ {
 			request := TaskRequest{
 				Description:           "Bulk promotion task",
-				Priority:              resource_access.Priority{Urgent: false, Important: true},
+				Priority:              board_access.Priority{Urgent: false, Important: true},
 				WorkflowStatus:        Todo,
 				PriorityPromotionDate: &pastDate,
 			}

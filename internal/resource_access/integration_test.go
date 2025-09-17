@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 	"github.com/rknuus/eisenkan/internal/utilities"
 )
 
@@ -41,7 +42,7 @@ func TestIntegration_ResourceAccess_SharedRepositoryInitialization(t *testing.T)
 
 	// Initialize BoardAccess - this should initialize the repository
 	t.Log("Initializing BoardAccess with shared repository")
-	boardAccess, err := NewBoardAccess(repoPath)
+	boardAccess, err := board_access.NewBoardAccess(repoPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize BoardAccess: %v", err)
 	}
@@ -62,16 +63,16 @@ func TestIntegration_ResourceAccess_SharedRepositoryInitialization(t *testing.T)
 
 	// Test BoardAccess operations
 	t.Log("Testing BoardAccess operations")
-	task := &Task{
+	task := &board_access.Task{
 		Title:       "Integration Test Task",
 		Description: "Task created during integration testing",
 	}
-	priority := Priority{
+	priority := board_access.Priority{
 		Urgent:    true,
 		Important: true,
 		Label:     "urgent-important",
 	}
-	status := WorkflowStatus{
+	status := board_access.WorkflowStatus{
 		Column:   "todo",
 		Section:  "urgent-important",
 		Position: 1,
@@ -176,7 +177,7 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 	}
 
 	// Initialize both components
-	boardAccess, err := NewBoardAccess(repoPath)
+	boardAccess, err := board_access.NewBoardAccess(repoPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize BoardAccess: %v", err)
 	}
@@ -189,12 +190,12 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 	defer rulesAccess.Close()
 
 	// Store data in BoardAccess
-	task := &Task{
+	task := &board_access.Task{
 		Title: "Isolation Test Task",
 		Description: "Task for data isolation testing",
 	}
-	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
-	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
+	priority := board_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
+	status := board_access.WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
 	_, err = boardAccess.CreateTask(task, priority, status, nil)
 	if err != nil {
@@ -224,7 +225,7 @@ func TestIntegration_ResourceAccess_CrossComponentDataIsolation(t *testing.T) {
 	}
 
 	// Verify data isolation - BoardAccess should only see tasks
-	criteria := &QueryCriteria{} // Empty criteria to get all tasks
+	criteria := &board_access.QueryCriteria{} // Empty criteria to get all tasks
 	allTasks, err := boardAccess.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query tasks: %v", err)
@@ -300,7 +301,7 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Initialize components
-	boardAccess, err := NewBoardAccess(repoPath)
+	boardAccess, err := board_access.NewBoardAccess(repoPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize BoardAccess: %v", err)
 	}
@@ -321,12 +322,12 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 		defer func() { done <- true }()
 		
 		for i := 0; i < 5; i++ {
-			task := &Task{
+			task := &board_access.Task{
 				Title:       "Concurrent Task " + string(rune('A'+i)),
 				Description: "Task created during concurrent test",
 			}
-			priority := Priority{Urgent: true, Important: false, Label: "urgent-not-important"}
-			status := WorkflowStatus{Column: "todo", Section: "urgent-not-important", Position: i + 1}
+			priority := board_access.Priority{Urgent: true, Important: false, Label: "urgent-not-important"}
+			status := board_access.WorkflowStatus{Column: "todo", Section: "urgent-not-important", Position: i + 1}
 			
 			_, err := boardAccess.CreateTask(task, priority, status, nil)
 			if err != nil {
@@ -385,7 +386,7 @@ func TestIntegration_ResourceAccess_ConcurrentAccess(t *testing.T) {
 	}
 
 	// Verify final state
-	criteria := &QueryCriteria{}
+	criteria := &board_access.QueryCriteria{}
 	tasks, err := boardAccess.FindTasks(criteria)
 	if err != nil {
 		t.Fatalf("Failed to query final tasks: %v", err)
@@ -434,7 +435,7 @@ func TestIntegration_ResourceAccess_VersioningIntegration(t *testing.T) {
 	}
 
 	// Initialize components  
-	boardAccess, err := NewBoardAccess(repoPath)
+	boardAccess, err := board_access.NewBoardAccess(repoPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize BoardAccess: %v", err)
 	}
@@ -459,12 +460,12 @@ func TestIntegration_ResourceAccess_VersioningIntegration(t *testing.T) {
 	defer repository.Close()
 
 	// Perform operations that should create commits
-	task := &Task{
+	task := &board_access.Task{
 		Title:       "Versioned Task",
 		Description: "Task to test version tracking",
 	}
-	priority := Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
-	status := WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
+	priority := board_access.Priority{Urgent: false, Important: true, Label: "not-urgent-important"}
+	status := board_access.WorkflowStatus{Column: "todo", Section: "not-urgent-important", Position: 1}
 	
 	_, err = boardAccess.CreateTask(task, priority, status, nil)
 	if err != nil {

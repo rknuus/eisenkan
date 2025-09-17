@@ -1,6 +1,6 @@
-// Package resource_access provides ResourceAccess layer components implementing the iDesign methodology.
+// Package board_access provides BoardAccess layer components implementing the iDesign methodology.
 // This file implements the ITask facet for task and subtask operations.
-package resource_access
+package board_access
 
 import (
 	"github.com/rknuus/eisenkan/internal/utilities"

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 )
 
 // TestIntegration_RuleEngine_WithRealComponents tests RuleEngine with actual ResourceAccess components
@@ -26,7 +27,7 @@ func TestIntegration_RuleEngine_WithRealComponents(t *testing.T) {
 	}
 	defer rulesAccess.Close()
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -56,7 +57,7 @@ func TestIntegration_RuleEngine_WithRealComponents(t *testing.T) {
 	})
 }
 
-func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess resource_access.IBoardAccess, tempDir string) {
+func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess board_access.IBoardAccess, tempDir string) {
 	// Set up WIP limit rule
 	wipLimitRuleSet := &resource_access.RuleSet{
 		Version: "1.0",
@@ -85,16 +86,16 @@ func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess r
 	}
 
 	// Create tasks to fill the WIP limit
-	task1 := &resource_access.Task{ID: "task1", Title: "First Task"}
-	task2 := &resource_access.Task{ID: "task2", Title: "Second Task"}
+	task1 := &board_access.Task{ID: "task1", Title: "First Task"}
+	task2 := &board_access.Task{ID: "task2", Title: "Second Task"}
 
-	priority := resource_access.Priority{
+	priority := board_access.Priority{
 		Urgent:    false,
 		Important: true,
 		Label:     "not-urgent-important",
 	}
 
-	doingStatus := resource_access.WorkflowStatus{
+	doingStatus := board_access.WorkflowStatus{
 		Column:   "doing",
 		Section:  "not-urgent-important",
 		Position: 1,
@@ -115,7 +116,7 @@ func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess r
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:    "task3",
 				Title: "Third Task",
 			},
@@ -150,7 +151,7 @@ func testWIPLimitIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess r
 	}
 }
 
-func testRequiredFieldsIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess resource_access.IBoardAccess, tempDir string) {
+func testRequiredFieldsIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess board_access.IBoardAccess, tempDir string) {
 	// Set up required fields rule
 	requiredFieldsRuleSet := &resource_access.RuleSet{
 		Version: "1.0",
@@ -182,12 +183,12 @@ func testRequiredFieldsIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAc
 	event := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "incomplete-task",
 				Title:       "Task with Title Only",
 				Description: "", // Missing description
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -220,12 +221,12 @@ func testRequiredFieldsIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAc
 	completeEvent := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "complete-task",
 				Title:       "Complete Task",
 				Description: "This task has all required fields",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -247,7 +248,7 @@ func testRequiredFieldsIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAc
 	}
 }
 
-func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess resource_access.IBoardAccess, tempDir string) {
+func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess board_access.IBoardAccess, tempDir string) {
 	// Set up workflow transition rule
 	workflowRuleSet := &resource_access.RuleSet{
 		Version: "1.0",
@@ -280,18 +281,18 @@ func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rul
 	}
 
 	// Create a task in todo column first
-	task := &resource_access.Task{
+	task := &board_access.Task{
 		ID:    "workflow-task",
 		Title: "Workflow Test Task",
 	}
 
-	priority := resource_access.Priority{
+	priority := board_access.Priority{
 		Urgent:    false,
 		Important: true,
 		Label:     "not-urgent-important",
 	}
 
-	todoStatus := resource_access.WorkflowStatus{
+	todoStatus := board_access.WorkflowStatus{
 		Column:   "todo",
 		Section:  "not-urgent-important",
 		Position: 1,
@@ -320,7 +321,7 @@ func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rul
 		CurrentState: currentTask,
 		FutureState: &TaskState{
 			Task: task,
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "done", // Invalid direct jump from todo to done
 			},
 		},
@@ -347,7 +348,7 @@ func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rul
 		CurrentState: currentTask,
 		FutureState: &TaskState{
 			Task: task,
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing", // Valid transition
 			},
 		},
@@ -369,7 +370,7 @@ func testWorkflowTransitionIntegration(t *testing.T, ruleEngine *RuleEngine, rul
 	}
 }
 
-func testMultipleRulesIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess resource_access.IBoardAccess, tempDir string) {
+func testMultipleRulesIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAccess resource_access.IRulesAccess, boardAccess board_access.IBoardAccess, tempDir string) {
 	// Set up multiple rules with different priorities
 	multiRuleSet := &resource_access.RuleSet{
 		Version: "1.0",
@@ -428,18 +429,18 @@ func testMultipleRulesIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAcc
 	}
 
 	// Create a task in doing column to trigger WIP limit
-	existingTask := &resource_access.Task{
+	existingTask := &board_access.Task{
 		ID:    "existing-task",
 		Title: "Existing Task",
 	}
 
-	priority := resource_access.Priority{
+	priority := board_access.Priority{
 		Urgent:    false,
 		Important: true,
 		Label:     "not-urgent-important",
 	}
 
-	doingStatus := resource_access.WorkflowStatus{
+	doingStatus := board_access.WorkflowStatus{
 		Column:   "doing",
 		Section:  "not-urgent-important",
 		Position: 1,
@@ -454,7 +455,7 @@ func testMultipleRulesIntegration(t *testing.T, ruleEngine *RuleEngine, rulesAcc
 	violatingEvent := TaskEvent{
 		EventType: "task_transition",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "violating-task",
 				Title:       "", // Violates high priority rule
 				Description: "", // Violates low priority rule
@@ -508,14 +509,14 @@ func TestIntegration_RuleEngine_GetRulesDataPerformance(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	boardAccess, err := resource_access.NewBoardAccess(tempDir)
+	boardAccess, err := board_access.NewBoardAccess(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to create BoardAccess: %v", err)
 	}
 	defer boardAccess.Close()
 
 	// Create several tasks across different columns
-	priority := resource_access.Priority{
+	priority := board_access.Priority{
 		Urgent:    false,
 		Important: true,
 		Label:     "not-urgent-important",
@@ -526,13 +527,13 @@ func TestIntegration_RuleEngine_GetRulesDataPerformance(t *testing.T) {
 
 	for _, column := range columns {
 		for i := 0; i < 5; i++ {
-			task := &resource_access.Task{
+			task := &board_access.Task{
 				ID:          "",
 				Title:       fmt.Sprintf("Task %d in %s", i+1, column),
 				Description: fmt.Sprintf("Description for task %d", i+1),
 			}
 
-			status := resource_access.WorkflowStatus{
+			status := board_access.WorkflowStatus{
 				Column:   column,
 				Section:  "not-urgent-important",
 				Position: i + 1,

@@ -1,7 +1,7 @@
 // Destructive tests for BoardAccess as specified in BoardAccess_STP.md
 // These tests verify API contract violations, resource exhaustion, error conditions,
 // concurrent access violations, and recovery scenarios.
-package resource_access
+package board_access
 
 import (
 	"fmt"

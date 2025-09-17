@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rknuus/eisenkan/internal/resource_access"
+	"github.com/rknuus/eisenkan/internal/resource_access/board_access"
 )
 
 // ExampleRuleEngineUsage demonstrates how to use the RuleEngine
@@ -20,7 +21,7 @@ func ExampleRuleEngineUsage() {
 	}
 	defer rulesAccess.Close()
 
-	boardAccess, err := resource_access.NewBoardAccess("/tmp/test-board")
+	boardAccess, err := board_access.NewBoardAccess("/tmp/test-board")
 	if err != nil {
 		log.Fatalf("Failed to create BoardAccess: %v", err)
 	}
@@ -38,21 +39,21 @@ func ExampleRuleEngineUsage() {
 
 	taskEvent := TaskEvent{
 		EventType: "task_transition",
-		CurrentState: &resource_access.TaskWithTimestamps{
-			Task: &resource_access.Task{
+		CurrentState: &board_access.TaskWithTimestamps{
+			Task: &board_access.Task{
 				ID:    "task-123",
 				Title: "Example Task",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "todo",
 			},
 		},
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:    "task-123",
 				Title: "Example Task",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column: "doing",
 			},
 		},
@@ -80,17 +81,17 @@ func ExampleRuleEngineUsage() {
 	creationEvent := TaskEvent{
 		EventType: "task_create",
 		FutureState: &TaskState{
-			Task: &resource_access.Task{
+			Task: &board_access.Task{
 				ID:          "task-456",
 				Title:       "", // Missing title - may violate rules
 				Description: "A task without a title",
 			},
-			Priority: resource_access.Priority{
+			Priority: board_access.Priority{
 				Urgent:    true,
 				Important: true,
 				Label:     "urgent-important",
 			},
-			Status: resource_access.WorkflowStatus{
+			Status: board_access.WorkflowStatus{
 				Column:  "todo",
 				Section: "urgent-important",
 			},
