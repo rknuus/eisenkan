@@ -58,12 +58,31 @@ The following operations define the required behavior for BoardAccess:
 4. Return removal confirmation
 
 #### OP-5: Query Tasks by Criteria
-**Actors**: TaskManager  
-**Trigger**: When tasks need to be found by specific attributes  
+**Actors**: TaskManager
+**Trigger**: When tasks need to be found by specific attributes
 **Flow**:
 1. Receive query criteria (priority, status, tags, parent task, etc.)
 2. Search task storage using criteria including hierarchical filters
 3. Return matching task identifiers and data with optional hierarchical information
+
+#### OP-6: Load Configuration (IConfiguration Facet)
+**Actors**: TaskManager
+**Trigger**: When board-level configuration data needs to be retrieved
+**Flow**:
+1. Receive configuration load request with configuration type and identifier
+2. Access git-based JSON configuration storage
+3. Parse and validate configuration data structure
+4. Return configuration data including board settings, column definitions, and workflow rules
+
+#### OP-7: Store Configuration (IConfiguration Facet)
+**Actors**: TaskManager
+**Trigger**: When board-level configuration data needs to be persisted
+**Flow**:
+1. Receive configuration store request with configuration data and type
+2. Validate configuration data against schema requirements
+3. Serialize configuration to JSON format
+4. Store configuration through git-based storage with atomic operations and versioning
+5. Return configuration storage confirmation
 
 ## 3. Functional Requirements
 
@@ -125,6 +144,18 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-021**: When a parent task is archived or deleted, the BoardAccess service shall handle cascade operations for all its subtasks according to configured cascade policy (archive subtasks, delete subtasks, or promote subtasks to top-level).
 
+### 3.6 Configuration Management Requirements (IConfiguration Facet)
+
+**REQ-BOARDACCESS-025**: When a configuration load request is received, the BoardAccess service shall retrieve configuration data from git-based JSON storage and return parsed configuration information.
+
+**REQ-BOARDACCESS-026**: When configuration data is not found, the BoardAccess service shall return appropriate default configuration data without errors.
+
+**REQ-BOARDACCESS-027**: When a configuration store request is received with valid data, the BoardAccess service shall serialize the configuration to JSON format and persist it through git-based storage with atomic operations.
+
+**REQ-BOARDACCESS-028**: When configuration data validation fails, the BoardAccess service shall return detailed validation error information without persisting invalid data.
+
+**REQ-BOARDACCESS-029**: When storing configuration data, the BoardAccess service shall ensure atomic operations and leverage git versioning for data integrity and rollback capabilities.
+
 ## 4. Quality Attributes
 
 ### 4.1 Performance Requirements
@@ -166,6 +197,10 @@ The BoardAccess service shall provide the following behavioral operations:
 - **Find Tasks**: Accept search criteria including parent task filters and priority promotion date filters and return matching tasks
 - **Get Task History**: Accept task identifier and return version history information
 
+#### IConfiguration Facet Operations
+- **Load Configuration**: Accept configuration type and identifier, return board-level configuration data including board settings, column definitions, and workflow rules from git-based JSON storage
+- **Store Configuration**: Accept configuration data with type specification, validate content, and persist to git-based JSON storage with atomic operations and versioning
+
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
@@ -176,6 +211,14 @@ The service shall work with these conceptual data entities:
 **Workflow Status**: Tracks current workflow position and maintains historical record of status transitions for task lifecycle management.
 
 **Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, temporal range specifications, priority promotion date filters, parent task identifiers, and hierarchical level filters for task retrieval operations.
+
+#### IConfiguration Facet Data Contracts
+
+**Configuration Request Entity**: Contains configuration type specification (board, columns, workflows, rules), optional configuration identifier, and operation metadata for configuration load/store operations.
+
+**Configuration Data Entity**: Provides structured board-level configuration including board settings (name, description, ownership), column definitions (names, ordering, workflow mappings), workflow rules (transition constraints, validation rules), and visual settings (themes, layouts) in JSON-serializable format.
+
+**Configuration Response Entity**: Contains configuration operation results, configuration data payload, version information from git storage, validation status, and operation confirmation details for service consumption.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -224,5 +267,5 @@ All errors shall include:
 
 **Document Version**: 1.0  
 **Created**: 2025-09-07  
-**Updated**: 2025-09-14
+**Updated**: 2025-09-17
 **Status**: Accepted

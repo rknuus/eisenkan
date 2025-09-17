@@ -77,6 +77,25 @@ The following operations define the required behavior for TaskManager:
 4. Clear promotion date after successful escalation
 5. Log priority promotion action for audit trail
 
+#### OP-7: Load Context (IContext Facet)
+**Actors**: EisenKan Client
+**Trigger**: When client needs to restore UI context and user preferences
+**Flow**:
+1. Receive context load request with context type specification
+2. Delegate to git-based storage for context data retrieval
+3. Parse and validate JSON context data
+4. Return context data including window states, user preferences, view configurations, and session data
+
+#### OP-8: Store Context (IContext Facet)
+**Actors**: EisenKan Client
+**Trigger**: When client needs to persist UI context and user preferences
+**Flow**:
+1. Receive context store request with context data and type specification
+2. Validate context data structure and content
+3. Serialize context data to JSON format
+4. Delegate to git-based storage for atomic persistence with versioning
+5. Return context storage confirmation
+
 ## 3. Functional Requirements
 
 ### 3.1 Task Creation Requirements
@@ -133,6 +152,14 @@ The following operations define the required behavior for TaskManager:
 
 **REQ-TASKMANAGER-018**: When a parent task is archived or deleted, the TaskManager service shall handle cascade operations for its subtasks according to configured cascade policy.
 
+### 3.7 Context Management Requirements (IContext Facet)
+
+**REQ-TASKMANAGER-019**: When a context load request is received, the TaskManager service shall retrieve context data from git-based JSON storage and return parsed context information.
+
+**REQ-TASKMANAGER-021**: When a context store request is received, the TaskManager service shall pass it to the persistency component.
+
+**REQ-TASKMANAGER-022**: When the persistency component rejects the context data, the TaskManager service shall return detailed error information.
+
 ## 4. Quality Attributes
 
 ### 4.1 Performance Requirements
@@ -171,6 +198,10 @@ The TaskManager service shall provide the following behavioral operations:
 - **Validate Task**: Accept task data for validation without persistence (for client-side validation) including subtask constraints and priority promotion date validation
 - **Process Priority Promotions**: Query and automatically escalate tasks with reached promotion dates from not-urgent-important to urgent-important priority level
 
+#### IContext Facet Operations
+- **Load Context**: Accept context type specification and return UI context data including window states, user preferences, view configurations, and session data from git-based JSON storage
+- **Store Context**: Accept context data with type specification, validate content, and persist to git-based JSON storage with atomic operations and versioning
+
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
@@ -181,6 +212,14 @@ The service shall work with these conceptual data entities:
 **Workflow Status Entity**: Represents current position in Kanban workflow (Todo, In Progress, Done) with validation rules for valid state transitions.
 
 **Validation Result Entity**: Contains business rule validation outcomes, error information, and suggested corrections for failed validations.
+
+#### IContext Facet Data Contracts
+
+**Context Request Entity**: Contains context type specification (window, preferences, views, sessions), optional context identifier, and operation metadata for context load/store operations.
+
+**Context Data Entity**: Provides structured context information including window states (positions, sizes, monitor configurations), user preferences (themes, settings, customizations), view configurations (panel states, filters, sort orders), and session data (temporary states, recent items) in JSON-serializable format.
+
+**Context Response Entity**: Contains context operation results, context data payload, version information from git storage, and operation confirmation details for client consumption.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -230,5 +269,6 @@ All errors shall include:
 ---
 
 **Document Version**: 1.0  
-**Created**: 2025-09-13  
+**Created**: 2025-09-13
+**Updated**: 2025-09-17
 **Status**: Accepted

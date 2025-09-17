@@ -25,10 +25,11 @@ This STP emphasizes breaking the system through:
 - **Resource Exhaustion**: Memory limits, large task hierarchies, concurrent operations
 - **Business Rule Violations**: Invalid subtask workflow coupling, hierarchy constraints, cascade policy violations
 - **Workflow Orchestration Edge Cases**: Complex parent-child state transitions, concurrent subtask operations
-- **Requirements Verification Tests**: Validate all EARS requirements REQ-TASKMANAGER-001 through REQ-TASKMANAGER-021 with negative cases
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-TASKMANAGER-001 through REQ-TASKMANAGER-022 with negative cases
 - **Priority Promotion Edge Cases**: Invalid promotion dates, concurrent promotion processing, promotion date validation failures
 - **Error Recovery Tests**: Test graceful degradation when dependencies fail
 - **Concurrency Stress Testing**: Test race conditions and consistency under concurrent workflow orchestration
+- **IContext Facet Testing**: Context data validation, JSON serialization errors, git storage failures, malformed context data
 
 ## 3. Destructive API Test Cases
 
@@ -174,6 +175,52 @@ This STP emphasizes breaking the system through:
   - Parent-child priority conflicts are resolved according to business rules
   - RuleEngine disconnection is handled with appropriate fallback behavior
 
+### 3.4 IContext Facet Testing
+
+**Test Case DT-CONTEXT-001**: Context Data Validation Failures
+- **Objective**: Test IContext facet behavior with invalid context data inputs
+- **Destructive Inputs**:
+  - Null context data objects
+  - Malformed JSON context data
+  - Context data exceeding size limits (>10MB)
+  - Context data with invalid type specifications
+  - Context data with circular references
+  - Context data with non-serializable objects
+- **Expected Results**:
+  - Invalid inputs rejected with detailed error messages
+  - No partial context data corruption
+  - Service remains operational after validation failures
+  - Error messages include validation failure specifics
+
+**Test Case DT-CONTEXT-002**: Git Storage Failure Scenarios
+- **Objective**: Test IContext facet behavior when git storage operations fail
+- **Failure Scenarios**:
+  - Git repository unavailable during context operations
+  - Git storage running out of disk space
+  - Git commit failures during context store operations
+  - Git fetch failures during context load operations
+  - Repository corruption scenarios
+- **Expected Results**:
+  - Storage failures handled gracefully without service crashes
+  - Appropriate error messages returned to callers
+  - Context operations fail atomically (no partial stores)
+  - Service continues functioning after storage recovery
+
+**Test Case DT-CONTEXT-003**: Context Type and JSON Serialization Edge Cases
+- **Objective**: Test context operations with problematic data types and serialization scenarios
+- **Edge Case Scenarios**:
+  - Context data with unsupported data types
+  - JSON serialization failures during store operations
+  - JSON deserialization failures during load operations
+  - Context data with encoding issues (non-UTF8)
+  - Context data with deeply nested structures (>100 levels)
+  - Context data with extremely large arrays (>10,000 elements)
+- **Expected Results**:
+  - Serialization failures detected and reported clearly
+  - Default context data provided when load operations fail
+  - Service maintains stability during serialization errors
+  - Memory usage remains bounded during large data processing
+
 ## 4. Business Rule Integration Testing
 
 ### 4.1 RuleEngine Integration Edge Cases
@@ -263,5 +310,6 @@ This STP emphasizes breaking the system through:
 ---
 
 **Document Version**: 1.0  
-**Created**: 2025-09-14  
+**Created**: 2025-09-14
+**Updated**: 2025-09-17
 **Status**: Accepted

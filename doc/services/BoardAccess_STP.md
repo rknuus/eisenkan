@@ -6,7 +6,7 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the BoardAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [BoardAccess_SRS.md](BoardAccess_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships, subtask support, and priority promotion date functionality.
+Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships, subtask support, priority promotion date functionality, and IConfiguration facet operations for board-level configuration management.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
@@ -16,6 +16,8 @@ Testing covers destructive API testing, requirements verification, error conditi
 - Memory and resource monitoring tools
 - Concurrent execution environment (goroutine support)
 - JSON file manipulation capabilities
+- Git repository with configuration test data for IConfiguration facet testing
+- Configuration data validation tools for JSON schema testing
 
 ## 2. Test Strategy
 
@@ -23,9 +25,10 @@ This STP emphasizes breaking the system through:
 - **API Contract Violations**: Invalid, extreme, and malformed inputs, boundary violations, type mismatches
 - **Resource Exhaustion**: Memory limits, file handle exhaustion, concurrent limits
 - **External Dependency Failures**: VersioningUtility failures, file system errors, permission issues
-- **Configuration Corruption**: Invalid JSON data, corrupted task files
-- **Requirements Verification Tests**: Validate all EARS requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 with negative cases
+- **Configuration Corruption**: Invalid JSON data, corrupted task files, malformed configuration data
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-029 with negative cases
 - **Priority Promotion Data Testing**: Invalid promotion dates, date format validation, promotion date queries
+- **IConfiguration Facet Testing**: Configuration data validation, git storage failures, JSON serialization errors
 - **Error Recovery Tests**: Test graceful degradation and recovery
 - **Concurrency Stress Testing**: Test race conditions and data corruption under stress
 
@@ -187,6 +190,73 @@ This STP emphasizes breaking the system through:
   - Concurrent query/update operations maintain consistency
   - All promotion date operations integrate properly with storage layer
 
+### 3.6 IConfiguration Facet Testing
+
+**Test Case DT-CONFIG-001**: Configuration Data Validation Failures
+- **Objective**: Test IConfiguration facet behavior with invalid configuration data inputs
+- **Destructive Inputs**:
+  - Null configuration data objects
+  - Malformed JSON configuration data
+  - Configuration data exceeding size limits (>10MB)
+  - Configuration data with invalid type specifications
+  - Configuration data with circular references
+  - Configuration data with non-serializable objects
+  - Configuration requests with invalid configuration types
+  - Configuration requests with malformed identifiers
+  - Configuration data with unsupported nested structures (>100 levels)
+  - Configuration data with extremely large arrays (>10,000 elements)
+  - Configuration data containing binary data or control characters
+  - Configuration data with invalid unicode sequences
+- **Expected Results**:
+  - Invalid inputs rejected with detailed error messages
+  - No partial configuration data corruption
+  - Service remains operational after validation failures
+  - Error messages include validation failure specifics
+  - Large configuration data is handled or limited appropriately
+  - Memory usage remains bounded during validation
+
+**Test Case DT-CONFIG-002**: Git Storage Failure Scenarios
+- **Objective**: Test IConfiguration facet behavior when git storage operations fail
+- **Failure Scenarios**:
+  - Git repository unavailable during configuration operations
+  - Git storage running out of disk space
+  - Git commit failures during configuration store operations
+  - Git fetch failures during configuration load operations
+  - Repository corruption scenarios
+  - Concurrent git operations from multiple configuration requests
+  - Version control conflicts during configuration updates
+  - Git repository access permission failures
+  - Network failures during remote git operations
+  - Git repository lock conflicts during concurrent access
+- **Expected Results**:
+  - Storage failures handled gracefully without service crashes
+  - Appropriate error messages returned to callers
+  - Configuration operations fail atomically (no partial stores)
+  - Service continues functioning after storage recovery
+  - Concurrent operations maintain data integrity
+  - Version control consistency maintained across failures
+
+**Test Case DT-CONFIG-003**: Configuration Type and JSON Serialization Edge Cases
+- **Objective**: Test configuration operations with problematic data types and serialization scenarios
+- **Edge Case Scenarios**:
+  - Configuration data with unsupported data types
+  - JSON serialization failures during store operations
+  - JSON deserialization failures during load operations
+  - Configuration data with encoding issues (non-UTF8)
+  - Configuration data with deeply nested structures (>100 levels)
+  - Configuration data with extremely large arrays (>10,000 elements)
+  - Configuration data with special characters that break JSON parsing
+  - Configuration data with invalid configuration type specifications
+  - Concurrent serialization operations on same configuration data
+  - Configuration data with mixed data types in unexpected combinations
+- **Expected Results**:
+  - Serialization failures detected and reported clearly
+  - Default configuration data provided when load operations fail
+  - Service maintains stability during serialization errors
+  - Memory usage remains bounded during large data processing
+  - Invalid configuration types are validated and rejected
+  - Concurrent serialization operations maintain data consistency
+
 ### 3.2 Resource Exhaustion and Performance Testing
 
 **Test Case DT-RESOURCE-001**: Memory and Performance Exhaustion
@@ -312,18 +382,19 @@ This STP emphasizes breaking the system through:
 - VersioningUtility service test doubles for failure simulation
 
 ### 6.2 Success Criteria
-- **100% Requirements Coverage**: Every EARS requirement REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 has corresponding destructive tests
+- **100% Requirements Coverage**: Every EARS requirement REQ-BOARDACCESS-001 through REQ-BOARDACCESS-029 has corresponding destructive tests
 - **Zero Critical Failures**: No crashes, memory leaks, or data corruption
 - **Race Detector Clean**: No race conditions detected under any scenario
 - **Graceful Error Handling**: All error conditions handled without caller failures
 - **Performance Under Stress**: 2-second performance requirement maintained under adverse conditions
 - **Priority Promotion Data Integrity**: All promotion date storage, retrieval, and query operations maintain data consistency
+- **IConfiguration Facet Integrity**: All configuration operations maintain data consistency and git storage integrity
 - **Complete Recovery**: Service recovers from all testable failure conditions
-- **Data Integrity**: Task data remains consistent across all failure and recovery scenarios
+- **Data Integrity**: Task data and configuration data remain consistent across all failure and recovery scenarios
 
 ---
 
 **Document Version**: 1.0  
 **Created**: 2025-09-09  
-**Updated**: 2025-09-14
+**Updated**: 2025-09-17
 **Status**: Accepted
