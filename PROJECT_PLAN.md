@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement FormattingEngine - Depends on Format Utility
 - Implement LayoutEngine - Depends only on Fyne Utility
 - Implement EventEngine - Depends on TaskManagerAccess + Logging Utility
 - Implement AnimationEngine - Depends on Fyne Utility + LayoutEngine
