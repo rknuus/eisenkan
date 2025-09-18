@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement FormValidationEngine - Depends only on Validation Utility
 - Implement FormattingEngine - Depends on Format Utility
 - Implement LayoutEngine - Depends only on Fyne Utility
 - Implement EventEngine - Depends on TaskManagerAccess + Logging Utility
