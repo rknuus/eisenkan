@@ -1,9 +1,5 @@
 # EisenKan project plan
 ## Tasks
-### Engines (Independent, parallel services)
-- Implement DragDropEngine - Depends on
-FyneUtility
-
 ### Single Manager (Orchestrates all engines)
 - Implement TaskWorkflowManager - Depends on All
 Engines + ResourceAccess
