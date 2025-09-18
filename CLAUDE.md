@@ -12,28 +12,6 @@ Please take the [README.md](README.md) into account, which contains public infor
 
 Optionally, directory `.claude.d` contains project specific Claude instruction files, while this CLAUDE.md is generic and shared by multiple projects.
 
-### When changing code
-1. **Architectural Rules and Guidelines**: Respect the [Architectural Rules and Guidelines](#architectural-rules-and-guidelines)
-2. **Identify Volatility**: Determine which volatility area the change affects
-3. **Validate Operations**: Ensure the change supports core operations
-4. **Choose Layer**: Place components in appropriate architectural layers
-5. **Design Contracts**: Define stable interfaces first
-6. **Implement Bottom-Up**: Start with engines, then managers, then clients
-7. **Quality Checks**: All tests and quality checks must pass. TEMPORARY EXCEPTIONS: the acceptance tests currently fail. That's OK for now.
-
-### Code Review Focus Areas
-- Architectural layer compliance
-- Volatility encapsulation effectiveness
-- Use case coverage and validation
-- Interface design and stability
-- Dependency direction enforcement
-
-### Refactoring Guidelines
-- Always refactor within volatility boundaries first
-- Validate operation support before and after changes
-- Maintain interface stability during refactoring
-- Use architecture tests to prevent regression
-
 ## Service Lifecycle Process
 
 ```
@@ -144,9 +122,9 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 - **MUST** obtain user acceptance after successful demonstration
 - **MUST** mark STR document as "Accepted" with final status upon successful completion
 
-### Documentation Standards
+## Documentation Standards
 
-#### File Locations and Formats
+### File Locations and Formats
 | Document Type | Location | Required Sections |
 |---|---|---|
 | SRS | `doc/[services|client]/<ServiceName>_SRS.md` | Purpose, Operations, Quality Attributes, Interface Requirements |
@@ -155,19 +133,22 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 | Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval ordered descending by date |
 | Architecture | `doc/ADR.md` | Same format as DDR |
 
-#### EARS Requirements Syntax
+### EARS Requirements Syntax
 All requirements must follow EARS format:
 - **Template**: `<optional preconditions> <optional trigger> the <system name> shall <system response>`
 - **Keywords**: Ubiquitous, Event-driven ("When"), Unwanted ("If...then"), State-driven ("While"), Optional ("Where")
 - **Example**: `When a component calls LogError, the LoggingUtility shall capture stack trace information`
 
-#### Destructive Testing Requirements
+## Destructive Testing Requirements
 STP must include:
 - **API Contract Testing**: Invalid inputs, boundary values, null parameters
 - **Resource Exhaustion**: Memory, disk, file handles, concurrent limits
 - **Error Conditions**: External failures, corruption, configuration errors
 - **Requirements Verification**: Each EARS requirement mapped to test cases
 - **Graceful Degradation**: System behavior under adverse conditions
+
+## Usage of 3rd party components
+- **Avoid Duplication**: When using 3rd party components like libraries and frameworks, do not duplicate 3rd party component functionality in services
 
 ## Architectural Rules and Guidelines
 
