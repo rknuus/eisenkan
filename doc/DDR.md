@@ -1,5 +1,45 @@
 # Design Decision Records (DDR)
 
+## [2025-09-18] - FormValidationEngine Design: Function-Based Validation Engine
+
+**Decision**: Implement FormValidationEngine using Function-Based Validation Engine (Option 2)
+
+**Context**: FormValidationEngine requires implementation as a stateless Engine layer component providing pure form input validation patterns. Three design approaches were considered: Rule-Based, Function-Based, and Pipeline-Based validation engines.
+
+**Options Considered**:
+
+### Option 1: Rule-Based Validation Engine
+- **Approach**: Configurable rule objects composed and applied to form data
+- **Benefits**: Highly configurable, extensible, clean separation of concerns
+- **Drawbacks**: Complex implementation, performance overhead, rule dependency management
+
+### Option 2: Function-Based Validation Engine (CHOSEN)
+- **Approach**: Specialized validation functions for each type with coordination
+- **Benefits**: Simple implementation, better performance, easier maintenance, clear boundaries
+- **Drawbacks**: Less flexible for dynamic scenarios, potential code duplication
+
+### Option 3: Pipeline-Based Validation Engine
+- **Approach**: Processing stages pipeline (Sanitization → Format → Pattern → Structure)
+- **Benefits**: Clear processing flow, easy to extend, early termination performance
+- **Drawbacks**: Overkill for simple cases, pipeline overhead, complex error handling
+
+**Rationale**:
+1. **Engine Pattern Alignment**: Function-based approach fits iDesign stateless engine pattern
+2. **Performance**: Direct function calls without rule interpretation overhead
+3. **Simplicity**: Easier to implement, test, and maintain
+4. **Dependency Compliance**: Clean integration with ValidationUtility only
+5. **Client Suitability**: Engine components should be focused and simple
+
+**Implementation Architecture**:
+- Core validation functions (ValidateFormInputs, ValidateFieldFormats, ValidateStructure, SanitizeInputs)
+- Specialized validators (Text, Numeric, Date, Email, URL, Pattern)
+- Cross-field validation components (Dependency, Conditional)
+- ValidationUtility integration for basic patterns and error formatting
+
+**User Approval**: Approved
+
+---
+
 ## [2025-09-18] - UIStateAccess Removal: Integration into Client Components
 
 **Decision**: Remove UIStateAccess from project plan and integrate its functionality directly into client components
