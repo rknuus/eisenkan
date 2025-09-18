@@ -112,9 +112,9 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 #### Phase Requirements
 1. **Establish Context**: Brainstorm possible functionality of the service
 2. **Context Review**: Present to user, wait for explicit "Context approved"
-3. **SRS Creation**: Based on feedback about Context create `doc/services/<ServiceName>_SRS.md` with EARS requirements with similar structure like other SRS documents, if existing, keeping requirements and interface contracts technology-agnostic except the requirements in section "Technical Constraints"
+3. **SRS Creation**: Based on feedback about Context create `doc/[services|client]/<ServiceName>_SRS.md` with EARS requirements with similar structure like other SRS documents, if existing, keeping requirements and interface contracts technology-agnostic except the requirements in section "Technical Constraints"
 4. **SRS Review**: Present to user, wait for explicit "SRS approved"
-5. **STP Creation**: Create `doc/services/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
+5. **STP Creation**: Create `doc/[services|client]/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
 6. **STP Review**: Present to user, wait for explicit "STP approved"
 7. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
 8. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
@@ -122,7 +122,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 10. **Construction & Code Review**: Involve user in code review, wait for approval
 11. **Integration Testing**: Required for components basing on other components, skip for leaf-compontents
 12. **Acceptance Testing**: Demonstrate all STP tests pass, obtain user acceptance
-13. **STR Creation**: Create `doc/services/<ServiceName>_STR.md` with actual test execution results and requirements verification
+13. **STR Creation**: Create `doc/[services|client]/<ServiceName>_STR.md` with actual test execution results and requirements verification
 
 #### Interaction Requirements
 - **MUST** ask explicit questions: "Please review this [SRS/STP/Design Prototype/Design]. Do you approve proceeding?"
@@ -149,9 +149,9 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 #### File Locations and Formats
 | Document Type | Location | Required Sections |
 |---|---|---|
-| SRS | `doc/services/<ServiceName>_SRS.md` | Purpose, Operations, Quality Attributes, Interface Requirements |
-| STP | `doc/services/<ServiceName>_STP.md` | Test Strategy, Destructive Testing (NO Requirements Verification Matrix) |
-| STR | `doc/services/<ServiceName>_STR.md` | Requirements Verification Matrix, Test Execution Results, Acceptance Status |
+| SRS | `doc/[services|client]/<ServiceName>_SRS.md` | Purpose, Operations, Quality Attributes, Interface Requirements |
+| STP | `doc/[services|client]/<ServiceName>_STP.md` | Test Strategy, Destructive Testing (NO Requirements Verification Matrix) |
+| STR | `doc/[services|client]/<ServiceName>_STR.md` | Requirements Verification Matrix, Test Execution Results, Acceptance Status |
 | Detail Design | `doc/DDR.md` | Decision, Context, Options, Rationale, User Approval ordered descending by date |
 | Architecture | `doc/ADR.md` | Same format as DDR |
 
