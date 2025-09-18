@@ -1,5 +1,43 @@
 # Design Decision Records (DDR)
 
+## [2025-09-18] - FormattingEngine Design: Domain-Specific Facets
+
+**Decision**: Implement FormattingEngine using Domain-Specific Facets architecture
+
+**Context**: FormattingEngine requires implementation as a stateless Engine layer component providing comprehensive formatting capabilities for UI components. The engine must integrate with Format Utility dependency and support text, numeric, temporal, structure, template, and locale formatting operations.
+
+**Options Considered**:
+
+### Option 1: Domain-Specific Formatters
+- **Approach**: Separate specialized formatters for each domain with shared coordination
+- **Benefits**: Clear separation of domains, easy extension, domain specialization
+- **Drawbacks**: Code duplication, complex coordination, inconsistent caching
+
+### Option 2: Operation-Centric Engine
+- **Approach**: Single engine with operation-based methods using Format Utility
+- **Benefits**: Unified interface, centralized management, simple maintenance
+- **Drawbacks**: Large component, less specialization, potential bottlenecks
+
+### Option 3: Domain-Specific Facets (CHOSEN)
+- **Approach**: FormattingEngine with specialized facets for each formatting domain using interface naming
+- **Benefits**: Clean domain separation, focused responsibilities, easy extension, maintainable, testable
+- **Drawbacks**: Slightly more complex structure than single engine
+
+**Final Architecture**:
+```
+FormattingEngine
+├── IText         // FormatText, FormatLabel, FormatMessage, FormatError
+├── INumber       // FormatNumber, FormatPercentage, FormatFileSize, FormatCurrency
+├── ITime         // FormatDateTime, FormatDuration, FormatRelativeTime, FormatTimeRange
+├── IDatastructure // FormatList, FormatKeyValue, FormatJSON, FormatHierarchy
+├── ITemplate     // ProcessTemplate, ValidateTemplate, CacheTemplate, GetTemplateMetadata
+└── ILocale       // SetLocale, SetNumberFormat, SetDateFormat, SetCurrencyFormat
+```
+
+**Rationale**: Domain-Specific Facets provides the optimal balance of separation of concerns, maintainability, and performance. Each facet can specialize in its formatting domain while maintaining clean integration with Format Utility. The interface naming convention (IText, INumber, etc.) provides clear, concise identification of each facet's responsibility.
+
+**User Approval**: Approved - "I like the domains. But I want one facet per domain." Updated naming: "But name the facets IText, INumber, ITime, IDatastructure etc."
+
 ## [2025-09-18] - FormValidationEngine Design: Function-Based Validation Engine
 
 **Decision**: Implement FormValidationEngine using Function-Based Validation Engine (Option 2)
