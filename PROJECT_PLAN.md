@@ -1,14 +1,12 @@
 # EisenKan project plan
 ## Tasks
-- Implement UIStateAccess - Depends only on LoggingUtility
-- Implement BoardConfigAccess - Depends only on LoggingUtility
 - Implement FormValidationEngine - Depends only on Validation Utility
 - Implement FormattingEngine - Depends on Format Utility
 - Implement LayoutEngine - Depends only on Fyne Utility
 - Implement EventEngine - Depends on TaskManagerAccess + Logging Utility
 - Implement AnimationEngine - Depends on Fyne Utility + LayoutEngine
 - Implement DragDropEngine - Depends on EventEngine + FormValidationEngine + LayoutEngine
-- Implement UIStateManager - Depends on UIStateAccess + Logging Utility
+- Implement UIStateManager - Depends on Logging Utility
 - Implement WindowManager - Depends on Fyne Utility + UIStateManager
 - Implement NavigationManager - Depends on WindowManager + UIStateManager
 - Implement ErrorManager - Depends on Logging Utility + FormattingEngine
@@ -22,7 +20,7 @@
 - Implement EisenhowerMatrixDialog - Depends on TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on TaskWidget + SubtaskManager + LayoutEngine
 - Implement TaskFormView - Depends on EisenhowerMatrixDialog + TaskManager + ErrorManager
-- Implement EntryView - Depends on BoardConfigAccess + NavigationManager + ErrorManager
+- Implement EntryView - Depends on NavigationManager + ErrorManager
 - Implement BoardView - Depends on BoardManager + ColumnWidget + TaskWidget + SubtaskExpansionView + SearchManager
 - Implement Application Root
 - Implement service EisenKan Admin Client

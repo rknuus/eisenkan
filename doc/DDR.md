@@ -1,5 +1,48 @@
 # Design Decision Records (DDR)
 
+## [2025-09-18] - UIStateAccess Removal: Integration into Client Components
+
+**Decision**: Remove UIStateAccess from project plan and integrate its functionality directly into client components
+
+**Context**: UIStateAccess was originally planned as a ResourceAccess layer component providing UI state persistence (window geometry, user preferences, view states, session data). However, after implementing TaskManager IContext interface with git-repo based storage and considering architectural constraints, UIStateAccess no longer provides sufficient unique value.
+
+**Options Considered**:
+
+### Option 1: Keep UIStateAccess as Originally Planned
+- **Approach**: Implement UIStateAccess with full SRS specification (25+ operations)
+- **Storage**: Use TaskManager IContext for git-repo persistence
+- **Problems**:
+  - ResourceAccess cannot call ResourceAccess (architectural constraint)
+  - Without platform-native storage, reduces to data types + validation only
+  - Adds unnecessary layer complexity for minimal value
+  - Client would need Manager-to-ResourceAccess-to-Manager calls
+
+### Option 2: Integrate UIStateAccess Functionality into Client Components (CHOSEN)
+- **Approach**: Define UI state types and validation directly in client managers
+- **Storage**: Client managers call TaskManager IContext directly
+- **Benefits**:
+  - Follows architectural constraints (Manager-to-Manager calls allowed)
+  - Leverages existing git-repo storage through TaskManager
+  - Eliminates unnecessary layer and reduces complexity
+  - Components own their specific UI state concerns
+  - Direct access to persistence without intermediate layers
+
+**Rationale**:
+1. **Architectural Compliance**: Manager-to-Manager calls are allowed, ResourceAccess-to-ResourceAccess are not
+2. **Storage Solution Exists**: TaskManager IContext provides git-repo persistence that was requested
+3. **Reduced Complexity**: Eliminates intermediate layer with minimal functionality
+4. **Better Ownership**: WindowManager owns window state, NavigationManager owns navigation state
+5. **Previous Storage Failure**: Platform-native storage approach already failed, git-repo approach succeeded
+
+**Consequences**:
+- Define WindowState, ViewState, etc. types in respective client managers
+- Implement validation/processing functions directly in components that use them
+- Client managers call TaskManager.IContext for UI state persistence
+
+**User Approval**: Approved
+
+---
+
 ## [2025-09-17] - IContext and IConfiguration Facets Design Decision: Implementation Architecture
 
 **Decision**: Option 1 - Separate Interface Extensions with Embedded Structs
