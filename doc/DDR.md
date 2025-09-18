@@ -1,5 +1,56 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - DragDropEngine Design: Focused Faceted Architecture
+
+**Decision**: Implement DragDropEngine using Focused Faceted Architecture with IDrag, IDrop, and IVisualize facets
+
+**Context**: DragDropEngine requires implementation as a stateless Engine layer component providing drag-drop coordination for kanban-style task management interfaces. The engine must focus purely on drag-drop mechanics without TaskWorkflowManager integration, allowing components above to handle task movement coordination.
+
+**Options Considered**:
+
+### Option 1: Faceted Architecture with Integration Coordination
+- **Approach**: Four facets including IntegrationCoordinator for TaskWorkflowManager coordination
+- **Facets**: DragCoordinator, DropZoneManager, DragVisualizer, IntegrationCoordinator
+- **Benefits**: Complete drag-drop workflow including task movement
+- **Drawbacks**: Engine layer handling Manager layer responsibilities, violates separation of concerns
+
+### Option 2: Monolithic Interface
+- **Approach**: Single comprehensive interface handling all drag-drop operations
+- **Benefits**: Simpler interface, fewer components
+- **Drawbacks**: Less modular, violates domain separation principles
+
+### Option 3: Focused Faceted Architecture (CHOSEN)
+- **Approach**: Three focused facets handling pure drag-drop mechanics only
+- **Facets**: IDrag, IDrop, IVisualize
+- **Benefits**: Clear separation of concerns, Engine focuses on drag-drop mechanics only, components above handle task coordination
+- **Drawbacks**: Requires coordination layer above Engine
+
+**Final Architecture**:
+```
+DragDropEngine
+├── IDrag        // StartDrag, UpdateDragPosition, CompleteDrag, CancelDrag
+├── IDrop        // RegisterDropZone, UnregisterDropZone, ValidateDropTarget, GetActiveZones
+└── IVisualize   // CreateDragIndicator, UpdateIndicatorPosition, ShowDropFeedback, CleanupVisuals
+```
+
+**Key Design Principles**:
+- **Engine Focus**: Pure drag-drop mechanics without task movement logic
+- **Clean Separation**: Components above handle TaskWorkflowManager coordination and Fyne event processing
+- **Immutable State**: Functional updates for safer concurrent operations
+- **Temporary Fyne Objects**: Leverage framework capabilities for drag indicators
+- **Geometric Bounds Checking**: Precise spatial detection without widget hierarchy dependencies
+- **Architectural Compliance**: No Manager layer integration, maintains Engine layer boundaries
+
+**Integration Pattern**:
+- Engine provides drag-drop mechanics through focused facets
+- UI components above process Fyne events and forward to Engine
+- Task movement coordination handled by components that can access TaskWorkflowManager
+- Engine remains stateless and focused on spatial drag-drop operations
+
+**Rationale**: This design maintains proper architectural layer separation where Engine focuses purely on drag-drop mechanics. Components above handle integration concerns like Fyne events and TaskWorkflowManager coordination, following the principle that engines should be focused, stateless services without manager-level responsibilities.
+
+**User Approval**: Approved
+
 ## [2025-09-18] - LayoutEngine Design: Layered Architecture with Domain-Specific Facets
 
 **Decision**: Implement LayoutEngine using Layered Architecture with Domain-Specific Facets (Option 3) where ISpatialMath is internal implementation
