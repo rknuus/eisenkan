@@ -1,5 +1,58 @@
 # Design Decision Records (DDR)
 
+## [2025-09-18] - LayoutEngine Design: Layered Architecture with Domain-Specific Facets
+
+**Decision**: Implement LayoutEngine using Layered Architecture with Domain-Specific Facets (Option 3) where ISpatialMath is internal implementation
+
+**Context**: LayoutEngine requires implementation as a stateless Engine layer component providing sophisticated spatial calculations for UI components. The engine must integrate with Fyne Utility dependency and support layout calculation, responsive adaptation, animation support, Kanban optimization, and drag-and-drop spatial operations with 2ms performance requirements and 0.1 pixel mathematical precision.
+
+**Options Considered**:
+
+### Option 1: Pure Mathematical Engine
+- **Approach**: Focus purely on mathematical calculations without UI framework knowledge
+- **Benefits**: Maximum reusability, platform independence, pure mathematical precision
+- **Drawbacks**: Requires additional integration layer, less optimization for Fyne-specific patterns
+
+### Option 2: Fyne-Integrated Layout Engine
+- **Approach**: Tight integration with Fyne container system and coordinate models
+- **Benefits**: Optimal performance for Fyne workflows, direct container manipulation
+- **Drawbacks**: Tighter coupling to Fyne, less portable across UI frameworks
+
+### Option 3: Layered Architecture with Domain-Specific Facets (CHOSEN)
+- **Approach**: Core spatial math layer with domain-specific facets for layout concerns
+- **Benefits**: Balanced approach, testable layers, clear domain separation, extensible architecture
+- **Drawbacks**: Slightly more complex than pure approaches
+
+### Option 4: Domain-Specific Modules
+- **Approach**: Separate modules for different layout concerns with inter-module coordination
+- **Benefits**: Clear separation of concerns, focused optimization per domain
+- **Drawbacks**: Potential code duplication, complex inter-module coordination
+
+**Final Architecture**:
+```
+LayoutEngine
+├── ISpatialMath      // INTERNAL: Core coordinate/bounds calculations, constraint solving
+├── IResponsive       // PUBLIC: Breakpoint management, adaptive layouts
+├── IAnimation        // PUBLIC: Layout state capture, interpolation, transitions
+├── IKanban          // PUBLIC: Board layouts, card arrangements, scrolling optimization
+├── IDragDrop        // PUBLIC: Drop validation, snap points, spatial feedback
+└── IOptimization    // INTERNAL: Caching, performance optimization, memory management
+```
+
+**Key Design Principles**:
+- **Internal Facets**: ISpatialMath and IOptimization provide foundational capabilities
+- **Public Facets**: Domain-specific interfaces that UI components interact with
+- **Layered Approach**: Core spatial math supports all domain-specific operations
+- **Clean Abstractions**: UI components receive layout results, not raw mathematical calculations
+- **Performance Focus**: Internal optimization facet ensures 2ms calculation requirements
+- **Mathematical Precision**: Core spatial math maintains 0.1 pixel tolerance
+
+**Rationale**: This design provides the optimal balance between mathematical precision, performance optimization, domain separation, and architectural cleanliness. The layered approach with internal spatial math ensures that complex coordinate calculations remain encapsulated while domain-specific facets provide clean, purpose-built interfaces for different layout concerns. This supports the 40 SRS requirements while maintaining Engine layer architectural compliance.
+
+**User Approval**: Approved
+
+---
+
 ## [2025-09-18] - FormattingEngine Design: Domain-Specific Facets
 
 **Decision**: Implement FormattingEngine using Domain-Specific Facets architecture
