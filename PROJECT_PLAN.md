@@ -1,8 +1,6 @@
 # EisenKan project plan
 ## Tasks
 ### Engines (Independent, parallel services)
-- Implement AnimationEngine - Depends on
-FyneUtility
 - Implement DragDropEngine - Depends on
 FyneUtility
 
@@ -12,8 +10,7 @@ Engines + ResourceAccess
 
 ### UI Components (Use manager + engines directly)
 - Implement TaskWidget - Depends on
-TaskWorkflowManager + FormattingEngine +
-AnimationEngine
+TaskWorkflowManager + FormattingEngine
 - Implement ColumnWidget - Depends on
 TaskWorkflowManager + DragDropEngine +
 LayoutEngine + FyneUtility
@@ -22,7 +19,7 @@ TaskWorkflowManager + FormValidationEngine
 - Implement EisenhowerMatrixDialog - Depends on
 TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on
-TaskWidget + LayoutEngine + AnimationEngine
+TaskWidget + LayoutEngine
 - Implement TaskFormView - Depends on
 EisenhowerMatrixDialog + TaskWorkflowManager +
 FormattingEngine
