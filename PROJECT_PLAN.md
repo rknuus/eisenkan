@@ -1,6 +1,5 @@
 # EisenKan project plan
 ## Tasks
-- Implement LayoutEngine - Depends only on Fyne Utility
 - Implement EventEngine - Depends on TaskManagerAccess + Logging Utility
 - Implement AnimationEngine - Depends on Fyne Utility + LayoutEngine
 - Implement DragDropEngine - Depends on EventEngine + FormValidationEngine + LayoutEngine
