@@ -1,8 +1,6 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement TaskWidget - Depends on
-WorkflowManager + FormattingEngine
 - Implement ColumnWidget - Depends on
 WorkflowManager + DragDropEngine +
 LayoutEngine + FyneUtility
