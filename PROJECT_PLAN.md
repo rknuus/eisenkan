@@ -1,28 +1,28 @@
 # EisenKan project plan
 ## Tasks
 ### Single Manager (Orchestrates all engines)
-- Implement TaskWorkflowManager - Depends on All
+- Implement WorkflowManager - Depends on All
 Engines + ResourceAccess
 
 ### UI Components (Use manager + engines directly)
 - Implement TaskWidget - Depends on
-TaskWorkflowManager + FormattingEngine
+WorkflowManager + FormattingEngine
 - Implement ColumnWidget - Depends on
-TaskWorkflowManager + DragDropEngine +
+WorkflowManager + DragDropEngine +
 LayoutEngine + FyneUtility
 - Implement NewStoryFormArea - Depends on
-TaskWorkflowManager + FormValidationEngine
+WorkflowManager + FormValidationEngine
 - Implement EisenhowerMatrixDialog - Depends on
 TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on
 TaskWidget + LayoutEngine
 - Implement TaskFormView - Depends on
-EisenhowerMatrixDialog + TaskWorkflowManager +
+EisenhowerMatrixDialog + WorkflowManager +
 FormattingEngine
 - Implement EntryView - Depends on
-TaskWorkflowManager + FormattingEngine
+WorkflowManager + FormattingEngine
 - Implement BoardView - Depends on
-TaskWorkflowManager + ColumnWidget + TaskWidget +
+WorkflowManager + ColumnWidget + TaskWidget +
 SubtaskExpansionView + FormValidationEngine
 
 ### Application
