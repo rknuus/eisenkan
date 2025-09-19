@@ -1,5 +1,105 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - TaskWidget Design: Custom Widget Architecture with Event Delegation
+
+**Decision**: Implement TaskWidget using Custom Widget + Renderer Pattern with Event Delegation to WorkflowManager and Layered Error Handling
+
+**Context**: TaskWidget requires implementation as a Fyne UI widget that displays individual task information in the EisenKan kanban board system. The component must integrate with WorkflowManager for task operations and FormattingEngine for text presentation while maintaining proper architectural layer separation and providing clean interface for parent containers.
+
+**Options Considered**:
+
+### Design Decision 1: Widget Architecture Pattern
+**Options**:
+A. **Custom Widget + Renderer Pattern**: Extend `widget.BaseWidget` with custom `fyne.WidgetRenderer`
+B. **Container Composition Pattern**: Use `container.NewBorder` with standard Fyne widgets
+C. **Rich Text Widget Extension**: Extend `widget.RichText` for task content display
+
+**Chosen**: Option A for complete control over layout and rendering, follows Fyne best practices
+
+### Design Decision 2: Dependency Management Strategy
+**Options**:
+A. **Constructor Injection**: Pass dependencies via `NewTaskWidget(wm, fe, taskData)`
+B. **Setter Injection**: Create widget then set dependencies via methods
+C. **Service Locator**: Widget queries global service registry for dependencies
+
+**Chosen**: Option A with nil checks for graceful degradation
+
+### Design Decision 3: State Management Approach
+**Options**:
+A. **Immutable State with Channels**: Use Go channels for state updates with immutable data structures
+B. **Mutex-Protected Mutable State**: Use `sync.RWMutex` to protect mutable state fields
+C. **Event-Driven State Machine**: State changes triggered only by discrete events
+
+**Chosen**: Option A for thread-safe state management and clear state transitions
+
+### Design Decision 4: User Interaction Event Handling
+**Options**:
+A. **Direct Fyne Event Handlers**: Implement `fyne.Tappable`, `fyne.Draggable`, etc. interfaces directly
+B. **Event Delegation Pattern**: UI events trigger internal methods that delegate to WorkflowManager
+C. **Command Pattern**: Convert UI events to command objects processed by WorkflowManager
+
+**Chosen**: Option C (Event Delegation) because managing workflow related events is the WorkflowManager's responsibility
+
+### Design Decision 5: Drag-Drop Implementation Strategy
+**Options**:
+A. **Native Fyne Drag-Drop**: Use `fyne.Draggable` and `fyne.DropTarget` interfaces
+B. **Custom Drag-Drop System**: Implement custom drag detection and visual feedback
+C. **Hybrid Approach**: Use Fyne drag events but custom visual feedback and workflow coordination
+
+**Chosen**: Option C for maximum flexibility with Fyne integration
+
+### Design Decision 6: Error Handling and Recovery Strategy
+**Options**:
+Based on error scenario analysis, selected **Local → Parent → Fail Early** approach:
+
+**Local Widget-Level Handling**:
+- Input sanitization using FormValidationEngine before sending to backend
+- Visual error indicators (red borders, tooltips) for field-level validation errors
+- Basic UI state management (focus, selection, etc.)
+
+**Parent Context Escalation**:
+- Backend validation errors (show error dialog with full backend message)
+- WorkflowManager operation failures
+- Data synchronization conflicts requiring user decision
+
+**Fail Early and Loud (Outermost Context)**:
+- Backend/WorkflowManager unavailability → Application-level failure
+- FormattingEngine unavailability → Application-level failure
+- Critical system resource exhaustion → Application-level failure
+
+**Final Architecture**:
+```
+TaskWidget (extends widget.BaseWidget)
+├── Custom Renderer (fyne.WidgetRenderer)
+├── Dependencies (Constructor Injection)
+│   ├── WorkflowManager (ITask, IDrag facets)
+│   └── FormattingEngine (Text, Metadata facets)
+├── State Management (Immutable with Channels)
+├── Event Handling (Delegation to WorkflowManager)
+├── Drag-Drop (Hybrid Fyne + Custom)
+└── Error Handling (Layered: Local → Parent → Fail Early)
+```
+
+**Key Design Principles**:
+- **Fyne Integration**: Native widget extending BaseWidget with custom renderer
+- **Clean Dependencies**: Constructor injection with graceful degradation for missing dependencies
+- **Event Delegation**: WorkflowManager handles all workflow-related event processing
+- **Input Validation**: FormValidationEngine sanitizes inputs before workflow submission
+- **Visual Error Feedback**: Red borders, tooltips for field errors, error dialogs for backend errors
+- **Fail Early**: Clean application failure when core dependencies unavailable
+- **Thread Safety**: Immutable state with channel-based updates for concurrent operations
+
+**Integration Pattern**:
+- TaskWidget processes Fyne UI events and forwards workflow events to WorkflowManager
+- FormattingEngine handles text and metadata presentation formatting
+- Input sanitization through FormValidationEngine before workflow submission
+- Visual error indicators for validation failures, error dialogs for backend failures
+- Parent containers handle workflow failures and data conflicts requiring user decisions
+
+**Rationale**: This design provides optimal balance between native Fyne integration, clean architectural separation, and robust error handling. Custom widget with renderer provides maximum control over task display while event delegation maintains proper separation between UI concerns and workflow logic. The layered error handling approach allows local recovery where possible while escalating appropriately to parent contexts or failing early when dependencies are unavailable.
+
+**User Approval**: Approved
+
 ## [2025-09-19] - WorkflowManager Design: Two-Facet Architecture with Workflow State Tracking
 
 **Decision**: Implement WorkflowManager using Two-Facet Architecture with ITask and IDrag facets, integrated validation, and workflow state tracking
