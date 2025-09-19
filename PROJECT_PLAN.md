@@ -4,10 +4,10 @@
 - Implement ColumnWidget - Depends on
 WorkflowManager + DragDropEngine +
 LayoutEngine + FyneUtility
-- Implement NewStoryFormArea - Depends on
+- Implement NewStoryWidget - Depends on
 WorkflowManager + FormValidationEngine
 - Implement EisenhowerMatrixDialog - Depends on
-TaskWidget + FormValidationEngine + LayoutEngine
+TaskWidget + NewStoryWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on
 TaskWidget + LayoutEngine
 - Implement TaskFormView - Depends on
