@@ -95,7 +95,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 5. **STP Creation**: Create `doc/[services|client]/<ServiceName>_STP.md` with destructive testing focus and similar structure like other STP documents, if existing, avoid redundancy between test cases in the same document
 6. **STP Review**: Present to user, wait for explicit "STP approved"
 7. **Design Prototype**: If desired by the user, interactively create design prototypes to explore the design space until the user is satisfied
-8. **Detailed Design**: Present design options, wait for user input on decisions and document in `doc/DDR.md`
+8. **Detailed Design**: Present design options with enumeration, wait for user input on decisions and document in `doc/DDR.md`
 9. **Design Review**: Present complete design, wait for "Design approved"
 10. **Construction & Code Review**: Involve user in code review, wait for approval
 11. **Integration Testing**: Required for components basing on other components, skip for leaf-compontents
@@ -107,7 +107,7 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 - **MUST** wait for explicit approval: "approved", "proceed", "looks good"
 - **MUST NOT** assume approval from silence or general comments
 - **MUST** involve user as decision-maker, not just reviewer
-- **MUST** re-scan artifacts under review when user reports findings or approves
+- **MUST** re-scan files under review when user reports findings or approves before proceeding
 - **SHOULD** update `CLAUDE.md` when user findings reveal preventable issues
 
 #### Acceptance test demo
