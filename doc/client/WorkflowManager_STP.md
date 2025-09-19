@@ -144,7 +144,7 @@ This STP emphasizes breaking the workflow orchestration system through:
   - Service overload handled with operation queuing and progressive retry logic
   - Dependency cycles detected and prevented with deadlock prevention and recovery
 
-### 3.4 Status Change Workflow Stress Testing
+### 3.4 Enhanced Task Status Management Stress Testing
 
 **Test Case DT-STATUS-001**: Status Change Workflow with Validation and Rule Engine Stress
 - **Objective**: Test status change workflow under business rule validation failures and engine stress
@@ -163,26 +163,98 @@ This STP emphasizes breaking the workflow orchestration system through:
   - Concurrent operations properly synchronized without status conflict corruption
   - Memory failures handled without corrupting rule validation or status state
 
-**Test Case DT-STATUS-002**: Status Change Impact Management and Dependency Stress
-- **Objective**: Test status change under complex dependency scenarios and impact management failures
+**Test Case DT-STATUS-002**: Priority Change and Archive Workflow Stress Testing
+- **Objective**: Test priority change and archive workflows under extreme validation and cascade scenarios
 - **Destructive Inputs**:
-  - Status change workflows with circular task dependencies and impossible dependency resolution
-  - Impact management with dependency calculation failures and corrupted dependency data
-  - Status change coordination with dependent task update failures and cascade conflicts
-  - Workflow execution with backend dependency tracking failures and inconsistent state
-  - Status change operations with memory allocation failures during dependency processing
-  - Impact calculation with performance degradation and timeout scenarios during complex dependencies
+  - Priority change validation with corrupted priority rules and impossible priority transitions
+  - Archive workflow operations with subtask cascade failures and relationship corruption
+  - Priority assignment with FormattingEngine failures during priority display formatting
+  - Archive operations with backend integration failures and incomplete cascade processing
+  - Concurrent priority and archive operations with overlapping task dependencies
+  - Archive cascade processing with circular subtask relationships and infinite recursion scenarios
 - **Expected**:
-  - Circular dependencies detected and handled with dependency conflict resolution
-  - Dependency calculation failures handled with conservative impact estimation
-  - Dependent task update failures handled with partial change rollback and conflict reporting
-  - Dependency tracking failures handled with dependency state reconstruction
-  - Memory failures handled without corrupting dependency calculations or status consistency
-  - Performance degradation handled with progressive dependency processing and timeout management
+  - Corrupted priority rules detected and handled with priority validation and recovery
+  - Subtask cascade failures handled with partial archive rollback and relationship preservation
+  - Priority formatting failures handled with fallback priority presentation
+  - Backend integration failures handled with archive operation rollback and error reporting
+  - Concurrent operations properly synchronized without priority or archive state corruption
+  - Circular relationships detected and prevented with cascade cycle detection and resolution
 
-### 3.5 Task Deletion Workflow Stress Testing
+### 3.5 Batch Operation Workflow Stress Testing
 
-**Test Case DT-DELETE-001**: Task Deletion Workflow with Cascade and Dependency Stress
+**Test Case DT-BATCH-001**: Batch Status Update Under Partial Failure Scenarios
+- **Objective**: Test batch status update operations under partial failure and rollback scenarios
+- **Destructive Inputs**:
+  - Batch status updates with mixed valid/invalid task IDs and corrupted task data
+  - Batch operations with FormValidationEngine failures during batch validation processing
+  - Backend integration failures affecting subset of tasks during batch processing
+  - Batch status updates with memory allocation failures during large-scale processing
+  - Concurrent batch operations with overlapping task sets and resource conflicts
+  - Batch processing with performance timeout scenarios during large task collections
+- **Expected**:
+  - Mixed valid/invalid tasks handled with per-task success/failure reporting
+  - Validation failures handled without blocking valid task updates in batch
+  - Backend failures handled with partial batch completion and detailed error reporting
+  - Memory failures handled with progressive batch processing and resource management
+  - Concurrent batch operations properly synchronized without batch state corruption
+  - Timeout scenarios handled with progressive batch completion and user feedback
+
+**Test Case DT-BATCH-002**: Bulk Priority and Archive Operations Under Resource Stress
+- **Objective**: Test bulk priority assignment and archive operations under resource exhaustion scenarios
+- **Destructive Inputs**:
+  - Bulk priority assignments with invalid priority values and corrupted priority data
+  - Batch archive operations with complex subtask cascades and relationship failures
+  - Bulk operations with FormattingEngine failures during batch result formatting
+  - Large-scale batch operations exceeding system resource limits and memory constraints
+  - Batch processing with backend service overload and degraded response times
+  - Bulk archive operations with circular subtask relationships and infinite cascade scenarios
+- **Expected**:
+  - Invalid priority values detected and handled with batch validation and per-task reporting
+  - Complex cascade failures handled with partial batch completion and relationship preservation
+  - Formatting failures handled with fallback batch result presentation
+  - Resource limit scenarios handled with batch size limitation and progressive processing
+  - Service overload handled with batch operation queuing and retry logic
+  - Circular relationships detected and prevented with cascade cycle detection
+
+### 3.6 Advanced Search and Subtask Management Stress Testing
+
+**Test Case DT-SEARCH-001**: Advanced Search Under Performance and Validation Stress
+- **Objective**: Test advanced search operations under complex criteria validation and performance scenarios
+- **Destructive Inputs**:
+  - Complex search queries with invalid criteria combinations and corrupted search parameters
+  - Search operations with FormValidationEngine failures during criteria validation
+  - Advanced search with backend integration failures and corrupted search results
+  - Search processing with memory allocation failures during large result set handling
+  - Concurrent search operations with overlapping search criteria and cache conflicts
+  - Search optimization with performance degradation and timeout scenarios
+- **Expected**:
+  - Invalid search criteria detected and handled with search validation and error reporting
+  - Validation failures handled with fallback search processing and simplified criteria
+  - Backend integration failures handled with search retry logic and partial results
+  - Memory failures handled with progressive result loading and pagination
+  - Concurrent searches properly synchronized without result corruption or cache conflicts
+  - Performance degradation handled with search optimization and progressive loading
+
+**Test Case DT-SUBTASK-001**: Subtask Management Under Hierarchy Corruption and Circular Dependencies
+- **Objective**: Test subtask management operations under hierarchy corruption and circular dependency scenarios
+- **Destructive Inputs**:
+  - Subtask creation with circular parent-child relationships and impossible hierarchy structures
+  - Subtask completion cascades with corrupted parent-child relationships and infinite recursion
+  - Subtask movement between parents with capacity constraint violations and relationship conflicts
+  - Subtask hierarchy validation with memory allocation failures during relationship processing
+  - Concurrent subtask operations with overlapping parent-child relationships and hierarchy conflicts
+  - Subtask cascade processing with backend integration failures and incomplete hierarchy updates
+- **Expected**:
+  - Circular relationships detected and prevented with hierarchy validation and cycle detection
+  - Corrupted relationships handled with relationship reconstruction and integrity validation
+  - Capacity violations detected and handled with constraint validation and error reporting
+  - Memory failures handled without corrupting hierarchy integrity or relationship consistency
+  - Concurrent operations properly synchronized without hierarchy corruption or relationship conflicts
+  - Backend failures handled with hierarchy rollback and relationship state preservation
+
+### 3.7 Task Deletion Workflow Stress Testing
+
+**Test Case DT-DELETE-001**: Task Deletion Workflow with Enhanced Cascade and Dependency Stress
 - **Objective**: Test task deletion under complex cascade scenarios and dependency management failures
 - **Destructive Inputs**:
   - Task deletion with impossible cascade operations and circular dependency conflicts
@@ -199,7 +271,7 @@ This STP emphasizes breaking the workflow orchestration system through:
   - Memory failures handled without corrupting cascade processing or deletion consistency
   - Backend service failures handled with deletion queuing and recovery mechanisms
 
-**Test Case DT-DELETE-002**: Task Deletion Permission and Validation Stress
+**Test Case DT-DELETE-002**: Task Deletion Permission and Enhanced Validation Stress
 - **Objective**: Test task deletion under permission validation failures and authorization stress
 - **Destructive Inputs**:
   - Deletion permission validation with corrupted authorization rules and access control failures
@@ -216,9 +288,9 @@ This STP emphasizes breaking the workflow orchestration system through:
   - Concurrent permission changes handled with authorization conflict resolution
   - Memory failures handled without compromising security validation or deletion authorization
 
-### 3.6 Task Query Workflow Stress Testing
+### 3.8 Task Query Workflow Stress Testing
 
-**Test Case DT-QUERY-001**: Task Query Workflow with Backend Integration and Performance Stress
+**Test Case DT-QUERY-001**: Enhanced Task Query Workflow with Backend Integration and Performance Stress
 - **Objective**: Test task query workflow under backend integration failures and performance degradation
 - **Destructive Inputs**:
   - Query translation with invalid UI criteria and impossible backend query parameter combinations
@@ -235,7 +307,7 @@ This STP emphasizes breaking the workflow orchestration system through:
   - Concurrent operations properly synchronized without query result corruption
   - Service overload handled with query prioritization and progressive loading
 
-**Test Case DT-QUERY-002**: Task Query Result Processing and Optimization Stress
+**Test Case DT-QUERY-002**: Enhanced Task Query Result Processing and Optimization Stress
 - **Objective**: Test task query under result processing failures and optimization corruption
 - **Destructive Inputs**:
   - Query result processing with corrupted task data and invalid query response formats
@@ -362,14 +434,17 @@ This STP emphasizes breaking the workflow orchestration system through:
 ### 7.1 Functional Requirements Verification
 Each EARS requirement from the SRS must be verified through positive and negative test cases:
 
-- **TWM-REQ-001 to TWM-REQ-004**: Task creation workflow functionality and engine integration
-- **TWM-REQ-005 to TWM-REQ-008**: Task update workflow management and backend coordination
-- **TWM-REQ-009 to TWM-REQ-012**: Drag-drop workflow processing and movement coordination
-- **TWM-REQ-013 to TWM-REQ-016**: Status change workflow execution and dependency management
-- **TWM-REQ-017 to TWM-REQ-019**: Task deletion workflow coordination and impact management
-- **TWM-REQ-020 to TWM-REQ-023**: Task query workflow optimization and result processing
-- **TWM-REQ-024 to TWM-REQ-027**: Engine coordination operations and error management
-- **TWM-REQ-028 to TWM-REQ-030**: Backend integration operations and async coordination
+- **TWM-REQ-001 to TWM-REQ-008**: Core task workflow functionality and engine integration
+- **TWM-REQ-009 to TWM-REQ-013**: Enhanced task status management and archive operations
+- **TWM-REQ-014 to TWM-REQ-017**: Drag-drop workflow processing and movement coordination
+- **TWM-REQ-018 to TWM-REQ-020**: Task deletion workflow coordination and impact management
+- **TWM-REQ-021 to TWM-REQ-024**: Task query workflow optimization and result processing
+- **TWM-REQ-025 to TWM-REQ-027**: Batch operation workflows and bulk processing
+- **TWM-REQ-028 to TWM-REQ-029**: Advanced search and filter workflow operations
+- **TWM-REQ-030 to TWM-REQ-032**: Subtask management workflows and hierarchy operations
+- **TWM-REQ-033 to TWM-REQ-036**: Engine coordination operations and error management
+- **TWM-REQ-037 to TWM-REQ-039**: Backend integration operations and async coordination
+- **TWM-REQ-040 to TWM-REQ-045**: Extended interface requirements and compatibility
 
 ### 7.2 Quality Attribute Testing
 - **Performance Requirements**: 500ms workflow response time and efficient multi-engine coordination verification
@@ -403,4 +478,5 @@ Each EARS requirement from the SRS must be verified through positive and negativ
 
 **Document Version**: 1.0
 **Created**: 2025-09-19
+**Updated**: 2025-09-19
 **Status**: Accepted
