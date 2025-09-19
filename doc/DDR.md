@@ -1,5 +1,60 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - WorkflowManager Design: Two-Facet Architecture with Workflow State Tracking
+
+**Decision**: Implement WorkflowManager using Two-Facet Architecture with ITask and IDrag facets, integrated validation, and workflow state tracking
+
+**Context**: WorkflowManager requires implementation as a Client Manager layer component that orchestrates client-side task workflow operations by coordinating UI engines with backend task management services. The manager must provide clear separation between task operations and drag-drop operations while maintaining workflow state for complex multi-engine coordination.
+
+**Options Considered**:
+
+### Option 1: Workflow-Specific Manager
+- **Approach**: Single interface organized around workflow types (CreateTaskWorkflow, UpdateTaskWorkflow, etc.)
+- **Benefits**: Simpler interface, follows established Manager patterns
+- **Drawbacks**: Less modular, mixing task and drag concerns
+
+### Option 2: Three-Facet Architecture
+- **Approach**: ITask, IDrag, IValidation facets with separate validation concerns
+- **Benefits**: Clear separation of all concerns
+- **Drawbacks**: Over-engineering for Manager layer, validation split from domain operations
+
+### Option 3: Two-Facet Architecture (CHOSEN)
+- **Approach**: ITask and IDrag facets with integrated validation operations
+- **Benefits**: Clear domain separation, validation integrated with domain concerns, appropriate complexity for Manager layer
+- **Drawbacks**: Slightly more complex than single interface
+
+**Final Architecture**:
+```
+WorkflowManager
+├── ITask        // CreateTaskWorkflow, UpdateTaskWorkflow, DeleteTaskWorkflow, QueryTasksWorkflow
+│                // ValidateTaskData, ValidateStatusTransition
+└── IDrag        // ProcessDragDropWorkflow, ValidateMovement
+```
+
+**Key Design Principles**:
+- **Domain-Focused Facets**: Task operations vs Drag operations with their respective validations
+- **Workflow State Tracking**: Essential workflow context management for multi-engine coordination
+- **Engine Integration**: Direct engine injection (FormValidationEngine, FormattingEngine, DragDropEngine)
+- **Backend Integration**: Direct TaskManagerAccess integration for consistent patterns
+- **Error Handling**: Simple error wrapping for consistency with established patterns
+- **Manager Layer Compliance**: Proper orchestration responsibilities without Engine layer violations
+
+**Workflow State Management**:
+- Active workflow tracking with WorkflowState for complex operations
+- Multi-engine coordination context management
+- Progress tracking for long-running workflow operations
+- Thread-safe concurrent workflow support
+
+**Integration Pattern**:
+- ITask facet coordinates FormValidationEngine and FormattingEngine for task operations
+- IDrag facet coordinates DragDropEngine with task movement through backend
+- Workflow state tracks multi-step operations across engine boundaries
+- Error aggregation from engines provides unified user feedback
+
+**Rationale**: This design provides optimal balance between domain separation and implementation simplicity for Manager layer responsibilities. Two facets clearly separate task and drag concerns while keeping validation integrated with domain operations. Workflow state tracking enables proper coordination of complex multi-engine operations essential for client-side workflow management.
+
+**User Approval**: Approved
+
 ## [2025-09-19] - DragDropEngine Design: Focused Faceted Architecture
 
 **Decision**: Implement DragDropEngine using Focused Faceted Architecture with IDrag, IDrop, and IVisualize facets
