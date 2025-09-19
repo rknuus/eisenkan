@@ -1,9 +1,5 @@
 # EisenKan project plan
 ## Tasks
-### Single Manager (Orchestrates all engines)
-- Implement WorkflowManager - Depends on All
-Engines + ResourceAccess
-
 ### UI Components (Use manager + engines directly)
 - Implement TaskWidget - Depends on
 WorkflowManager + FormattingEngine
