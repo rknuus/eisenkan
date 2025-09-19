@@ -1,5 +1,105 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - BoardView: Component Architecture and Integration Pattern
+
+**Decision**: Implement BoardView using Widget Pattern with 4-Column Eisenhower Matrix Layout, Direct Engine Integration, Immutable State Management, and Task Ownership Transfer Pattern
+
+**Context**: BoardView requires implementation as the primary kanban board interface with 4-column Eisenhower Matrix layout for comprehensive task management and workflow coordination. The component must coordinate multiple ColumnWidget instances, integrate TaskWidget components for task display, and orchestrate task workflow management across priority columns through drag-drop operations and business rule validation.
+
+**Options Considered**:
+
+### Design Decision 1: Widget Architecture Pattern
+**Options**:
+A. **Custom Widget with Renderer Pattern**: Extend `widget.BaseWidget` with custom `fyne.WidgetRenderer`
+B. **Container Composition Pattern**: Use `container.NewBorder` with 4 column containers
+C. **Custom Layout Manager**: Implement EisenhowerMatrixLayout with ColumnWidget embedding
+
+**Chosen**: Option A - Custom Widget with Renderer Pattern for complete control over board layout and rendering, follows Fyne best practices established by ColumnWidget and TaskWidget patterns
+
+### Design Decision 2: Column Organization Strategy
+**Options**:
+A. **Fixed 4-Column Grid**: Use `container.NewGridWithColumns(2)` in 2x2 arrangement for Eisenhower Matrix
+B. **Dynamic Column Management**: Use `container.NewHBox` with variable column count
+C. **Responsive Column Layout**: Adaptive column arrangement based on screen size
+
+**Chosen**: Option B - Dynamic Column Management because the columns will be configurable in the future, providing flexibility for different board configurations beyond the initial Eisenhower Matrix
+
+### Design Decision 3: Dependency Integration Pattern
+**Options**:
+A. **Direct Engine Dependencies**: Accept WorkflowManager, FormValidationEngine as constructor parameters
+B. **Service Locator Pattern**: Runtime dependency discovery and binding
+C. **Dependency Injection Container**: Central container managing all dependencies
+
+**Chosen**: Option A - Direct Engine Dependencies for architectural compliance with ColumnWidget and TaskWidget patterns, straightforward testing, and minimal abstraction overhead
+
+### Design Decision 4: State Management Architecture
+**Options**:
+A. **Immutable State with Channels**: Single BoardState with state channels for updates
+B. **Distributed State per Column**: Independent ColumnWidget state management
+C. **Event-Driven State Machine**: Formal state machine for board lifecycle
+
+**Chosen**: Option A - Immutable State with Channels for consistency with ColumnWidget patterns, centralized coordination, and proven state management approach from existing widgets
+
+### Design Decision 5: Task Display Coordination Strategy
+**Options**:
+A. **Direct TaskWidget Creation**: BoardView creates TaskWidget instances and passes to ColumnWidget
+B. **Delegation to ColumnWidget**: ColumnWidget manages TaskWidget creation and lifecycle
+C. **Shared TaskWidget Pool**: Centralized widget pool shared across columns
+
+**Chosen**: Option B - Delegation to ColumnWidget for clear separation of concerns, leveraging existing ColumnWidget capabilities, and avoiding widget lifecycle complexity
+
+### Design Decision 6: Drag-Drop Workflow Integration
+**Options**:
+A. **Board-Level Drag Coordination**: BoardView handles all drag-drop events and coordinates with WorkflowManager
+B. **Column-Level Drag Delegation**: ColumnWidget handles drag events, BoardView coordinates WorkflowManager
+C. **Task-Level Drag Events**: TaskWidget handles drag events, bubbles up to BoardView
+
+**Chosen**: Option A - Board-Level Drag Coordination to avoid complexity of mixed responsibility (originally considered A+B mix where ColumnWidget handles intra-column drags and BoardView handles inter-column drags, but this would be complicated). May remove no longer required drag code from ColumnWidget in the future.
+
+### Design Decision 7: WorkflowManager Integration Pattern
+**Options**:
+A. **Direct WorkflowManager Calls**: BoardView calls WorkflowManager.Task() and .Drag() directly
+B. **Workflow Coordinator Layer**: Intermediate coordinator between BoardView and WorkflowManager
+C. **Event-Driven Workflow Integration**: Workflow operations triggered through event system
+
+**Chosen**: Option A - Direct WorkflowManager Calls for architectural compliance, direct manager access pattern established in ColumnWidget, and minimal abstraction overhead
+
+**Final Architecture**:
+```
+BoardView (extends widget.BaseWidget)
+├── Custom Renderer (Dynamic Column Layout)
+├── Dependencies (Constructor Injection)
+│   ├── WorkflowManager (Task querying, movement coordination)
+│   ├── FormValidationEngine (Operation validation)
+│   ├── ColumnWidget×N (Configurable columns, initially 4 for Eisenhower)
+│   └── TaskWidget factory pattern via ColumnWidget delegation
+├── State Management (Immutable BoardState with Channels)
+├── Drag-Drop Coordination (Board-level with WorkflowManager)
+├── Event Handling (Task movement, board refresh, validation)
+└── Column Coordination (State synchronization, WIP limits)
+```
+
+**Key Design Principles**:
+- **Configurable Column Layout**: Dynamic column management for future configurability (initially Eisenhower Matrix)
+- **ColumnWidget Delegation**: Leverage existing ColumnWidget capabilities for task management
+- **Board-Level Drag Coordination**: Centralized drag-drop handling to avoid complexity
+- **Immutable State**: Thread-safe state management with channel-based updates
+- **Direct Engine Integration**: Direct WorkflowManager and FormValidationEngine access
+- **Performance Optimization**: Efficient rendering within 300ms requirement (BV-REQ-041)
+- **Scalability Support**: Handle up to 1000 tasks across all columns (BV-REQ-046)
+
+**Integration Pattern**:
+- BoardView coordinates configurable ColumnWidget instances (initially 4 for Eisenhower quadrants)
+- WorkflowManager.Task() provides task querying and data management
+- WorkflowManager.Drag() handles task movement workflow coordination
+- FormValidationEngine validates task operations before workflow submission
+- ColumnWidget manages TaskWidget lifecycle with DisplayMode for embedded tasks
+- Board-level drag-drop coordinates all task movement (may remove ColumnWidget drag code later)
+
+**Rationale**: This design provides flexibility for future column configurability while leveraging existing architectural patterns. Custom widget with renderer provides control over layout. Dynamic column management supports evolution beyond Eisenhower Matrix. Delegation to ColumnWidget simplifies task management while board-level drag coordination avoids mixed responsibility complexity. Immutable state management follows proven patterns while maintaining thread safety.
+
+**User Approval**: Approved
+
 ## [2025-09-19] - CreateTaskDialog: Eisenhower Matrix Dialog Architecture
 
 **Decision**: Implement CreateTaskDialog with custom Fyne dialog architecture, fixed grid layout, direct TaskWidget integration, deferred WorkflowManager coordination, centralized state management, and direct engine dependencies
