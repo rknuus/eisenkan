@@ -1,9 +1,6 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement ColumnWidget - Depends on
-WorkflowManager + DragDropEngine +
-LayoutEngine + FyneUtility
 - Implement NewStoryWidget - Depends on
 WorkflowManager + FormValidationEngine
 - Implement EisenhowerMatrixDialog - Depends on
