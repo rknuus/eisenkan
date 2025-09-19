@@ -1,14 +1,12 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement NewStoryWidget - Depends on
-WorkflowManager + FormValidationEngine
-- Implement EisenhowerMatrixDialog - Depends on
-TaskWidget + NewStoryWidget + FormValidationEngine + LayoutEngine
+- Implement CreateTaskDialog - Depends on
+TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on
 TaskWidget + LayoutEngine
 - Implement TaskFormView - Depends on
-EisenhowerMatrixDialog + WorkflowManager +
+CreateTaskDialog + ColumnWidget + TaskWidget + WorkflowManager +
 FormattingEngine
 - Implement EntryView - Depends on
 WorkflowManager + FormattingEngine
