@@ -1,8 +1,6 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement CreateTaskDialog - Depends on
-TaskWidget + FormValidationEngine + LayoutEngine
 - Implement SubtaskExpansionView - Depends on
 TaskWidget + LayoutEngine
 - Implement TaskFormView - Depends on
