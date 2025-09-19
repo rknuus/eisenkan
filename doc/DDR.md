@@ -1,5 +1,59 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - TaskWidget Enhancement: Task Creation and Inline Editing Support
+
+**Decision**: Enhance TaskWidget with unified renderer approach supporting task creation and inline editing modes with FormValidationEngine integration
+
+**Context**: TaskWidget requires enhancement to support task creation and inline editing capabilities for CreateTaskDialog integration. The component must maintain backward compatibility while adding form-based creation mode (nil TaskData) and inline editing mode with real-time validation using FormValidationEngine.
+
+**Options Considered**:
+
+### Design Decision 1: Renderer Architecture Pattern
+**Options**:
+A. **Unified Form Renderer**: Extend existing TaskWidgetRenderer to handle both display and form modes
+B. **Separate Form Component**: Create separate form components swapped during mode changes
+C. **Mode-Specific Renderers**: Use different renderer implementations for display vs edit/create modes
+
+**Chosen**: Option A for simplicity, easier state transitions, and shared validation logic
+
+### Design Decision 2: Constructor API Design
+**Options**:
+A. **Overloaded Constructors**: `NewTaskWidget()` and `NewTaskWidgetForCreation()`
+B. **Mode Parameter**: `NewTaskWidget(wm, fe, fve, taskData, mode)`
+C. **Factory Methods**: Separate `NewDisplayTaskWidget()`, `NewCreationTaskWidget()`, `NewEditTaskWidget()`
+
+**Chosen**: Option B with convenience wrappers for clean API and explicit mode specification
+
+### Design Decision 3: State Management Strategy
+**Options**:
+A. **Extend Existing State**: Add Mode, FormData, IsFormDirty fields to TaskWidgetState
+B. **Separate State Objects**: DisplayState and FormState with CurrentMode coordinator
+C. **State Machine Pattern**: Discrete state objects with transition validation
+
+**Chosen**: Option A for consistency with existing patterns and simpler state management
+
+### Design Decision 4: FormValidationEngine Integration Pattern
+**Options**:
+A. **Direct Integration**: Call `validationEngine.ValidateFormInputs()` directly from TaskWidget
+B. **Validation Service Layer**: Intermediate TaskValidationService wrapping FormValidationEngine
+C. **Event-Driven Validation**: Validation triggered through event system
+
+**Chosen**: Option A to maintain architectural compliance with direct Engine layer access
+
+### Design Decision 5: Form Field Implementation Approach
+**Options**:
+A. **Direct Fyne Widgets**: Use `widget.Entry`, `widget.Select` directly with custom handlers
+B. **Custom Form Builder**: Fluent API for form construction with integrated validation
+C. **Form Component Library**: Reusable form field components with built-in validation
+
+**Chosen**: Option A for framework consistency and direct control over form behavior
+
+**Rationale**: This design maintains backward compatibility while cleanly extending TaskWidget with creation and editing capabilities. The unified renderer approach keeps complexity manageable while the mode parameter provides explicit control over widget behavior. Direct FormValidationEngine integration follows architectural guidelines for Engine layer access.
+
+**User Approval**: Approved
+
+---
+
 ## [2025-09-19] - TaskWidget Design: Custom Widget Architecture with Event Delegation
 
 **Decision**: Implement TaskWidget using Custom Widget + Renderer Pattern with Event Delegation to WorkflowManager and Layered Error Handling
