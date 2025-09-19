@@ -6,13 +6,13 @@
 This Software Requirements Specification defines the functional and non-functional requirements for the TaskWidget component, a UI element in the Client layer that displays individual task information in the EisenKan kanban board system. The TaskWidget serves as the primary visual representation of tasks within the board interface.
 
 ### 1.2 Scope
-TaskWidget is a reusable UI component that integrates with WorkflowManager for task operations and FormattingEngine for text presentation. The component focuses on task visualization, user interaction handling, and workflow coordination while maintaining proper architectural layer separation and providing a clean interface for parent containers.
+TaskWidget is a reusable UI component that integrates with WorkflowManager for task operations, FormattingEngine for text presentation, and FormValidationEngine for input validation. The component focuses on task visualization, user interaction handling, inline editing, task creation, and workflow coordination while maintaining proper architectural layer separation and providing a clean interface for parent containers.
 
 ### 1.3 System Context
 TaskWidget operates within the Client UI layer of the EisenKan system architecture:
 - **Namespace**: eisenkan.Client.UI.TaskWidget
-- **Dependencies**: WorkflowManager (ITask and IDrag facets), FormattingEngine (Text and Metadata facets)
-- **Integration**: Embedded within ColumnWidget and BoardView components
+- **Dependencies**: WorkflowManager (ITask and IDrag facets), FormattingEngine (Text and Metadata facets), FormValidationEngine (form input validation)
+- **Integration**: Embedded within ColumnWidget, BoardView, and CreateTaskDialog components
 - **Framework**: Fyne v2 native UI widget implementation
 
 ## 2. Operations
@@ -84,6 +84,28 @@ The following operations define the required behavior for TaskWidget:
 4. Implement graceful degradation when dependencies are unavailable
 5. Maintain task display integrity during error conditions
 6. Guide user through error resolution when possible
+
+#### OP-7: Handle Task Creation Workflow
+**Actors**: End user creating new tasks through inline creation interface
+**Trigger**: When TaskWidget is initialized in creation mode with nil TaskData
+**Flow**:
+1. Initialize TaskWidget in creation mode with empty form fields
+2. Display editable form interface for task properties (title, description, priority)
+3. Provide real-time validation feedback using FormValidationEngine
+4. Handle user input and update form state dynamically
+5. Coordinate with WorkflowManager for task creation when user commits changes
+6. Transition to display mode upon successful task creation or handle creation failures
+
+#### OP-8: Provide Inline Editing Interface
+**Actors**: End user editing existing tasks through inline editing interface
+**Trigger**: When TaskWidget enters editing mode through double-click or programmatic activation
+**Flow**:
+1. Transition from display mode to inline editing mode
+2. Replace display elements with editable form fields populated with current task data
+3. Provide save/cancel actions with visual feedback
+4. Validate form inputs in real-time using FormValidationEngine
+5. Handle save workflow through WorkflowManager for task updates
+6. Restore display mode with updated data or revert changes on cancel
 
 ## 3. Quality Attributes
 
@@ -217,6 +239,74 @@ When TaskWidget processes user interactions, the component shall properly propag
 **TW-REQ-030**: Lifecycle Management
 When TaskWidget is created or destroyed, the component shall properly initialize and cleanup resources including event handlers and workflow connections.
 
+### 4.6 Task Creation Support
+
+**TW-REQ-031**: Creation Mode Initialization
+When TaskWidget is initialized with nil TaskData, the component shall enter creation mode and display an empty form interface for new task creation.
+
+**TW-REQ-032**: Creation Form Fields
+When in creation mode, the component shall provide input fields for title (required), description (optional), priority (required), and metadata (optional).
+
+**TW-REQ-033**: Creation Mode Validation
+When in creation mode, the component shall validate form inputs in real-time using FormValidationEngine and display validation feedback.
+
+**TW-REQ-034**: Creation Workflow Integration
+When user commits task creation, the component shall coordinate with WorkflowManager.Task().CreateTaskWorkflow() for backend task creation.
+
+**TW-REQ-035**: Creation Mode Completion
+When task creation succeeds, the component shall transition to display mode with the newly created task data, or remain in creation mode if creation fails.
+
+### 4.7 Inline Editing Interface
+
+**TW-REQ-036**: Edit Mode Activation
+When TaskWidget receives edit activation (double-click or programmatic), the component shall transition from display mode to inline editing mode.
+
+**TW-REQ-037**: Edit Form Population
+When entering edit mode, the component shall populate form fields with current task data and enable field editing.
+
+**TW-REQ-038**: Edit Mode Controls
+When in edit mode, the component shall provide save and cancel controls with clear visual indication and keyboard shortcuts.
+
+**TW-REQ-039**: Edit Mode Validation
+When in edit mode, the component shall validate form inputs in real-time using FormValidationEngine and display field-level validation feedback.
+
+**TW-REQ-040**: Edit Mode Completion
+When user saves edits, the component shall coordinate with WorkflowManager for task updates and return to display mode, or remain in edit mode if updates fail.
+
+### 4.8 Form Validation Integration
+
+**TW-REQ-041**: Real-time Validation
+When user modifies form fields in creation or edit mode, the component shall validate inputs immediately using FormValidationEngine.ValidateFormInputs().
+
+**TW-REQ-042**: Validation Feedback Display
+When validation occurs, the component shall display field-level error messages, warnings, and success indicators based on ValidationResult.
+
+**TW-REQ-043**: Validation Rule Enforcement
+When validating inputs, the component shall enforce title length limits (1-200 characters), description limits (max 1000 characters), and required field constraints.
+
+**TW-REQ-044**: Priority Validation
+When validating priority field, the component shall ensure selection from valid Eisenhower Matrix values (urgent-important, urgent-not-important, not-urgent-important, not-urgent-not-important).
+
+**TW-REQ-045**: Validation State Management
+When validation state changes, the component shall update ValidationErrs in TaskWidgetState and refresh visual indicators accordingly.
+
+### 4.9 Edit/Create Workflow Management
+
+**TW-REQ-046**: Mode State Tracking
+When in creation or edit mode, the component shall maintain IsEditing state and provide appropriate visual indicators for current mode.
+
+**TW-REQ-047**: Cancel Operation Handling
+When user cancels creation or edit operations, the component shall discard changes and revert to previous display state without affecting original task data.
+
+**TW-REQ-048**: Save Operation Coordination
+When user saves creation or edit operations, the component shall coordinate with WorkflowManager using appropriate workflow methods and handle async operation states.
+
+**TW-REQ-049**: Error Recovery in Edit/Create
+When creation or edit operations fail, the component shall display error messages, maintain form state, and provide retry mechanisms for recoverable failures.
+
+**TW-REQ-050**: Keyboard Navigation in Forms
+When in creation or edit mode, the component shall support keyboard navigation between form fields, tab order management, and keyboard shortcuts for save/cancel operations.
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Performance Constraints
@@ -232,13 +322,14 @@ When TaskWidget is created or destroyed, the component shall properly initialize
 - **Accessibility Compliance**: Component must support screen readers and keyboard navigation per accessibility standards
 
 ### 5.3 Integration Constraints
-- **Manager Layer Compliance**: Component must interact only with Manager layer (WorkflowManager) and Engine layer (FormattingEngine)
+- **Manager Layer Compliance**: Component must interact only with Manager layer (WorkflowManager) and Engine layer (FormattingEngine, FormValidationEngine)
 - **Fyne Framework Integration**: Component must use native Fyne widgets and follow Fyne design patterns
 - **Event Architecture**: Component must follow event-driven patterns for user interactions and state updates
 - **Container Independence**: Component must be reusable across different parent container types
+- **Validation Engine Integration**: Component must use FormValidationEngine for all form input validation without bypassing validation logic
 
 ### 5.4 Technical Constraints
-- **Dependency Management**: Component must depend only on WorkflowManager and FormattingEngine interfaces
+- **Dependency Management**: Component must depend only on WorkflowManager, FormattingEngine, and FormValidationEngine interfaces
 - **UI Thread Safety**: All UI operations must execute on proper UI thread with appropriate coordination
 - **Resource Management**: Component must properly manage memory, event handlers, and system resources
 - **Framework Compliance**: Component must comply with Fyne v2 framework requirements and best practices
@@ -273,14 +364,30 @@ The TaskWidget shall provide interfaces for:
 - Layout coordination for responsive design and container size adaptation
 - Resource management and cleanup for efficient memory usage
 
+### 6.5 Task Creation Interface
+The TaskWidget shall provide interfaces for:
+- Creation mode initialization with nil TaskData for new task creation
+- Form field interfaces for title, description, priority, and metadata input
+- Real-time validation feedback using FormValidationEngine integration
+- Task creation workflow coordination with WorkflowManager
+- Creation completion handling with success/failure state management
+
+### 6.6 Inline Editing Interface
+The TaskWidget shall provide interfaces for:
+- Edit mode activation and deactivation for existing tasks
+- Form field population with current task data for modification
+- Save and cancel operation controls with visual feedback
+- Edit validation and error handling with field-level feedback
+- Edit workflow coordination with WorkflowManager for task updates
+
 ## 7. Acceptance Criteria
 
 The TaskWidget shall be considered complete when:
 
-1. All functional requirements (TW-REQ-001 through TW-REQ-030) are implemented and verified through comprehensive testing
+1. All functional requirements (TW-REQ-001 through TW-REQ-050) are implemented and verified through comprehensive testing
 2. Performance requirements are met with sub-50ms rendering times and responsive interaction feedback
-3. Integration with WorkflowManager and FormattingEngine is working correctly with proper error handling
-4. All user interaction scenarios operate correctly including click, drag-drop, keyboard navigation, and inline editing
+3. Integration with WorkflowManager, FormattingEngine, and FormValidationEngine is working correctly with proper error handling
+4. All user interaction scenarios operate correctly including click, drag-drop, keyboard navigation, inline editing, and task creation
 5. Task display operations provide clear visual presentation with proper formatting and state indication
 6. Workflow coordination demonstrates seamless task operations with appropriate progress feedback and error recovery
 7. Data synchronization handles real-time updates, optimistic updates, and conflict resolution correctly
@@ -293,6 +400,7 @@ The TaskWidget shall be considered complete when:
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 1.1
 **Created**: 2025-09-19
+**Updated**: 2025-09-19
 **Status**: Accepted

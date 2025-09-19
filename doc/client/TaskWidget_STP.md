@@ -6,7 +6,7 @@
 This Software Test Plan defines the comprehensive testing strategy for the TaskWidget component, with emphasis on destructive testing scenarios that validate component resilience, error handling, and graceful degradation under adverse conditions.
 
 ### 1.2 Scope
-This STP covers testing of TaskWidget functionality including task display operations, user interaction handling, workflow coordination, drag-drop operations, data synchronization, and error recovery mechanisms. Testing focuses on validating all 30 requirements from TaskWidget SRS through both positive and negative test scenarios.
+This STP covers testing of TaskWidget functionality including task display operations, user interaction handling, workflow coordination, drag-drop operations, data synchronization, task creation, inline editing, form validation integration, and error recovery mechanisms. Testing focuses on validating all 50 requirements from TaskWidget SRS through both positive and negative test scenarios.
 
 ### 1.3 Test Strategy
 Testing employs destructive testing methodology to validate component behavior under stress, error conditions, and resource constraints. Test execution validates requirements compliance while ensuring robust operation under adverse conditions.
@@ -16,15 +16,16 @@ Testing employs destructive testing methodology to validate component behavior u
 ### 2.1 Test Framework
 - **Primary Framework**: Go testing package with testify assertions
 - **UI Testing**: Fyne test framework for widget interaction simulation
-- **Mock Framework**: Custom mocks for WorkflowManager and FormattingEngine dependencies
+- **Mock Framework**: Custom mocks for WorkflowManager, FormattingEngine, and FormValidationEngine dependencies
 - **Concurrency Testing**: Go race detector and concurrent test execution
 - **Performance Testing**: Go benchmark framework for timing validation
 
 ### 2.2 Test Dependencies
 - **WorkflowManager Mock**: Simulates ITask and IDrag facet operations with configurable responses
 - **FormattingEngine Mock**: Simulates Text and Metadata facet operations with controllable outputs
+- **FormValidationEngine Mock**: Simulates form validation operations with configurable validation rules and responses
 - **Fyne Test Infrastructure**: Widget testing utilities and event simulation
-- **Test Data**: Predefined task data sets for consistent test execution
+- **Test Data**: Predefined task data sets and validation rules for consistent test execution
 
 ## 3. Destructive Test Cases
 
@@ -180,6 +181,112 @@ Testing employs destructive testing methodology to validate component behavior u
 - Performance recovery occurs promptly after stress relief
 - Resource usage remains bounded under all test conditions
 
+### 3.9 DT-CREATE-001: Task Creation Mode Destructive Testing
+**Objective**: Validate task creation functionality under extreme conditions and failure scenarios
+
+**Test Scenarios**:
+- **Creation Mode with Malformed State**: Initialize creation mode with corrupted widget state
+- **FormValidationEngine Unavailability**: Attempt task creation when validation engine is unresponsive
+- **Massive Input Stress**: Create tasks with extremely large title/description content (10MB+)
+- **Validation Rule Violations**: Submit tasks violating all validation constraints simultaneously
+- **WorkflowManager Creation Failures**: Handle repeated task creation workflow failures
+- **Concurrent Creation Attempts**: Execute multiple creation operations simultaneously on same widget
+- **Resource Exhaustion during Creation**: Perform creation under severe memory/CPU constraints
+- **Invalid Priority Injection**: Attempt creation with malformed priority values and injection attacks
+- **Creation Cancellation Stress**: Rapidly cancel and restart creation workflows
+
+**Expected Results**:
+- Creation mode initializes correctly despite state corruption
+- Graceful degradation when FormValidationEngine is unavailable
+- Validation handles extreme input sizes without crashes
+- Clear error feedback for validation rule violations
+- Workflow failures result in appropriate user notification and retry mechanisms
+- Concurrent operations are properly serialized or rejected
+- Resource constraints don't corrupt creation state
+- Invalid inputs are sanitized and rejected safely
+- Cancellation operations complete cleanly without state corruption
+
+### 3.10 DT-EDIT-001: Inline Editing Mode Destructive Testing
+**Objective**: Validate inline editing functionality under stress conditions and edge cases
+
+**Test Scenarios**:
+- **Edit Mode Transition Failures**: Force edit mode activation during invalid widget states
+- **Concurrent Edit Operations**: Multiple users attempting to edit same task simultaneously
+- **Edit Form Corruption**: Manipulate form field values to extreme and invalid states
+- **Save Operation Interruption**: Interrupt save operations through network failures and timeouts
+- **FormValidationEngine Edit Failures**: Edit validation when validation engine becomes unavailable
+- **Rapid Edit Mode Toggle**: Rapidly enter/exit edit mode to stress state transitions
+- **Edit with External Data Updates**: Edit while task data is being updated externally
+- **Memory Pressure during Editing**: Perform complex edits under severe memory constraints
+- **Invalid Edit Data Injection**: Inject malformed data during edit operations
+- **Edit Cancellation Edge Cases**: Cancel edits during various workflow stages
+
+**Expected Results**:
+- Edit mode activation handles invalid states gracefully
+- Concurrent edit operations are properly coordinated or prevented
+- Form corruption is detected and handled with appropriate user feedback
+- Save interruptions result in clear error messages and retry options
+- Edit validation degrades gracefully when validation engine unavailable
+- Rapid mode transitions maintain state consistency
+- External updates are handled with conflict resolution
+- Memory constraints don't corrupt edit state
+- Invalid data injection is prevented through proper sanitization
+- Edit cancellation restores original state correctly
+
+### 3.11 DT-VALIDATION-001: Form Validation Integration Destructive Testing
+**Objective**: Validate FormValidationEngine integration under extreme validation scenarios
+
+**Test Scenarios**:
+- **Validation Engine Complete Failure**: All validation operations when engine is completely unresponsive
+- **Malformed Validation Rules**: Process validation with corrupted or malicious validation rules
+- **Validation Feedback Overflow**: Handle validation scenarios generating 1000+ error messages
+- **Real-time Validation Stress**: Trigger validation on every character input at maximum typing speed
+- **Validation State Corruption**: Corrupt validation state during active validation operations
+- **Concurrent Validation Requests**: Execute multiple validation requests simultaneously
+- **Validation Memory Exhaustion**: Perform validation under severe memory pressure
+- **Validation Result Injection**: Attempt to inject malformed validation results
+- **Validation Timeout Scenarios**: Handle validation operations that exceed time limits
+- **Validation Error Recovery**: Test recovery from validation engine crashes and restarts
+
+**Expected Results**:
+- Graceful fallback when validation engine completely fails
+- Malformed rules are detected and rejected safely
+- Validation feedback overflow is managed with appropriate limiting
+- Real-time validation maintains performance under stress
+- Validation state corruption is detected and recovered
+- Concurrent validation requests are properly managed
+- Memory pressure doesn't crash validation operations
+- Validation result injection is prevented
+- Validation timeouts result in appropriate fallback behavior
+- Engine recovery is handled transparently
+
+### 3.12 DT-WORKFLOW-002: Edit/Create Workflow Destructive Testing
+**Objective**: Validate edit and create workflow coordination under failure conditions
+
+**Test Scenarios**:
+- **Workflow Manager Complete Unavailability**: Edit/create operations when WorkflowManager is unresponsive
+- **Workflow Operation Timeout Cascades**: Handle workflows that exceed timeout limits repeatedly
+- **Workflow State Corruption**: Execute workflows with corrupted internal state
+- **Concurrent Workflow Conflicts**: Multiple overlapping workflow operations on same task
+- **Workflow Rollback Failures**: Handle scenarios where workflow rollback operations fail
+- **Workflow Authentication Failures**: Process workflows when authentication is revoked mid-operation
+- **Network Partition during Workflow**: Handle workflow operations during network connectivity issues
+- **Workflow Resource Exhaustion**: Execute workflows under extreme resource constraints
+- **Malformed Workflow Responses**: Process corrupted or malicious workflow response data
+- **Workflow Retry Storm Prevention**: Prevent infinite retry loops during persistent failures
+
+**Expected Results**:
+- Clear user feedback when WorkflowManager is unavailable
+- Timeout handling with appropriate user guidance
+- Workflow state corruption is detected and handled gracefully
+- Concurrent operations are properly coordinated or prevented
+- Rollback failures result in consistent error states
+- Authentication failures trigger appropriate user prompts
+- Network issues result in retry mechanisms and offline indicators
+- Resource constraints don't corrupt workflow state
+- Malformed responses are detected and rejected
+- Retry mechanisms include exponential backoff and circuit breakers
+
 ## 4. Requirements Verification Strategy
 
 ### 4.1 Functional Requirements Testing
@@ -212,6 +319,22 @@ Each TW-REQ requirement will be validated through specific test scenarios:
 **Integration (TW-REQ-028 to TW-REQ-030)**:
 - Positive testing validates correct container integration
 - Destructive testing stresses lifecycle and event propagation
+
+**Task Creation Support (TW-REQ-031 to TW-REQ-035)**:
+- Positive testing validates correct creation mode initialization and workflow coordination
+- Destructive testing stresses creation with malformed states, validation failures, and resource constraints
+
+**Inline Editing Interface (TW-REQ-036 to TW-REQ-040)**:
+- Positive testing validates correct edit mode transitions and form handling
+- Destructive testing creates edit conflicts, form corruption, and save operation failures
+
+**Form Validation Integration (TW-REQ-041 to TW-REQ-045)**:
+- Positive testing validates correct FormValidationEngine integration and feedback display
+- Destructive testing overloads validation with extreme inputs, engine failures, and state corruption
+
+**Edit/Create Workflow Management (TW-REQ-046 to TW-REQ-050)**:
+- Positive testing validates correct workflow coordination and error recovery
+- Destructive testing creates workflow failures, concurrent conflicts, and retry scenarios
 
 ### 4.2 Non-Functional Requirements Testing
 Performance, reliability, usability, and maintainability requirements are validated through:
@@ -272,14 +395,17 @@ func TestDT_DISPLAY_001_TaskDisplayStress(t *testing.T) {
 - **Phase 4**: Full system integration testing
 
 ### 6.3 Test Completion Criteria
-- All 30 SRS requirements validated through test execution
-- All destructive test scenarios pass or demonstrate acceptable graceful degradation
-- Performance requirements met under normal and stress conditions
-- Error handling demonstrates complete recovery capabilities
-- Integration testing validates seamless container embedding
+- All 50 SRS requirements validated through test execution
+- All 12 destructive test scenarios pass or demonstrate acceptable graceful degradation
+- Performance requirements met under normal and stress conditions (50ms rendering, 100ms interaction)
+- Error handling demonstrates complete recovery capabilities for all failure scenarios
+- Integration testing validates seamless container embedding and engine coordination
+- Task creation and inline editing functionality demonstrates robust operation under adverse conditions
+- FormValidationEngine integration provides reliable validation with appropriate fallback behavior
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 1.1
 **Created**: 2025-09-19
-**Status**: Draft
+**Updated**: 2025-09-19
+**Status**: Accepted
