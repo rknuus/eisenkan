@@ -413,7 +413,9 @@ func (cw *ColumnWidget) createTaskWidget(task *TaskData) {
 		formattingEngine = engines.NewFormattingEngine()
 	}
 
-	taskWidget := NewTaskWidget(cw.workflowManager, formattingEngine, task)
+	// Use display mode for column-embedded widgets, add validation engine if needed
+	validationEngine := engines.NewFormValidationEngine()
+	taskWidget := NewTaskWidget(cw.workflowManager, formattingEngine, validationEngine, task, DisplayMode)
 
 	// Set up task widget event handlers
 	taskWidget.SetOnSelectionChange(func(selected bool) {

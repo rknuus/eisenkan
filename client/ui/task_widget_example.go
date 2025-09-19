@@ -41,7 +41,8 @@ func ExampleTaskWidget() {
 	formattingEngine := engines.NewFormattingEngine()
 
 	// Create TaskWidget (with nil WorkflowManager for demo)
-	taskWidget := NewTaskWidget(nil, formattingEngine, taskData)
+	validationEngine := engines.NewFormValidationEngine()
+	taskWidget := NewTaskWidget(nil, formattingEngine, validationEngine, taskData, DisplayMode)
 
 	// Set up event handlers
 	taskWidget.SetOnTapped(func() {
@@ -100,7 +101,7 @@ func ExampleTaskWidget() {
 		UpdatedAt: time.Now(),
 	}
 
-	taskWidget2 := NewTaskWidget(nil, formattingEngine, taskData2)
+	taskWidget2 := NewTaskWidget(nil, formattingEngine, validationEngine, taskData2, DisplayMode)
 	taskWidget2.SetCompactMode(true)
 
 	// Layout the widgets

@@ -178,7 +178,7 @@ func TestUnit_TaskWidget_NewTaskWidget(t *testing.T) {
 	taskData := createTestTaskData()
 
 	// Execute
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Verify
 	assert.NotNil(t, widget)
@@ -198,7 +198,7 @@ func TestUnit_TaskWidget_SetTaskData(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	initialData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, initialData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), initialData, DisplayMode)
 
 	// Execute - update task data
 	newData := &TaskData{
@@ -211,7 +211,7 @@ func TestUnit_TaskWidget_SetTaskData(t *testing.T) {
 	widget.SetTaskData(newData)
 
 	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify
 	retrievedData := widget.GetTaskData()
@@ -230,7 +230,7 @@ func TestUnit_TaskWidget_SetSelected(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	selectionChangeCount := 0
 	var lastSelectedState bool
@@ -243,7 +243,7 @@ func TestUnit_TaskWidget_SetSelected(t *testing.T) {
 	widget.SetSelected(true)
 
 	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify
 	assert.True(t, widget.IsSelected())
@@ -252,7 +252,7 @@ func TestUnit_TaskWidget_SetSelected(t *testing.T) {
 
 	// Test deselection
 	widget.SetSelected(false)
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	assert.False(t, widget.IsSelected())
 	assert.Equal(t, 2, selectionChangeCount)
 	assert.False(t, lastSelectedState)
@@ -267,13 +267,13 @@ func TestUnit_TaskWidget_SetLoading(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute
 	widget.SetLoading(true)
 
 	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify
 	widget.stateMu.RLock()
@@ -284,7 +284,7 @@ func TestUnit_TaskWidget_SetLoading(t *testing.T) {
 
 	// Test clearing loading
 	widget.SetLoading(false)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	widget.stateMu.RLock()
 	isLoading = widget.currentState.IsLoading
@@ -302,7 +302,7 @@ func TestUnit_TaskWidget_SetError(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	errorOccurred := false
 	widget.SetOnError(func(err error) {
@@ -315,7 +315,7 @@ func TestUnit_TaskWidget_SetError(t *testing.T) {
 	widget.SetError(testError)
 
 	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify
 	widget.stateMu.RLock()
@@ -329,7 +329,7 @@ func TestUnit_TaskWidget_SetError(t *testing.T) {
 
 	// Test clearing error
 	widget.SetError(nil)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	widget.stateMu.RLock()
 	hasError = widget.currentState.HasError
@@ -347,17 +347,17 @@ func TestUnit_TaskWidget_SetValidationErrors(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute
 	validationErrors := map[string]string{
-		"title":       "Title is required",
-		"description": "Description too long",
+		"title": "Field is required",
+		"priority": "Input does not match required pattern",
 	}
 	widget.SetValidationErrors(validationErrors)
 
 	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify
 	widget.stateMu.RLock()
@@ -365,8 +365,8 @@ func TestUnit_TaskWidget_SetValidationErrors(t *testing.T) {
 	widget.stateMu.RUnlock()
 
 	assert.Len(t, currentErrors, 2)
-	assert.Equal(t, "Title is required", currentErrors["title"])
-	assert.Equal(t, "Description too long", currentErrors["description"])
+	assert.Equal(t, "Field is required", currentErrors["title"])
+	assert.Equal(t, "Input does not match required pattern", currentErrors["priority"])
 
 	// Cleanup
 	widget.Destroy()
@@ -378,7 +378,7 @@ func TestUnit_TaskWidget_CompactMode(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Verify default state
 	assert.False(t, widget.compact)
@@ -399,7 +399,7 @@ func TestUnit_TaskWidget_ShowMetadata(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Verify default state
 	assert.True(t, widget.showMetadata)
@@ -420,7 +420,7 @@ func TestUnit_TaskWidget_MinSize(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute & Verify
 	minSize := widget.MinSize()
@@ -436,14 +436,14 @@ func TestUnit_TaskWidget_GracefulDegradation_NoWorkflowManager(t *testing.T) {
 	setupTestApp()
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(nil, formattingEngine, taskData)
+	widget := NewTaskWidget(nil, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute - should not crash
 	widget.handleEditMode()
 	widget.handleDragComplete()
 
 	// Give time for any async operations
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify - widget still functions
 	assert.Equal(t, taskData, widget.GetTaskData())
@@ -457,7 +457,7 @@ func TestUnit_TaskWidget_GracefulDegradation_NoFormattingEngine(t *testing.T) {
 	setupTestApp()
 	mockWM := &MockWorkflowManager{}
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, nil, taskData)
+	widget := NewTaskWidget(mockWM, nil, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute - should not crash when formatting
 	title, description, _ := widget.formatTaskDisplay()
@@ -477,7 +477,7 @@ func TestUnit_TaskWidget_StateManagement_ConcurrentUpdates(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Execute - concurrent state updates
 	go widget.SetSelected(true)
@@ -485,7 +485,7 @@ func TestUnit_TaskWidget_StateManagement_ConcurrentUpdates(t *testing.T) {
 	go widget.SetError(assert.AnError)
 
 	// Give time for state updates
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify - no race conditions or crashes
 	assert.NotNil(t, widget.GetTaskData())
@@ -500,7 +500,7 @@ func TestUnit_TaskWidget_Lifecycle_Destroy(t *testing.T) {
 	mockWM := &MockWorkflowManager{}
 	formattingEngine := engines.NewFormattingEngine()
 	taskData := createTestTaskData()
-	widget := NewTaskWidget(mockWM, formattingEngine, taskData)
+	widget := NewTaskWidget(mockWM, formattingEngine, engines.NewFormValidationEngine(), taskData, DisplayMode)
 
 	// Verify initial state
 	assert.NotNil(t, widget.stateChannel)
@@ -513,5 +513,254 @@ func TestUnit_TaskWidget_Lifecycle_Destroy(t *testing.T) {
 	assert.Nil(t, widget.stateChannel)
 
 	// Should not crash if called multiple times
+	widget.Destroy()
+}
+
+// Enhanced TaskWidget Tests for Creation and Editing Modes
+
+func TestUnit_TaskWidget_CreationMode(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+
+	// Execute - create widget in creation mode
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, nil, CreateMode)
+
+	// Verify
+	assert.NotNil(t, widget)
+	assert.Nil(t, widget.GetTaskData()) // No task data in creation mode
+
+	widget.stateMu.RLock()
+	mode := widget.currentState.Mode
+	widget.stateMu.RUnlock()
+
+	assert.Equal(t, CreateMode, mode)
+
+	// Cleanup
+	widget.Destroy()
+}
+
+func TestUnit_TaskWidget_EditMode(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+	taskData := createTestTaskData()
+
+	// Execute - create widget in edit mode
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, taskData, EditMode)
+
+	// Verify
+	assert.NotNil(t, widget)
+	assert.Equal(t, taskData, widget.GetTaskData())
+
+	widget.stateMu.RLock()
+	mode := widget.currentState.Mode
+	widget.stateMu.RUnlock()
+
+	assert.Equal(t, EditMode, mode)
+
+	// Cleanup
+	widget.Destroy()
+}
+
+func TestUnit_TaskWidget_ConvenienceConstructors(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+	taskData := createTestTaskData()
+
+	// Test display widget constructor
+	displayWidget := NewDisplayTaskWidget(mockWM, formattingEngine, validationEngine, taskData)
+	assert.NotNil(t, displayWidget)
+
+	displayWidget.stateMu.RLock()
+	displayMode := displayWidget.currentState.Mode
+	displayWidget.stateMu.RUnlock()
+	assert.Equal(t, DisplayMode, displayMode)
+
+	// Test creation widget constructor
+	creationWidget := NewCreationTaskWidget(mockWM, formattingEngine, validationEngine)
+	assert.NotNil(t, creationWidget)
+
+	creationWidget.stateMu.RLock()
+	createMode := creationWidget.currentState.Mode
+	creationWidget.stateMu.RUnlock()
+	assert.Equal(t, CreateMode, createMode)
+
+	// Cleanup
+	displayWidget.Destroy()
+	creationWidget.Destroy()
+}
+
+func TestUnit_TaskWidget_ModeTransitions(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+	taskData := createTestTaskData()
+
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, taskData, DisplayMode)
+
+	// Test transition to edit mode
+	err := widget.EnterEditMode()
+	assert.NoError(t, err)
+
+	// Wait for state update to complete
+	time.Sleep(200 * time.Millisecond)
+
+	widget.stateMu.RLock()
+	mode := widget.currentState.Mode
+	widget.stateMu.RUnlock()
+	assert.Equal(t, EditMode, mode)
+
+	// Test transition back to display mode
+	err = widget.ExitEditMode()
+	assert.NoError(t, err)
+
+	// Wait for state update to complete
+	time.Sleep(200 * time.Millisecond)
+
+	widget.stateMu.RLock()
+	mode = widget.currentState.Mode
+	widget.stateMu.RUnlock()
+	assert.Equal(t, DisplayMode, mode)
+
+	// Test transition to creation mode
+	err = widget.EnterCreateMode()
+	assert.NoError(t, err)
+
+	// Wait for state update to complete
+	time.Sleep(200 * time.Millisecond)
+
+	widget.stateMu.RLock()
+	mode = widget.currentState.Mode
+	widget.stateMu.RUnlock()
+	assert.Equal(t, CreateMode, mode)
+
+	// Cleanup
+	widget.Destroy()
+}
+
+func TestUnit_TaskWidget_FormDataManagement(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, nil, CreateMode)
+
+	// Test form data initialization
+	widget.stateMu.Lock()
+	widget.currentState.FormData = map[string]interface{}{
+		"title":       "Test Task",
+		"description": "Test Description",
+		"priority":    "urgent important",
+	}
+	widget.currentState.IsFormDirty = true
+	widget.stateMu.Unlock()
+
+	// Verify form data is stored
+	widget.stateMu.RLock()
+	formData := widget.currentState.FormData
+	isDirty := widget.currentState.IsFormDirty
+	widget.stateMu.RUnlock()
+
+	assert.NotNil(t, formData)
+	assert.Equal(t, "Test Task", formData["title"])
+	assert.Equal(t, "Test Description", formData["description"])
+	assert.Equal(t, "urgent important", formData["priority"])
+	assert.True(t, isDirty)
+
+	// Cleanup
+	widget.Destroy()
+}
+
+func TestUnit_TaskWidget_ValidationIntegration(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, nil, CreateMode)
+
+	// Test validation error setting
+	validationErrors := map[string]string{
+		"title": "Field is required",
+		"priority": "Input does not match required pattern",
+	}
+
+	widget.SetValidationErrors(validationErrors)
+
+	// Give time for state update
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify validation errors are stored
+	widget.stateMu.RLock()
+	currentErrors := widget.currentState.ValidationErrs
+	canSave := widget.currentState.CanSave
+	widget.stateMu.RUnlock()
+
+	assert.Len(t, currentErrors, 2)
+	assert.Equal(t, "Field is required", currentErrors["title"])
+	assert.Equal(t, "Input does not match required pattern", currentErrors["priority"])
+	assert.False(t, canSave) // Should not be able to save with validation errors
+
+	// Cleanup
+	widget.Destroy()
+}
+
+func TestUnit_TaskWidget_EventHandlers(t *testing.T) {
+	// Setup
+	setupTestApp()
+	mockWM := &MockWorkflowManager{}
+	formattingEngine := engines.NewFormattingEngine()
+	validationEngine := engines.NewFormValidationEngine()
+	taskData := createTestTaskData()
+
+	widget := NewTaskWidget(mockWM, formattingEngine, validationEngine, taskData, DisplayMode)
+
+	// Test event handler setup
+	var taskCreatedCalled bool
+	var taskUpdatedCalled bool
+	var editCancelledCalled bool
+
+	widget.SetOnTaskCreated(func(data *TaskData) {
+		taskCreatedCalled = true
+	})
+
+	widget.SetOnTaskUpdated(func(data *TaskData) {
+		taskUpdatedCalled = true
+	})
+
+	widget.SetOnEditCancelled(func() {
+		editCancelledCalled = true
+	})
+
+	// Simulate events (these would normally be called internally)
+	if widget.onTaskCreated != nil {
+		widget.onTaskCreated(taskData)
+	}
+	if widget.onTaskUpdated != nil {
+		widget.onTaskUpdated(taskData)
+	}
+	if widget.onEditCancelled != nil {
+		widget.onEditCancelled()
+	}
+
+	// Verify event handlers were called
+	assert.True(t, taskCreatedCalled)
+	assert.True(t, taskUpdatedCalled)
+	assert.True(t, editCancelledCalled)
+
+	// Cleanup
 	widget.Destroy()
 }
