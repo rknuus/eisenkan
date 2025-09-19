@@ -268,14 +268,8 @@ func TestUnit_ColumnWidget_RemoveTask(t *testing.T) {
 		assert.Equal(t, "task-1", taskID)
 	})
 
-	// Give time for initial state update
-	time.Sleep(50 * time.Millisecond)
-
-	// Execute
+	// Execute - state should be updated synchronously now
 	widget.RemoveTask("task-1")
-
-	// Give time for state update
-	time.Sleep(50 * time.Millisecond)
 
 	// Verify
 	remainingTasks := widget.GetTasks()

@@ -333,12 +333,18 @@ func (cw *ColumnWidget) Destroy() {
 
 // updateState sends a new state to the state channel for processing
 func (cw *ColumnWidget) updateState(newState *ColumnState) {
+	// Always update current state immediately for synchronous access
+	cw.stateMu.Lock()
+	cw.currentState = newState
+	cw.stateMu.Unlock()
+
+	// Also send to channel for UI updates (non-blocking)
 	select {
 	case cw.stateChannel <- newState:
 	case <-cw.ctx.Done():
 		return
 	default:
-		// Channel full, skip update to prevent blocking
+		// Channel full, skip channel update but state is already updated above
 	}
 }
 
@@ -376,9 +382,8 @@ func (cw *ColumnWidget) handleStateUpdates() {
 				return
 			}
 
-			cw.stateMu.Lock()
-			cw.currentState = newState
-			cw.stateMu.Unlock()
+			// State is already updated in updateState function
+			// Just handle UI updates here
 
 			// Update WIP limit check
 			cw.checkWIPLimit()
@@ -436,7 +441,6 @@ func (cw *ColumnWidget) createTaskWidget(task *TaskData) {
 // recreateTaskWidgets recreates all task widgets for current task collection
 func (cw *ColumnWidget) recreateTaskWidgets() {
 	cw.stateMu.Lock()
-	defer cw.stateMu.Unlock()
 
 	// Destroy existing widgets
 	for _, widget := range cw.currentState.TaskWidgets {
@@ -444,8 +448,14 @@ func (cw *ColumnWidget) recreateTaskWidgets() {
 	}
 	cw.currentState.TaskWidgets = make(map[string]*TaskWidget)
 
-	// Create new widgets
-	for _, task := range cw.currentState.Tasks {
+	// Get copy of tasks to avoid holding lock during widget creation
+	tasks := make([]*TaskData, len(cw.currentState.Tasks))
+	copy(tasks, cw.currentState.Tasks)
+
+	cw.stateMu.Unlock()
+
+	// Create new widgets without holding the lock
+	for _, task := range tasks {
 		cw.createTaskWidget(task)
 	}
 }
