@@ -1,5 +1,70 @@
 # Design Decision Records (DDR)
 
+## [2025-09-19] - CreateTaskDialog: Eisenhower Matrix Dialog Architecture
+
+**Decision**: Implement CreateTaskDialog with custom Fyne dialog architecture, fixed grid layout, direct TaskWidget integration, deferred WorkflowManager coordination, centralized state management, and direct engine dependencies
+
+**Context**: CreateTaskDialog requires a modal interface for task creation within Eisenhower Matrix context, supporting task creation in "non-urgent non-important" quadrant, display of existing tasks in other quadrants, and drag-drop task organization with ownership transfer to ColumnWidget.
+
+**Options Considered**:
+
+### Design Decision 1: Dialog Architecture Pattern
+**Options**:
+A. **Custom Fyne Dialog with Embedded Container**: Extend fyne.Dialog with custom content container
+B. **Custom Widget implementing fyne.Widget Interface**: Standalone widget with Show() method
+C. **Composite Pattern with Dialog Wrapper**: EisenhowerMatrixWidget wrapped with DialogManager
+
+**Chosen**: Option A for framework compliance, modal behavior management, and straightforward Fyne integration
+
+### Design Decision 2: Eisenhower Matrix Layout Strategy
+**Options**:
+A. **Fixed Grid Layout with 4 Containers**: Use container.NewGridWithColumns(2) for 2x2 layout
+B. **Dynamic Layout with LayoutEngine Integration**: Delegate layout decisions to LayoutEngine
+C. **Custom Layout Manager**: Implement custom EisenhowerMatrixLayout
+
+**Chosen**: Option A for simplicity, predictable layout behavior, and clear quadrant separation
+
+### Design Decision 3: Task Widget Integration Pattern
+**Options**:
+A. **Direct TaskWidget Instantiation**: Create TaskWidget instances directly for each task
+B. **TaskWidget Factory Pattern**: Use factory for consistent TaskWidget configuration
+C. **Delegation Pattern with Widget Manager**: WidgetManager handles TaskWidget operations
+
+**Chosen**: Option A with ownership transfer constraint: when dialog closes, tasks in 3 Eisenhower quadrants transfer ownership to Todo ColumnWidget, enabling seamless integration with existing kanban workflow
+
+### Design Decision 4: Drag-Drop Coordination Strategy
+**Options**:
+A. **Direct DragDropEngine Integration**: Direct connection with manual WorkflowManager coordination
+B. **Drag-Drop Mediator Pattern**: DragDropMediator coordinates between engines
+C. **Event-Driven Drag-Drop System**: Event-based drag-drop coordination
+
+**Chosen**: Option A with deferred WorkflowManager pattern: DragDropEngine handles spatial mechanics immediately, WorkflowManager coordination deferred until dialog close for performance and batch operations
+
+**Consequences of Deferred WorkflowManager Integration**:
+- **Positive**: Immediate visual feedback, batch operations, simple rollback, offline capability
+- **Negative**: Temporary state management required, validation at close-time, deferred error handling
+- **Mitigation Strategies**: TaskMovementTracker utility, Command pattern for operations, WorkflowManager batch API, abstract DragDropCoordinator interface
+
+### Design Decision 5: State Management Approach
+**Options**:
+A. **Centralized State with Immutable Updates**: Single DialogState with state channels
+B. **Distributed State per Quadrant**: Independent quadrant state management
+C. **State Machine Pattern**: Formal state machine for dialog lifecycle
+
+**Chosen**: Option A for consistency with TaskWidget patterns, centralized coordination, and proven state management approach
+
+### Design Decision 6: Engine Integration Coordination
+**Options**:
+A. **Direct Engine Dependencies**: Accept engines as constructor parameters with direct calls
+B. **Engine Coordinator Pattern**: EngineCoordinator manages engine interactions
+C. **Service Locator Pattern**: Runtime engine discovery and binding
+
+**Chosen**: Option A for architectural compliance, straightforward testing, and minimal abstraction overhead
+
+**Rationale**: These decisions prioritize simplicity, performance, and architectural consistency while supporting the specific requirements of Eisenhower Matrix task creation with seamless ColumnWidget integration.
+
+**User Approval**: Approved 2025-01-23
+
 ## [2025-09-19] - TaskWidget Enhancement: Task Creation and Inline Editing Support
 
 **Decision**: Enhance TaskWidget with unified renderer approach supporting task creation and inline editing modes with FormValidationEngine integration
