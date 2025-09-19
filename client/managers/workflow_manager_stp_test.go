@@ -428,3 +428,394 @@ func TestSTP_WorkflowStateManagementStress(t *testing.T) {
 		t.Errorf("Expected %d unique workflows, got %d", numWorkflows-errorCount, uniqueWorkflows)
 	}
 }
+
+// STP Test Cases for WorkflowManager Extensions
+
+// STP Test Case DT-ENHANCED-001: Enhanced Task Status Management under Stress
+func TestSTP_DT_ENHANCED_001_StatusManagementStress(t *testing.T) {
+	validation := engines.NewFormValidationEngine()
+	formatting := engines.NewFormattingEngine()
+	dragDrop := engines.NewDragDropEngine()
+
+	// Test with failing backend
+	failingBackend := &failingMockTaskManagerAccess{simulateUnavailable: true}
+	wm := NewWorkflowManager(validation, formatting, dragDrop, failingBackend)
+
+	ctx := context.Background()
+
+	// Test status change with backend failures
+	response, err := wm.Task().ChangeTaskStatusWorkflow(ctx, "task-123", "completed")
+
+	// Should handle backend failure gracefully
+	if err == nil {
+		t.Error("Expected error due to backend unavailability")
+	}
+
+	if response != nil {
+		success, ok := response["success"].(bool)
+		if ok && success {
+			t.Error("Should not succeed when backend is unavailable")
+		}
+	}
+
+	// Test priority change with corrupted data
+	corruptedBackend := &failingMockTaskManagerAccess{simulateCorruption: true}
+	wmCorrupt := NewWorkflowManager(validation, formatting, dragDrop, corruptedBackend)
+
+	priorityResponse, err := wmCorrupt.Task().ChangeTaskPriorityWorkflow(ctx, "task-456", "urgent")
+
+	// Should handle corrupted backend gracefully
+	if priorityResponse != nil {
+		if workflowID, ok := priorityResponse["workflow_id"].(string); !ok || workflowID == "" {
+			t.Error("Should provide workflow tracking even with corrupted backend")
+		}
+	}
+
+	// Test archive workflow with timeout
+	timeoutBackend := &failingMockTaskManagerAccess{simulateTimeout: true}
+	wmTimeout := NewWorkflowManager(validation, formatting, dragDrop, timeoutBackend)
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer cancel()
+
+	_, err = wmTimeout.Task().ArchiveTaskWorkflow(timeoutCtx, "task-789", map[string]any{"cascade": "orphan"})
+
+	// Should handle timeout gracefully
+	if err == nil {
+		t.Error("Expected timeout error")
+	}
+}
+
+// STP Test Case DT-BATCH-001: Batch Operations under Resource Exhaustion and Partial Failures
+func TestSTP_DT_BATCH_001_BatchOperationsStress(t *testing.T) {
+	validation := engines.NewFormValidationEngine()
+	formatting := engines.NewFormattingEngine()
+	dragDrop := engines.NewDragDropEngine()
+	backend := &mockTaskManagerAccess{}
+
+	wm := NewWorkflowManager(validation, formatting, dragDrop, backend)
+	ctx := context.Background()
+
+	// Test batch size limit enforcement
+	largeBatch := make([]string, 101)
+	for i := 0; i < 101; i++ {
+		largeBatch[i] = fmt.Sprintf("task-%d", i)
+	}
+
+	response, err := wm.Batch().BatchStatusUpdateWorkflow(ctx, largeBatch, "completed")
+
+	// Should reject large batch without crashing
+	if response == nil {
+		t.Error("Should return response even for rejected batch")
+	}
+
+	if response != nil {
+		success, ok := response["success"].(bool)
+		if !ok {
+			t.Error("Response should contain success field")
+		}
+		if success {
+			t.Error("Large batch should not succeed")
+		}
+
+		errorMsg, ok := response["error"].(string)
+		if !ok || !strings.Contains(errorMsg, "limit") {
+			t.Error("Should return error message about size limit")
+		}
+	}
+
+	// Test batch operations with mixed valid/invalid task IDs
+	mixedBatch := []string{"valid-task-1", "", "valid-task-2", "invalid-task-3"}
+	batchResponse, err := wm.Batch().BatchPriorityUpdateWorkflow(ctx, mixedBatch, "high")
+
+	// Should handle mixed batch gracefully
+	if batchResponse == nil && err != nil {
+		t.Error("Should handle mixed batch without complete failure")
+	}
+
+	if batchResponse != nil {
+		if workflowID, ok := batchResponse["workflow_id"].(string); !ok || workflowID == "" {
+			t.Error("Should provide workflow tracking for batch operations")
+		}
+
+		// Should report per-task results
+		if results, ok := batchResponse["results"].([]map[string]any); ok {
+			if len(results) != len(mixedBatch) {
+				t.Errorf("Should return result for each task in batch")
+			}
+		}
+	}
+
+	// Test concurrent batch operations
+	done := make(chan bool, 3)
+	errors := make(chan error, 3)
+
+	taskIDs := []string{"concurrent-1", "concurrent-2", "concurrent-3"}
+
+	for i := 0; i < 3; i++ {
+		go func(batchNum int) {
+			_, err := wm.Batch().BatchArchiveWorkflow(ctx, taskIDs, map[string]any{
+				"cascade": fmt.Sprintf("batch-%d", batchNum),
+			})
+			if err != nil {
+				errors <- err
+			}
+			done <- true
+		}(i)
+	}
+
+	// Wait for all concurrent batch operations
+	completedOps := 0
+	errorCount := 0
+	for completedOps < 3 {
+		select {
+		case <-done:
+			completedOps++
+		case err := <-errors:
+			errorCount++
+			t.Logf("Concurrent batch operation error (expected under stress): %v", err)
+		case <-time.After(5 * time.Second):
+			t.Fatal("Concurrent batch operations timed out")
+		}
+	}
+
+	t.Logf("Completed %d concurrent batch operations with %d errors", completedOps, errorCount)
+}
+
+// STP Test Case DT-SEARCH-001: Advanced Search under Performance and Validation Stress
+func TestSTP_DT_SEARCH_001_SearchOperationsStress(t *testing.T) {
+	validation := engines.NewFormValidationEngine()
+	formatting := engines.NewFormattingEngine()
+	dragDrop := engines.NewDragDropEngine()
+
+	// Test with corrupted backend
+	corruptedBackend := &failingMockTaskManagerAccess{simulateCorruption: true}
+	wm := NewWorkflowManager(validation, formatting, dragDrop, corruptedBackend)
+
+	ctx := context.Background()
+
+	// Test search with invalid queries
+	invalidQueries := []string{
+		"", // Empty query
+		string(make([]byte, 10000)), // Extremely long query
+		"query\x00with\x00nulls", // Query with null bytes
+		"query with special chars: <script>alert('xss')</script>", // Potential XSS
+	}
+
+	for i, query := range invalidQueries {
+		filters := map[string]any{"status": "active"}
+		response, err := wm.Search().SearchTasksWorkflow(ctx, query, filters)
+
+		// Should handle invalid queries gracefully
+		if response == nil && err != nil {
+			t.Logf("Query %d handled gracefully: %v", i, err)
+		} else if response != nil {
+			// Verify workflow tracking
+			if workflowID, ok := response["workflow_id"].(string); !ok || workflowID == "" {
+				t.Errorf("Query %d should provide workflow tracking", i)
+			}
+		}
+	}
+
+	// Test filter application with corrupted filter data
+	corruptedFilters := []map[string]any{
+		{"invalid_field": make(chan int)}, // Non-serializable data
+		{"status": nil}, // Nil values
+		{}, // Empty filters
+		{"nested": map[string]any{"deep": map[string]any{"very": "deep"}}}, // Deep nesting
+	}
+
+	for i, filters := range corruptedFilters {
+		context := map[string]any{"board": "test"}
+		response, err := wm.Search().ApplyFiltersWorkflow(ctx, filters, context)
+
+		// Should handle corrupted filters gracefully
+		if response == nil && err != nil {
+			t.Logf("Filter %d handled gracefully: %v", i, err)
+		} else if response != nil {
+			// Verify filter status is reported
+			if filterStatus, ok := response["filter_status"].(map[string]any); !ok {
+				t.Errorf("Filter %d should provide filter status", i)
+			} else {
+				if _, ok := filterStatus["valid"]; !ok {
+					t.Errorf("Filter %d should report validity status", i)
+				}
+			}
+		}
+	}
+
+	// Test concurrent search operations
+	done := make(chan bool, 5)
+	errors := make(chan error, 5)
+
+	for i := 0; i < 5; i++ {
+		go func(searchNum int) {
+			query := fmt.Sprintf("concurrent search %d", searchNum)
+			filters := map[string]any{"priority": "high", "search_id": searchNum}
+			_, err := wm.Search().SearchTasksWorkflow(ctx, query, filters)
+			if err != nil {
+				errors <- err
+			}
+			done <- true
+		}(i)
+	}
+
+	// Wait for concurrent searches
+	completedSearches := 0
+	errorCount := 0
+	for completedSearches < 5 {
+		select {
+		case <-done:
+			completedSearches++
+		case err := <-errors:
+			errorCount++
+			t.Logf("Concurrent search error (expected under stress): %v", err)
+		case <-time.After(5 * time.Second):
+			t.Fatal("Concurrent searches timed out")
+		}
+	}
+
+	t.Logf("Completed %d concurrent searches with %d errors", completedSearches, errorCount)
+}
+
+// STP Test Case DT-SUBTASK-001: Subtask Management under Hierarchy Corruption and Circular Dependencies
+func TestSTP_DT_SUBTASK_001_SubtaskHierarchyStress(t *testing.T) {
+	validation := engines.NewFormValidationEngine()
+	formatting := engines.NewFormattingEngine()
+	dragDrop := engines.NewDragDropEngine()
+	backend := &mockTaskManagerAccess{}
+
+	wm := NewWorkflowManager(validation, formatting, dragDrop, backend)
+	ctx := context.Background()
+
+	// Test subtask creation with invalid parent-child relationships
+	invalidRelationships := []struct {
+		parentID  string
+		childSpec map[string]any
+	}{
+		{"", map[string]any{"description": "orphan subtask"}}, // Empty parent
+		{"parent-123", map[string]any{}}, // Empty child spec
+		{"parent-123", map[string]any{"description": nil}}, // Nil description
+		{"parent-123", map[string]any{"description": make([]byte, 10000)}}, // Oversized data
+	}
+
+	for i, rel := range invalidRelationships {
+		response, err := wm.Subtask().CreateSubtaskRelationshipWorkflow(ctx, rel.parentID, rel.childSpec)
+
+		// Should handle invalid relationships gracefully
+		if response == nil && err != nil {
+			t.Logf("Invalid relationship %d handled gracefully: %v", i, err)
+		} else if response != nil {
+			// Verify workflow tracking even for invalid relationships
+			if workflowID, ok := response["workflow_id"].(string); !ok || workflowID == "" {
+				t.Errorf("Invalid relationship %d should provide workflow tracking", i)
+			}
+		}
+	}
+
+	// Test subtask completion with corrupted cascade options
+	corruptedCascades := []map[string]any{
+		{"circular_reference": "self"}, // Circular reference
+		{"invalid_option": make(chan int)}, // Non-serializable data
+		{"deep_nesting": map[string]any{"level1": map[string]any{"level2": "deep"}}}, // Deep nesting
+		{}, // Empty cascade options
+	}
+
+	for i, cascade := range corruptedCascades {
+		response, err := wm.Subtask().ProcessSubtaskCompletionWorkflow(ctx, "subtask-123", cascade)
+
+		// Should handle corrupted cascade options gracefully
+		if response == nil && err != nil {
+			t.Logf("Corrupted cascade %d handled gracefully: %v", i, err)
+		} else if response != nil {
+			// Verify cascade results are reported
+			if cascadeResults, ok := response["cascade_results"].(map[string]any); !ok {
+				t.Errorf("Cascade %d should provide cascade results", i)
+			} else {
+				if _, ok := cascadeResults["processed"]; !ok {
+					t.Errorf("Cascade %d should report processing status", i)
+				}
+			}
+		}
+	}
+
+	// Test subtask movement with invalid position data
+	invalidPositions := []map[string]any{
+		{"index": -1}, // Negative index
+		{"index": "invalid"}, // Non-numeric index
+		{"position": make(chan int)}, // Non-serializable data
+		{}, // Empty position
+	}
+
+	for i, position := range invalidPositions {
+		response, err := wm.Subtask().MoveSubtaskWorkflow(ctx, "subtask-456", "new-parent-789", position)
+
+		// Should handle invalid positions gracefully
+		if response == nil && err != nil {
+			t.Logf("Invalid position %d handled gracefully: %v", i, err)
+		} else if response != nil {
+			// Verify movement data is reported
+			if movement, ok := response["movement"].(map[string]any); !ok {
+				t.Errorf("Position %d should provide movement data", i)
+			} else {
+				if _, ok := movement["moved"]; !ok {
+					t.Errorf("Position %d should report movement status", i)
+				}
+			}
+		}
+	}
+
+	// Test concurrent subtask operations with potential circular dependencies
+	done := make(chan bool, 4)
+	errors := make(chan error, 4)
+
+	// Simulate potential circular dependency scenario
+	go func() {
+		_, err := wm.Subtask().CreateSubtaskRelationshipWorkflow(ctx, "parent-A", map[string]any{"description": "child of A"})
+		if err != nil {
+			errors <- err
+		}
+		done <- true
+	}()
+
+	go func() {
+		_, err := wm.Subtask().CreateSubtaskRelationshipWorkflow(ctx, "parent-B", map[string]any{"description": "child of B"})
+		if err != nil {
+			errors <- err
+		}
+		done <- true
+	}()
+
+	go func() {
+		_, err := wm.Subtask().MoveSubtaskWorkflow(ctx, "child-A", "parent-B", map[string]any{"index": 0})
+		if err != nil {
+			errors <- err
+		}
+		done <- true
+	}()
+
+	go func() {
+		_, err := wm.Subtask().MoveSubtaskWorkflow(ctx, "child-B", "parent-A", map[string]any{"index": 0})
+		if err != nil {
+			errors <- err
+		}
+		done <- true
+	}()
+
+	// Wait for concurrent subtask operations
+	completedOps := 0
+	errorCount := 0
+	for completedOps < 4 {
+		select {
+		case <-done:
+			completedOps++
+		case err := <-errors:
+			errorCount++
+			t.Logf("Concurrent subtask operation error (expected under stress): %v", err)
+		case <-time.After(5 * time.Second):
+			t.Fatal("Concurrent subtask operations timed out")
+		}
+	}
+
+	t.Logf("Completed %d concurrent subtask operations with %d errors", completedOps, errorCount)
+}
