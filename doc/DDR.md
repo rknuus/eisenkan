@@ -1,5 +1,43 @@
 # Design Decision Records (DDR)
 
+## [2025-09-20] - BoardAccess: IBoard Facet Implementation Design
+
+**Decision**: Implement IBoard as single comprehensive interface with fail-fast error handling and direct service integration
+
+**Context**: BoardAccess Extension requires IBoard facet implementation to support board discovery, metadata management, lifecycle operations, and configuration management. Design must balance simplicity with functionality while integrating with VersioningUtility and RuleEngine services.
+
+**Options Considered**:
+
+### Design Decision 1: IBoard Facet Implementation Strategy
+**Options**:
+A. **Single Comprehensive Interface**: Implement IBoard as one large interface with all operations
+B. **Composed Sub-Interfaces**: Split IBoard into smaller interfaces and compose them
+C. **Hybrid Approach**: Keep IBoard as main interface but implement using internal sub-components
+
+**Chosen**: Option A - Single Comprehensive Interface for simple dependency injection and unified error handling
+
+### Design Decision 4: Error Handling Strategy
+**Options**:
+A. **Fail-Fast Approach**: Return errors immediately when any operation fails
+B. **Graceful Degradation**: Continue with reduced functionality when some operations fail
+C. **Retry with Circuit Breaker**: Retry failed operations with exponential backoff
+
+**Chosen**: Option A - Fail-Fast Approach with enhancement for directory structure checks to report all issues together rather than stopping at first failure
+
+### Design Decision 5: Integration with Existing Services
+**Options**:
+A. **Direct Integration**: BoardAccess directly calls VersioningUtility and RuleEngine
+B. **Adapter Pattern**: Create adapters for external service integration
+C. **Event-Based Integration**: Use events for communication with external services
+
+**Chosen**: Option A - Direct Integration (previously decided in architecture)
+
+**Rationale**: Single comprehensive interface provides simplicity for initial implementation. Fail-fast error handling ensures clear error semantics while directory validation enhancement provides better user experience by reporting multiple issues at once. Direct integration maintains consistency with existing service patterns.
+
+**User Approval**: Approved 2025-09-20
+
+---
+
 ## [2025-09-20] - RuleEngine: Board Configuration Validation Extension Design
 
 **Decision**: Extend RuleEngine with new `EvaluateBoardConfigurationChange` operation using dedicated event type and reusing existing rule evaluation infrastructure for board validation rules
