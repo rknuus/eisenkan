@@ -49,3 +49,31 @@ func TestBoardViewJourney_Smoke(t *testing.T) {
 		}
 	}
 }
+
+// BV-REQ-011..015: Drag-drop task movement happy path (scaffolded, skipped).
+func TestBoardViewJourney_DnD_HappyPath_Skipped(t *testing.T) {
+	t.Skip("pending real BoardView wiring and UI DnD")
+	repoRoot := t.TempDir()
+	fixture := filepath.Join("..", "fixtures", "board_eisenhower_populated")
+	if err := h.SeedRepoFromFixture(repoRoot, fixture); err != nil {
+		t.Fatalf("seed fixture: %v", err)
+	}
+	_, win, cleanup := h.NewDeterministicApp(repoRoot, fyne.NewSize(1024, 768))
+	defer cleanup()
+	_ = win
+}
+
+// BV-REQ-031..035: Validation integration blocks invalid drag-drop (skipped scaffold).
+func TestBoardViewJourney_DnD_InvalidBlocked_Skipped(t *testing.T) {
+	t.Skip("pending real BoardView wiring and validation engine")
+}
+
+// BV-REQ-019: WIP limits enforced with visual feedback (skipped scaffold).
+func TestBoardViewJourney_WIP_Enforcement_Skipped(t *testing.T) {
+	t.Skip("pending real BoardView wiring and WIP configuration")
+}
+
+// BV-REQ-036..040: Event callbacks for selection/move/state changes (skipped scaffold).
+func TestBoardViewJourney_EventCallbacks_Skipped(t *testing.T) {
+	t.Skip("pending real BoardView event wiring")
+}

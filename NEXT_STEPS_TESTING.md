@@ -110,6 +110,38 @@ Add capabilities to `client/ui/systemtest/harness/`:
 - Metrics: coverage of requirement groups, pass/fail per SRS cluster, timing histograms for perf budgets.
 
 ### Risks & Dependencies
+
+---
+
+### Progress
+- Implemented harness enablers: DnD (placeholder APIs), keyboard (placeholder), timing utilities, and basic fakes.
+- Added fixtures: `board_eisenhower_invalid` and `board_eisenhower_corrupt`.
+ - Scaffolded journeys: BoardSelectionView (browse/invalid/recent) and ApplicationRoot (startup/transition/back/shutdown) — currently skipped pending wiring.
+ - Scaffolded BoardView DnD happy-path test (skipped pending wiring).
+ - Scaffolded CreateTaskDialog journeys: creation flow and DnD organization (skipped pending wiring).
+ - Scaffolded performance under load journey (skipped pending wiring).
+ - Added harness recent-boards shim for BoardSelectionView tests.
+
+### Next Actions (P0)
+1. Scaffold BoardSelectionView journeys covering:
+   - Browse valid/invalid directories (BSV-REQ-001..006, 009) and error messaging.
+   - Recent boards list behavior (BSV-REQ-021..023).
+   - Basic selection activation via double-click/Enter (BSV-REQ-020..021).
+   - Temporarily mark as skipped where implementation is pending.
+2. Enhance BoardSelectionView recent journey to use recent store (still skipped). [Done]
+
+### P1 Progress
+- Completed: scaffolding BoardView validation/WIP/event callback tests (skipped pending wiring).
+- Completed: scaffolding BoardSelectionView search/filter/sort and CRUD tests (skipped pending wiring).
+- Started: wiring BoardSelectionView to un-skip first journey.
+
+### Next Actions (P1)
+1. Scaffold CreateTaskDialog tests for:
+2. Begin wiring BoardSelectionView minimal constructor, list, and recent provider; un-skip one journey.
+   - Lifecycle: open/with-data/close/cancel; cleanup (CTD-REQ-021..025).
+   - Error handling: validation/workflow/DnD failures (CTD-REQ-026..030).
+   - Integrations: DragDropEngine, FormValidationEngine, WorkflowManager (CTD-REQ-031..035).
+
 - UI DnD simulation limitations in `fyne/test` → mitigate with gesture helpers and deterministic waits.
 - Integration fakes drifting from real interfaces → pin to interfaces and add compile-time checks in tests.
 - Perf flakiness in CI → run timing with tolerances, isolate heavy tests under a dedicated build tag.
