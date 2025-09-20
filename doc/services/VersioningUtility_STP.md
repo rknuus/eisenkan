@@ -110,6 +110,22 @@ This STP emphasizes breaking the system through:
   - Binary file handling is appropriate
   - Concurrent requests maintain consistency
 
+**Test Case DT-API-005**: Repository and path validation with boundary violations
+- **Objective**: Test repository validation under extreme and malicious conditions
+- **Destructive Inputs**:
+  - **Invalid repository paths**: nil/empty paths, binary data paths, paths with control characters, non-existent directories, paths exceeding filesystem limits, read-only directories, paths pointing to files instead of directories
+  - **Corrupted repositories**: Missing .git directories, corrupted .git/config files, invalid repository references, truncated git objects, repositories with active lock files
+  - **Invalid path lists**: nil path arrays, paths with binary data, extremely long path lists (10,000+ entries), paths with invalid characters, paths with directory traversal attempts (../../../etc), absolute paths mixed with relative paths, paths pointing to non-existent parent directories
+  - **Filesystem boundary conditions**: Symbolic link cycles, paths to mounted filesystems, paths with special filesystem features (case sensitivity issues), paths with unicode normalization conflicts
+- **Expected**:
+  - Invalid repository paths return structured errors without crashes
+  - Corrupted repositories are detected and reported safely
+  - Path validation handles malformed input gracefully
+  - Directory traversal attempts are blocked
+  - Memory usage remains bounded for large path lists
+  - Unicode and special character handling is correct
+  - Repository state corruption is prevented
+
 ### 3.2 Resource Exhaustion and Performance Testing
 
 **Test Case DT-RESOURCE-001**: Memory Exhaustion
@@ -138,6 +154,21 @@ This STP emphasizes breaking the system through:
 - **Method**:
   - Fill disk
 - **Expected**: Structured error responses
+
+**Test Case DT-RESOURCE-004**: Repository Validation Performance Exhaustion
+- **Objective**: Test repository validation under extreme load
+- **Method**:
+  - Validate repositories with 100,000+ files in path lists
+  - Concurrent validation requests on same repository
+  - Validation on repositories with extremely deep directory structures (100+ levels)
+  - Validation with path lists containing symbolic link cycles
+  - Multiple validation requests with overlapping file/directory lists
+- **Expected**:
+  - Path list processing remains bounded in time and memory
+  - Concurrent validations don't corrupt each other
+  - Deep directory traversal is handled efficiently
+  - Symbolic link cycles are detected and handled safely
+  - Performance remains within 5-second requirement
 
 **Test Case DT-PERFORMANCE-001**: Performance Degradation Under Load
 - **Objective**: Validate 5-second performance requirement under stress
@@ -188,6 +219,20 @@ This STP emphasizes breaking the system through:
   - Invalid HEAD
 - **Expected**: Corruption detection, structured error reporting, no crashes
 
+**Test Case DT-ERROR-003**: Repository Validation Error Conditions
+- **Objective**: Test repository validation error handling and recovery
+- **Error Scenarios**:
+  - **Repository access errors**: Permission denied during validation, repository directory deleted during validation, filesystem unmounted during validation
+  - **Path validation errors**: Files/directories created or deleted during validation, permission changes during path checking, symbolic links modified during traversal
+  - **Concurrent modification errors**: Repository structure modified during validation, .git directory corruption during validation, file locks acquired during path checking
+  - **Resource constraint errors**: Out of memory during large path list processing, file handle exhaustion during deep directory traversal, disk I/O errors during validation
+- **Expected**:
+  - All error conditions return structured error information
+  - Partial validation results are handled appropriately
+  - No repository state corruption occurs
+  - Validation state is cleaned up after errors
+  - Recovery is possible without service restart
+
 ### 4.2 Concurrent Access Violations
 
 **Test Case DT-CONCURRENT-001**: Race Condition Testing
@@ -196,6 +241,9 @@ This STP emphasizes breaking the system through:
   - Concurrent repository operations
   - Simultaneous commits and history operations
   - Parallel initialization attempts
+  - Concurrent repository validation requests
+  - Simultaneous validation and commit operations
+  - Parallel validation requests on same repository with different path lists
 - **Expected**: No race conditions detected by Go race detector
 
 **Test Case DT-CONCURRENT-002**: Repository Lock Conflicts
@@ -204,6 +252,8 @@ This STP emphasizes breaking the system through:
   - Multiple processes accessing same repository
   - Operations during git maintenance
   - Lock file cleanup testing
+  - Repository validation during active commits
+  - Path validation while repository locks are held
 - **Expected**: Lock conflicts handled gracefully, operations retry or fail safely
 
 ## 5. Recovery and Degradation Testing
@@ -249,7 +299,8 @@ This STP emphasizes breaking the system through:
 
 ---
 
-**Document Version**: 1.1  
-**Created**: 2025-09-07  
-**Updated**: 2025-09-09  
+**Document Version**: 1.2
+**Created**: 2025-09-07
+**Updated**: 2025-09-20
+**Changes**: Extended with repository validation destructive testing
 **Status**: Accepted
