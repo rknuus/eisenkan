@@ -1,5 +1,54 @@
 # Design Decision Records (DDR)
 
+## [2025-09-20] - VersioningUtility: Repository Validation Extension Design
+
+**Decision**: Extend VersioningUtility with single combined repository validation operation using optional path lists and unified validation result structure
+
+**Context**: VersioningUtility requires extension to support board discovery operations for TaskManager, specifically repository validation and file/directory existence checking. The extension must maintain application-agnostic design while providing infrastructure for BoardAccess to validate board repository structures.
+
+**Options Considered**:
+
+### Design Decision 1: Validation Operation Granularity
+**Options**:
+A. **Separate Operations**: `ValidateRepository()` and `ValidateRequiredPaths()` as independent operations
+B. **Combined Operation**: Single `ValidateRepositoryAndPaths()` with optional path parameters
+C. **Hierarchical Operations**: Repository validation required before path validation
+
+**Chosen**: Option B - Combined Operation to reduce API surface area, eliminate redundant repository access, and simplify caller code while supporting both repository-only and repository-with-paths validation scenarios
+
+### Design Decision 2: Request Structure Design
+**Options**:
+A. **Separate Request Types**: `RepositoryValidationRequest` and `PathValidationRequest` structures
+B. **Unified Request Type**: Single request with optional file/directory lists
+C. **Polymorphic Request**: Interface-based request with multiple implementations
+
+**Chosen**: Option B - Unified Request Type with optional path lists to match the combined operation design, reducing complexity and API surface while maintaining type safety
+
+### Design Decision 3: Application-Specific Knowledge Separation
+**Options**:
+A. **Board-Aware Validation**: VersioningUtility knows board file requirements
+B. **Generic Path Validation**: Caller specifies required files/directories
+C. **Configuration-Driven**: External configuration defines validation rules
+
+**Chosen**: Option B - Generic Path Validation to maintain utility reusability and application-agnostic design, allowing BoardAccess to specify board-specific requirements while keeping VersioningUtility generic
+
+### Design Decision 4: Directory Creation Responsibility
+**Options**:
+A. **VersioningUtility Creates**: Extend utility with `EnsurePathsExist()` operation
+B. **Caller Creates**: ResourceAccess components handle directory creation
+C. **Hybrid Approach**: Optional creation parameter in validation requests
+
+**Chosen**: Option B - Caller Creates to maintain clear separation of concerns, avoid filesystem modification in validation operations, and leverage existing staging/commit capabilities for repository initialization
+
+**Rationale**:
+- Maintains utility layer principles and reusability
+- Simplifies API surface area with minimal operations
+- Preserves application-agnostic design for maximum reuse
+- Leverages existing repository initialization patterns
+- Supports both repository-only and file/directory validation use cases
+
+**User Approval**: Approved
+
 ## [2025-09-19] - BoardView: Component Architecture and Integration Pattern
 
 **Decision**: Implement BoardView using Widget Pattern with 4-Column Eisenhower Matrix Layout, Direct Engine Integration, Immutable State Management, and Task Ownership Transfer Pattern
