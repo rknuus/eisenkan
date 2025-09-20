@@ -6,7 +6,7 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the RuleEngine service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [RuleEngine_SRS.md](RuleEngine_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for Kanban rule evaluation including WIP limits for tasks and subtasks, workflow transitions, definition of ready/done, subtask workflow coupling, parent-child dependency validation, and age-based task management capabilities.
+Testing covers destructive API testing, requirements verification, error condition handling, performance degradation scenarios, and graceful degradation validation for Kanban rule evaluation including WIP limits for tasks and subtasks, workflow transitions, definition of ready/done, subtask workflow coupling, parent-child dependency validation, age-based task management capabilities, and board configuration validation rules.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
@@ -26,7 +26,7 @@ This STP emphasizes breaking the system through:
 - **Resource Exhaustion**: Memory limits, large rule sets, complex rule conditions, oversized board data
 - **Rule Logic Edge Cases**: WIP limit boundary conditions, invalid workflow transitions, malformed rule expressions
 - **Performance Degradation**: Large rule sets, complex evaluation scenarios, concurrent load, BoardAccess integration overhead
-- **Requirements Verification Tests**: Validate all EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-007 and REQ-RULETYPE-001 through REQ-RULETYPE-009 with negative cases
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-010 and REQ-RULETYPE-001 through REQ-RULETYPE-012 with negative cases
 - **Error Recovery Tests**: Test graceful degradation when BoardAccess fails, rule loading errors
 - **Concurrency Stress Testing**: Test race conditions and consistency under concurrent rule evaluation with shared board access
 
@@ -34,7 +34,7 @@ This STP emphasizes breaking the system through:
 
 ### 3.1 API Contract Violations
 
-**Test Case DT-API-001**: Rule Evaluation with Invalid Inputs
+**Test Case DT-API-001**: Task Rule Evaluation with Invalid Inputs
 - **Objective**: Test API contract violations for EvaluateTaskChange operation
 - **Destructive Inputs**:
   - nil TaskEvent context
@@ -69,6 +69,34 @@ This STP emphasizes breaking the system through:
   - Invalid subtask workflow coupling data is handled appropriately
   - Malformed hierarchical context is detected and rejected
 
+**Test Case DT-API-002**: Board Configuration Validation with Invalid Inputs
+- **Objective**: Test API contract violations for EvaluateBoardConfiguration operation
+- **Destructive Inputs**:
+  - nil BoardConfigurationEvent context
+  - BoardConfigurationEvent with missing required fields (event type, board configuration)
+  - BoardConfigurationEvent with invalid data types in configuration fields
+  - BoardConfigurationEvent with extremely large title/description strings (>10KB each)
+  - BoardConfigurationEvent with invalid unicode characters in title/description
+  - BoardConfigurationEvent with null/undefined configuration data
+  - BoardConfigurationEvent with malformed event type values
+  - BoardConfigurationEvent with circular reference structures
+  - BoardConfigurationEvent with deeply nested configuration objects
+  - BoardConfigurationEvent with invalid character encodings
+  - Empty BoardConfigurationEvent structures
+  - BoardConfigurationEvent with conflicting validation context
+- **Expected**:
+  - Service handles nil BoardConfigurationEvent gracefully without crashes
+  - Missing required fields are detected and return structured errors
+  - Invalid data types are validated and rejected with clear messages
+  - Large configuration inputs are handled appropriately without memory exhaustion
+  - Invalid unicode characters are detected and reported properly
+  - Malformed event types are rejected with detailed error information
+  - Circular references are detected and handled safely
+  - Deep nesting is limited and controlled appropriately
+  - Invalid character encodings are handled gracefully
+  - Empty events are validated and rejected with helpful messages
+  - Conflicting validation context is detected and reported
+
 ### 3.2 Rule Logic Edge Cases
 
 **Test Case DT-LOGIC-001**: Rule Condition and Configuration Edge Cases
@@ -96,6 +124,17 @@ This STP emphasizes breaking the system through:
   - BoardAccess returning malformed WIP count data
   - BoardAccess returning invalid task history data
   - BoardAccess integration failures during rule evaluation
+  - Board title validation rules with empty titles, whitespace-only titles
+  - Board title validation rules with titles exceeding 100 character limit
+  - Board title validation rules with disallowed special characters (!@#$%^&*()[]{}|\"'<>?)
+  - Board title validation rules with unicode control characters and emoji
+  - Board description validation rules with descriptions exceeding 500 character limit
+  - Board description validation rules with malformed unicode sequences
+  - Board configuration format validation with missing required fields
+  - Board configuration format validation with invalid nested structure
+  - Board configuration format validation with circular reference data
+  - Board validation rules with null/undefined configuration objects
+  - Board validation rules with conflicting validation requirements
 - **Expected**:
   - WIP limit edge cases are handled with appropriate error messages
   - Required field validation handles missing properties gracefully
@@ -104,6 +143,17 @@ This STP emphasizes breaking the system through:
   - Invalid rule configurations are rejected with detailed diagnostics
   - BoardAccess integration failures result in partial evaluation results
   - System continues operating despite individual rule evaluation failures
+  - Board title validation detects and rejects invalid titles with specific error messages
+  - Board title length limits are enforced consistently
+  - Disallowed characters in titles are detected and rejected appropriately
+  - Unicode handling in titles is correct and secure
+  - Board description length limits are enforced when descriptions are provided
+  - Malformed unicode sequences in descriptions are handled gracefully
+  - Missing required fields in board configuration are detected and reported
+  - Invalid nested structures are rejected with clear diagnostics
+  - Circular reference data is detected and handled safely
+  - Null/undefined configuration objects are validated and rejected
+  - Conflicting validation requirements are detected and resolved appropriately
 
 **Test Case DT-LOGIC-002**: Rule Priority and Conflict Resolution
 - **Objective**: Test rule evaluation when multiple rules conflict or have complex priorities
@@ -120,6 +170,37 @@ This STP emphasizes breaking the system through:
   - Invalid priority values are handled gracefully
   - Rule conflicts are detected and reported clearly
   - Dependency conflicts are resolved or reported appropriately
+
+**Test Case DT-LOGIC-004**: Board Configuration Rule Logic Edge Cases
+- **Objective**: Test board configuration validation rules under boundary conditions and complex scenarios
+- **Edge Case Scenarios**:
+  - Board title with exactly 100 characters (boundary condition)
+  - Board title with 101 characters (exceeds limit by 1)
+  - Board title with only whitespace characters of various types (spaces, tabs, newlines)
+  - Board title with mixed valid and invalid characters
+  - Board title starting/ending with special characters
+  - Board description with exactly 500 characters (boundary condition)
+  - Board description with 501 characters (exceeds limit by 1)
+  - Board description with only whitespace content
+  - Board description with mixed unicode character sets
+  - Board configuration with all optional fields missing
+  - Board configuration with partial field sets
+  - Board configuration with duplicate field definitions
+  - Board configuration validation rules with contradictory requirements
+  - Board configuration validation with circular rule dependencies
+  - Board configuration validation under concurrent modification scenarios
+- **Expected**:
+  - Boundary conditions at character limits are handled correctly
+  - Off-by-one limit violations are detected precisely
+  - Whitespace-only content is properly validated and rejected
+  - Mixed character validation produces specific error details
+  - Character position validation (start/end) works correctly
+  - Optional field handling follows specification requirements
+  - Partial field validation provides complete error reporting
+  - Duplicate field scenarios are detected and handled appropriately
+  - Contradictory rule requirements are identified and reported
+  - Circular dependencies are detected and resolved safely
+  - Concurrent validation maintains consistency and thread safety
 
 **Test Case DT-LOGIC-003**: Subtask Rule Evaluation Edge Cases
 - **Objective**: Test subtask-specific rule evaluation scenarios including workflow coupling and dependency validation
@@ -241,19 +322,22 @@ This STP emphasizes breaking the system through:
 - LoggingUtility service integration for testing
 
 ### 7.2 Success Criteria
-- **100% Requirements Coverage**: All EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-005 have corresponding destructive tests
+- **100% Requirements Coverage**: All EARS requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-010 have corresponding destructive tests
 - **Zero Critical Failures**: No crashes, memory leaks, or data corruption
 - **Race Detector Clean**: No race conditions detected under any scenario
 - **Performance Requirements Met**: 100 rules evaluated within 500ms requirement maintained under adverse conditions
 - **BoardAccess Integration**: All enriched context scenarios tested including WIP counts, task history, and board metadata
-- **Kanban Rule Types**: All rule categories (validation, workflow, automation, notification) tested with destructive scenarios
+- **Kanban Rule Types**: All rule categories (validation, workflow, automation, notification, board configuration) tested with destructive scenarios
 - **Graceful Error Handling**: All error conditions handled without service failures, including BoardAccess failures
 - **Complete Recovery**: Service recovers from all testable failure conditions including rule loading and board access errors
 - **Rule Evaluation Consistency**: Task change decisions remain consistent across all failure and recovery scenarios
+- **Board Configuration Validation**: All board title, description, and format validation rules tested with boundary conditions
+- **Board Validation Integration**: EvaluateBoardConfiguration operation handles all destructive scenarios gracefully
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1
 **Created**: 2025-09-12
-**Updated**: 2025-09-14
+**Updated**: 2025-09-20
+**Changes**: Extended with board configuration validation testing coverage
 **Status**: Accepted

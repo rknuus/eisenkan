@@ -9,14 +9,15 @@ This Software Requirements Specification defines the requirements for the RuleEn
 RuleEngine is responsible for:
 - Business rule evaluation for Kanban workflow management (WIP limits for tasks and subtasks, workflow transitions, definition of ready/done)
 - Task change validation against configurable business rules with comprehensive board context including subtask relationships
+- Board configuration validation including metadata rules and configuration format validation
 - Rule priority ordering and violation aggregation for complete violation reporting
 - Policy for a task to be archived/deleted while containing non-done subtasks
-- Support for extensible rule categories (validation, workflow, automation, notification, subtask management)
+- Support for extensible rule categories (validation, workflow, automation, notification, subtask management, board configuration)
 - Integration with BoardAccess for enriched rule evaluation context (WIP counts for tasks and subtasks, task history, column timestamps, hierarchical relationships)
 - Age-based task management rules and subtask dependency validation including parent-child workflow coupling
 
 ### 1.3 System Context
-RuleEngine operates in the Engines layer of the EisenKan architecture, accessing RulesAccess for rule definitions and BoardAccess for enriched board context. It provides stateless rule evaluation services to the Manager layer, supporting Kanban-specific business rules including WIP limits, workflow transitions, definition of ready/done criteria, and age-based task management.
+RuleEngine operates in the Engines layer of the EisenKan architecture, accessing RulesAccess for rule definitions and BoardAccess for enriched board context. It provides stateless rule evaluation services to the Manager layer, supporting Kanban-specific business rules including WIP limits, workflow transitions, definition of ready/done criteria, age-based task management, and board configuration validation.
 
 ## 2. Operations
 
@@ -33,7 +34,18 @@ The following operations define the required behavior for RuleEngine:
 5. Evaluate all applicable rules including subtask-specific rules sequentially and aggregate violations
 6. Return RuleEvaluationResult with allowed status and violation details
 
-#### OP-2: Close Engine Resources
+#### OP-2: Evaluate Board Configuration
+**Actors**: TaskManager
+**Trigger**: When board configuration validation is requested
+**Flow**:
+1. Receive BoardConfigurationEvent with board configuration data
+2. Fetch applicable board configuration rule set from RulesAccess
+3. Filter rules based on board configuration categories and enabled status
+4. Evaluate all applicable board configuration rules sequentially
+5. Aggregate violations for title, description, type, and format validation
+6. Return RuleEvaluationResult with allowed status and violation details
+
+#### OP-3: Close Engine Resources
 **Actors**: TaskManager
 **Trigger**: When shutting down RuleEngine
 **Flow**:
@@ -59,6 +71,12 @@ The following operations define the required behavior for RuleEngine:
 **REQ-RULEENGINE-006**: Depending on the policy, when the first subtask of a parent task moves from "todo" to "doing", the RuleEngine shall automatically trigger parent task workflow status change from "todo" to "doing" (if parent is currently in "todo") or reject the move.
 
 **REQ-RULEENGINE-007**: Depending on the policy, when evaluating parent task completion, the RuleEngine shall verify that all subtasks are in "done" status before allowing the parent task to move to "done".
+
+**REQ-RULEENGINE-008**: When a board configuration validation request is submitted with a BoardConfigurationEvent, the RuleEngine shall evaluate all applicable board configuration rules and return a RuleEvaluationResult indicating whether the configuration is valid.
+
+**REQ-RULEENGINE-009**: When evaluating board configuration rules, the RuleEngine shall validate board title is non-empty, within maximum length limits, and contains only valid characters.
+
+**REQ-RULEENGINE-010**: When evaluating board configuration rules, the RuleEngine shall validate board description is within maximum length limits when provided.
 
 ## 4. Quality Attributes
 
@@ -89,6 +107,7 @@ The following operations define the required behavior for RuleEngine:
 The RuleEngine service shall provide the following behavioral operations:
 
 - **EvaluateTaskChange**: Accept TaskEvent and board path, return RuleEvaluationResult with allowed status and violation details
+- **EvaluateBoardConfiguration**: Accept BoardConfigurationEvent, return RuleEvaluationResult with allowed status and violation details
 - **Close**: Release any resources held by the engine and perform cleanup
 
 ### 5.2 Data Contracts
@@ -101,6 +120,10 @@ The service shall work with these conceptual data entities:
 **RuleEvaluationResult**: Contains Allowed boolean and Violations array with detailed rule violation information.
 
 **RuleViolation**: Contains RuleID, Priority, Message, Category, and optional Details for specific violation context.
+
+**BoardConfigurationEvent**: Contains event type (board_create, board_update), board configuration data (title, description, type), and validation context.
+
+**BoardConfiguration**: Contains title, description, type, and additional configuration metadata for board validation.
 
 **EnrichedContext**: Contains TaskEvent, WIP counts, task history, subtasks, column tasks, column enter times, and board metadata for comprehensive rule evaluation.
 
@@ -149,11 +172,18 @@ All errors shall include:
 
 **REQ-RULETYPE-009**: The RuleEngine service shall support subtask hierarchy rules that enforce the 1-2 level constraint (subtasks cannot have children).
 
+**REQ-RULETYPE-010**: The RuleEngine service shall support board title validation rules that verify title is non-empty, within maximum length (100 characters), and contains only alphanumeric characters, spaces, and hyphens.
+
+**REQ-RULETYPE-011**: The RuleEngine service shall support board description validation rules that verify description is within maximum length (500 characters) when provided.
+
+**REQ-RULETYPE-012**: The RuleEngine service shall support board configuration format validation rules that verify required fields are present and configuration structure is valid.
+
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All functional requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-007 are met
-- Operation OP-1 is fully supported  
+- All functional requirements REQ-RULEENGINE-001 through REQ-RULEENGINE-010 are met
+- All board validation rule type requirements REQ-RULETYPE-010 through REQ-RULETYPE-012 are met
+- Operations OP-1 and OP-3 are fully supported
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
 - Rule evaluation produces consistent and deterministic results
@@ -173,7 +203,8 @@ All errors shall include:
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1
 **Created**: 2025-09-12
-**Updated**: 2025-09-14
+**Updated**: 2025-09-20
+**Changes**: Extended with board configuration validation capabilities
 **Status**: Accepted
