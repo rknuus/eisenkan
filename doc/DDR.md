@@ -4,6 +4,248 @@ This document tracks detailed design decisions for the EisenKan project, ordered
 
 ---
 
+## DDR-2025-09-20-002: Application Root Component Design
+
+**Date**: 2025-09-20
+**Component**: Application Root (Client UI)
+**Context**: Design main application controller for view management and navigation coordination
+
+### Decision
+Implement Application Root using **Simple State Manager Pattern** with **Event-Driven Navigation**, **Simple Error Dialogs**, and **Direct Fyne Integration**
+
+**Selected Combination**:
+- **View Management**: Option A - Simple State Manager Pattern
+- **Navigation**: Option 2 - Event-Driven Navigation
+- **Error Handling**: Option 1 - Simple Error Dialogs
+- **Window Lifecycle**: Option 1 - Direct Fyne Integration
+
+### Options Considered
+
+**Option A: Simple State Manager Pattern**
+- **Architecture**: Single ApplicationRoot struct with simple state management
+- **View Management**: Direct view swapping with manual cleanup
+- **State Tracking**: CurrentView enum with basic transition validation
+- **Structure**:
+  ```go
+  type ApplicationRoot struct {
+      app                fyne.App
+      window             fyne.Window
+      currentView        ViewType
+      boardSelectionView BoardSelectionView
+      boardView          BoardView
+      mutex              sync.RWMutex
+  }
+  ```
+- **Pros**: Simple implementation, direct control, minimal overhead
+- **Cons**: Manual state management, no formal transition validation
+
+**Option B: State Machine Pattern**
+- **Architecture**: Formal state machine with defined states and transitions
+- **View Management**: State-driven view transitions with validation
+- **State Tracking**: Formal State interface with transition guards
+- **Structure**:
+  ```go
+  type ApplicationRoot struct {
+      app         fyne.App
+      window      fyne.Window
+      stateMachine *ViewStateMachine
+      views       map[ViewType]View
+      mutex       sync.RWMutex
+  }
+
+  type ViewStateMachine struct {
+      currentState  ViewState
+      transitions   map[ViewState][]ViewState
+      guards       map[Transition]TransitionGuard
+  }
+  ```
+- **Pros**: Formal transition validation, extensible, clear state contracts
+- **Cons**: More complex implementation, potential over-engineering
+
+**Option C: View Manager with Lifecycle**
+- **Architecture**: Dedicated ViewManager for view lifecycle coordination
+- **View Management**: Structured view lifecycle (Initialize → Show → Hide → Cleanup)
+- **State Tracking**: ViewManager handles state with lifecycle hooks
+- **Structure**:
+  ```go
+  type ApplicationRoot struct {
+      app         fyne.App
+      window      fyne.Window
+      viewManager *ViewManager
+      mutex       sync.RWMutex
+  }
+
+  type ViewManager struct {
+      views        map[ViewType]ManagedView
+      currentView  ViewType
+      lifecycle    ViewLifecycle
+  }
+
+  type ManagedView interface {
+      Initialize() error
+      Show() error
+      Hide() error
+      Cleanup() error
+      GetContent() fyne.CanvasObject
+  }
+  ```
+- **Pros**: Clean lifecycle management, structured view interface, extensible
+- **Cons**: Moderate complexity, requires view adapter pattern
+
+### Navigation Coordination Options
+
+**Navigation Option 1: Direct Callback Registration**
+- **Pattern**: Views register callbacks directly with ApplicationRoot
+- **Implementation**: ApplicationRoot provides callback registration methods
+- **Example**:
+  ```go
+  func (ar *ApplicationRoot) RegisterBoardSelectionCallback(callback func(string)) {
+      ar.boardSelectionView.SetBoardSelectedCallback(callback)
+  }
+  ```
+- **Pros**: Simple, direct coupling, minimal overhead
+- **Cons**: Tight coupling between ApplicationRoot and view implementations
+
+**Navigation Option 2: Event-Driven Navigation**
+- **Pattern**: Views publish navigation events, ApplicationRoot subscribes
+- **Implementation**: Simple event dispatcher for navigation events
+- **Example**:
+  ```go
+  type NavigationEvent struct {
+      Type        NavigationType
+      Payload     interface{}
+      SourceView  ViewType
+  }
+  ```
+- **Pros**: Loose coupling, extensible event system, testable
+- **Cons**: Event system overhead, more complex debugging
+
+**Navigation Option 3: Command Pattern**
+- **Pattern**: Navigation requests as command objects
+- **Implementation**: NavigationCommand interface with specific command types
+- **Example**:
+  ```go
+  type NavigationCommand interface {
+      Execute(ar *ApplicationRoot) error
+  }
+
+  type ShowBoardCommand struct {
+      BoardPath string
+  }
+  ```
+- **Pros**: Formal navigation requests, undoable operations, structured
+- **Cons**: More complex implementation, potential over-engineering
+
+### Error Handling Options
+
+**Error Option 1: Simple Error Dialogs**
+- **Pattern**: Show error dialog and exit application on any error
+- **Implementation**: Single error dialog method with application exit
+- **Pros**: Simple implementation, matches SRS requirements (always exit)
+- **Cons**: No recovery options, abrupt user experience
+
+**Error Option 2: Graceful Degradation with Dialogs**
+- **Pattern**: Show error dialogs with graceful fallback to previous view
+- **Implementation**: Error context tracking with fallback navigation
+- **Pros**: Better user experience, recovery options
+- **Cons**: More complex implementation, conflicts with SRS exit requirements
+
+### Window Lifecycle Options
+
+**Window Option 1: Direct Fyne Integration**
+- **Pattern**: Direct Fyne App and Window management
+- **Implementation**: ApplicationRoot creates and manages Fyne objects directly
+- **Pros**: Simple, direct control, minimal abstraction
+- **Cons**: Tight coupling to Fyne framework
+
+**Window Option 2: Window Abstraction Layer**
+- **Pattern**: Abstract window operations behind interface
+- **Implementation**: WindowManager interface with Fyne implementation
+- **Pros**: Framework independence, testable window operations
+- **Cons**: Additional abstraction layer, potential over-engineering
+
+### Final Architecture Design
+
+**Core Structure**:
+```go
+type ApplicationRoot struct {
+    // Fyne Application Management
+    app    fyne.App
+    window fyne.Window
+
+    // View Management
+    currentView        ViewType
+    boardSelectionView BoardSelectionView
+    boardView          BoardView
+
+    // Event-Driven Navigation
+    eventDispatcher    *NavigationEventDispatcher
+
+    // Thread Safety
+    mutex              sync.RWMutex
+}
+
+type ViewType int
+const (
+    ViewTypeBoardSelection ViewType = iota
+    ViewTypeBoardView
+)
+
+// Event-Driven Navigation System
+type NavigationEvent struct {
+    Type        NavigationType
+    BoardPath   string
+    SourceView  ViewType
+}
+
+type NavigationType int
+const (
+    NavigateToBoard NavigationType = iota
+    NavigateBackToBoardSelection
+    ApplicationExit
+)
+
+type NavigationEventDispatcher struct {
+    subscribers map[NavigationType][]func(NavigationEvent)
+    mutex       sync.RWMutex
+}
+```
+
+**Key Operations**:
+1. **StartApplication()** - Initialize Fyne app, create window, show BoardSelectionView
+2. **ShowBoardSelectionView()** - Display board selection, register navigation callbacks
+3. **ShowBoardView(boardPath)** - Initialize BoardView with board, register callbacks
+4. **HandleNavigationEvent(event)** - Process navigation events through dispatcher
+5. **ShowErrorAndExit(error)** - Display error dialog and exit application
+6. **ShutdownApplication()** - Clean shutdown with proper view cleanup
+
+**Event-Driven Navigation Flow**:
+1. Views publish NavigationEvent objects instead of direct callbacks
+2. ApplicationRoot subscribes to navigation events
+3. Event dispatcher routes events to appropriate handlers
+4. Loose coupling between views and ApplicationRoot
+5. Similar pattern to BoardSelectionView board selection events
+
+**Error Handling Strategy**:
+- All errors result in error dialog display followed by application exit
+- No recovery mechanisms (as specified in SRS requirements)
+- Simple `ShowErrorAndExit(error)` method for consistent error handling
+- Clean resource cleanup before exit
+
+**Window Lifecycle Management**:
+- Direct Fyne App and Window creation and management
+- ApplicationRoot owns window lifecycle
+- Simple window configuration (title, size)
+- Standard Fyne application patterns
+
+### Rationale
+This design combines simple state management with event-driven navigation to provide loose coupling similar to the BoardSelectionView pattern. Simple error handling matches SRS requirements for application exit on errors. Direct Fyne integration provides straightforward framework usage without unnecessary abstraction. The architecture supports the two-view navigation requirements while maintaining extensibility for future views.
+
+### User Approval
+**Status**: Approved - User selected Option A + Option 2 + Option 1 + Option 1
+
+---
+
 ## DDR-2025-09-20-001: BoardSelectionView Component Design
 
 **Date**: 2025-09-20
