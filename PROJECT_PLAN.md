@@ -1,8 +1,6 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement BoardSelectionView - Depends on
-TaskManager + FormattingEngine
 - Implement BoardView - Depends on
 WorkflowManager + ColumnWidget + TaskWidget + FormValidationEngine
 - Implement SubtaskExpansionView - Depends on
