@@ -19,13 +19,6 @@ Following Service Lifecycle Process analysis for BoardSelectionView, several com
 
 ### Tasks
 
-1. **VersioningUtility Extension** - Repository Discovery & Validation
-   - Extend VersioningUtility with repository discovery methods
-   - Add git repository structure validation capabilities
-   - Add board-specific repository initialization methods
-   - *Dependencies*: None (leaf utility component)
-   - *Service Lifecycle*: Context → SRS → STP → Design → Construction → Testing → STR
-
 2. **RuleEngine Extension** - Board Validation Rules
    - Extend RuleEngine with board configuration validation rules
    - Add board operation constraint validation

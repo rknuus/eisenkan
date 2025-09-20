@@ -40,6 +40,22 @@ type RepositoryStatus struct {
 	HasConflicts   bool     // Indicates presence of merge conflicts
 }
 
+// RepositoryValidationRequest defines validation parameters
+type RepositoryValidationRequest struct {
+	DirectoryPath       string   // Path to directory to validate as repository
+	RequiredFiles       []string // Optional: files that must exist (empty for repository-only validation)
+	RequiredDirectories []string // Optional: directories that must exist (empty for repository-only validation)
+}
+
+// RepositoryValidationResult provides validation outcome
+type RepositoryValidationResult struct {
+	RepositoryValid  bool     // Repository validation success
+	ExistingPaths    []string // Files/directories that exist (empty if no paths specified)
+	MissingPaths     []string // Files/directories missing (empty if no paths specified)
+	ErrorMessage     string   // Human-readable error for failures
+	TechnicalDetails string   // Detailed error information for debugging
+}
+
 // InitializeRepositoryWithConfig initializes or opens a repository with git configuration
 func InitializeRepositoryWithConfig(path string, gitConfig *AuthorConfiguration) (Repository, error) {
 	logger := NewLoggingUtility()
@@ -98,6 +114,142 @@ func InitializeRepositoryWithConfig(path string, gitConfig *AuthorConfiguration)
 	return repo, nil
 }
 
+// ValidateRepositoryAndPaths validates a directory as a git repository and optionally checks file/directory existence
+func ValidateRepositoryAndPaths(request RepositoryValidationRequest) (*RepositoryValidationResult, error) {
+	logger := NewLoggingUtility()
+
+	logger.Log(Debug, "VersioningUtility", "Validating repository and paths", map[string]interface{}{
+		"directory_path":        request.DirectoryPath,
+		"required_files_count":  len(request.RequiredFiles),
+		"required_dirs_count":   len(request.RequiredDirectories),
+	})
+
+	// Validate input parameters
+	if strings.TrimSpace(request.DirectoryPath) == "" {
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Directory path cannot be empty",
+			TechnicalDetails: "RepositoryValidationRequest.DirectoryPath is empty or contains only whitespace",
+		}, nil
+	}
+
+	// Check if directory exists and is accessible
+	dirInfo, err := os.Stat(request.DirectoryPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &RepositoryValidationResult{
+				RepositoryValid:  false,
+				ErrorMessage:     "Directory does not exist",
+				TechnicalDetails: fmt.Sprintf("Directory path '%s' does not exist: %v", request.DirectoryPath, err),
+			}, nil
+		}
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Cannot access directory",
+			TechnicalDetails: fmt.Sprintf("Failed to access directory '%s': %v", request.DirectoryPath, err),
+		}, nil
+	}
+
+	// Verify it's actually a directory
+	if !dirInfo.IsDir() {
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Path points to file, not directory",
+			TechnicalDetails: fmt.Sprintf("Path '%s' points to a file, not a directory", request.DirectoryPath),
+		}, nil
+	}
+
+	// Check for .git directory
+	gitPath := filepath.Join(request.DirectoryPath, ".git")
+	gitInfo, err := os.Stat(gitPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &RepositoryValidationResult{
+				RepositoryValid:  false,
+				ErrorMessage:     "Directory is not a git repository",
+				TechnicalDetails: fmt.Sprintf("No .git directory found in '%s'", request.DirectoryPath),
+			}, nil
+		}
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Cannot access git repository structure",
+			TechnicalDetails: fmt.Sprintf("Failed to access .git directory in '%s': %v", request.DirectoryPath, err),
+		}, nil
+	}
+
+	if !gitInfo.IsDir() {
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Invalid git repository structure",
+			TechnicalDetails: fmt.Sprintf(".git in '%s' is not a directory", request.DirectoryPath),
+		}, nil
+	}
+
+	// Try to open the repository to verify it's valid
+	_, err = git.PlainOpen(request.DirectoryPath)
+	if err != nil {
+		return &RepositoryValidationResult{
+			RepositoryValid:  false,
+			ErrorMessage:     "Corrupted git repository",
+			TechnicalDetails: fmt.Sprintf("Failed to open git repository at '%s': %v", request.DirectoryPath, err),
+		}, nil
+	}
+
+	// Repository validation successful
+	result := &RepositoryValidationResult{
+		RepositoryValid:  true,
+		ExistingPaths:    make([]string, 0),
+		MissingPaths:     make([]string, 0),
+		ErrorMessage:     "",
+		TechnicalDetails: "",
+	}
+
+	// If no paths to validate, return successful repository validation
+	if len(request.RequiredFiles) == 0 && len(request.RequiredDirectories) == 0 {
+		logger.Log(Info, "VersioningUtility", "Repository validation successful", map[string]interface{}{
+			"directory_path": request.DirectoryPath,
+		})
+		return result, nil
+	}
+
+	// Validate required files
+	for _, filePath := range request.RequiredFiles {
+		if strings.TrimSpace(filePath) == "" {
+			continue // Skip empty file paths
+		}
+
+		fullPath := filepath.Join(request.DirectoryPath, filePath)
+		if _, err := os.Stat(fullPath); err == nil {
+			result.ExistingPaths = append(result.ExistingPaths, filePath)
+		} else {
+			result.MissingPaths = append(result.MissingPaths, filePath)
+		}
+	}
+
+	// Validate required directories
+	for _, dirPath := range request.RequiredDirectories {
+		if strings.TrimSpace(dirPath) == "" {
+			continue // Skip empty directory paths
+		}
+
+		fullPath := filepath.Join(request.DirectoryPath, dirPath)
+		if info, err := os.Stat(fullPath); err == nil && info.IsDir() {
+			result.ExistingPaths = append(result.ExistingPaths, dirPath)
+		} else {
+			result.MissingPaths = append(result.MissingPaths, dirPath)
+		}
+	}
+
+	logger.Log(Info, "VersioningUtility", "Repository and path validation completed", map[string]interface{}{
+		"directory_path":   request.DirectoryPath,
+		"repository_valid": result.RepositoryValid,
+		"existing_paths":   len(result.ExistingPaths),
+		"missing_paths":    len(result.MissingPaths),
+	})
+
+	return result, nil
+}
+
 // Repository provides version control operations for a specific repository
 type Repository interface {
 	Path() string
@@ -113,6 +265,9 @@ type Repository interface {
 	GetFileHistoryStream(filePath string) <-chan CommitInfo
 
 	GetFileDifferences(hash1, hash2 string) ([]byte, error)
+
+	// Repository validation
+	ValidateRepositoryAndPaths(request RepositoryValidationRequest) (*RepositoryValidationResult, error)
 
 	Close() error
 }
@@ -564,6 +719,17 @@ func (r *repository) GetFileDifferences(hash1, hash2 string) ([]byte, error) {
 	}
 
 	return []byte(patch.String()), nil
+}
+
+// ValidateRepositoryAndPaths validates the repository and optionally checks file/directory existence
+func (r *repository) ValidateRepositoryAndPaths(request RepositoryValidationRequest) (*RepositoryValidationResult, error) {
+	// Use the repository's path if no directory path specified
+	if strings.TrimSpace(request.DirectoryPath) == "" {
+		request.DirectoryPath = r.path
+	}
+
+	// Delegate to the standalone function
+	return ValidateRepositoryAndPaths(request)
 }
 
 // Close releases resources associated with the repository handle
