@@ -1,7 +1,7 @@
 # EisenKan project plan
 ## Tasks
 ### UI Components (Use manager + engines directly)
-- Implement EntryView - Depends on
+- Implement BoardSelectionView - Depends on
 WorkflowManager + FormattingEngine
 - Implement SubtaskExpansionView - Depends on
 TaskWidget + LayoutEngine + BoardView (for column patterns)
@@ -10,5 +10,5 @@ CreateTaskDialog + ColumnWidget + TaskWidget + WorkflowManager +
 FormattingEngine
 
 ### Application
-- Implement Application Root
+- Implement Application Root - Depends on BoardSelectionView + BoardView
 - Implement service EisenKan Admin Client
