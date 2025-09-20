@@ -11,11 +11,12 @@ TaskManager is responsible for:
 - Business workflow orchestration for task and subtask lifecycle management
 - Task and subtask data validation and business rule enforcement
 - State transition control between Kanban workflow stages
+- Board discovery, validation, and lifecycle management operations
 - Coordination with Resource Access components for data persistence
 - Integration with business rule engines for validation logic
 
 ### 1.3 System Context
-TaskManager operates in the Manager layer of the EisenKan architecture, serving as the primary orchestrator for task-related business processes. It coordinates between Clients (providing task management interfaces) and lower layers including Engines (business logic) and ResourceAccess components (data persistence), while maintaining stateless workflow-focused responsibilities.
+TaskManager operates in the Manager layer of the EisenKan architecture, serving as the primary orchestrator for task-related business processes and board management operations. It coordinates between Clients (providing task management and board selection interfaces) and lower layers including Engines (business logic) and ResourceAccess components (data persistence), while maintaining stateless workflow-focused responsibilities.
 
 ## 2. Operations
 
@@ -96,6 +97,56 @@ The following operations define the required behavior for TaskManager:
 4. Delegate to git-based storage for atomic persistence with versioning
 5. Return context storage confirmation
 
+#### OP-9: Validate Board Directory
+**Actors**: BoardSelectionView Client
+**Trigger**: When user selects a directory for board discovery
+**Flow**:
+1. Receive board validation request with directory path
+2. Check directory exists and is accessible
+3. Validate directory contains git repository structure
+4. Verify presence of required board configuration files
+5. Return structured validation result with board status and error details
+
+#### OP-10: Get Board Metadata
+**Actors**: BoardSelectionView Client
+**Trigger**: When validated board metadata is needed for display
+**Flow**:
+1. Receive board metadata request with validated directory path
+2. Read board configuration files from directory
+3. Extract structured board information (title, description, type, dates)
+4. Parse and validate board schema compatibility
+5. Return structured board metadata for client formatting
+
+#### OP-11: Create Board
+**Actors**: BoardSelectionView Client
+**Trigger**: When user creates a new board
+**Flow**:
+1. Receive board creation request with directory path and board configuration
+2. Validate directory is empty or suitable for board initialization
+3. Initialize git repository structure in target directory
+4. Create required board configuration files with provided metadata
+5. Return board creation confirmation with structured board information
+
+#### OP-12: Update Board Metadata
+**Actors**: BoardSelectionView Client
+**Trigger**: When user modifies board properties
+**Flow**:
+1. Receive board update request with directory path and metadata changes
+2. Validate directory contains valid board structure
+3. Update board configuration files with new metadata
+4. Commit changes to board repository with version control
+5. Return update confirmation with refreshed board metadata
+
+#### OP-13: Delete Board
+**Actors**: BoardSelectionView Client
+**Trigger**: When user removes a board from the system
+**Flow**:
+1. Receive board deletion request with directory path
+2. Validate board exists and is accessible
+3. Perform board cleanup operations (archive or remove files)
+4. Handle git repository cleanup based on deletion policy
+5. Return deletion confirmation
+
 ## 3. Functional Requirements
 
 ### 3.1 Task Creation Requirements
@@ -160,6 +211,32 @@ The following operations define the required behavior for TaskManager:
 
 **REQ-TASKMANAGER-022**: When the persistency component rejects the context data, the TaskManager service shall return detailed error information.
 
+### 3.8 Board Discovery Requirements
+
+**REQ-TASKMANAGER-023**: When a board directory validation request is received, the TaskManager service shall verify directory accessibility, git repository structure, and required board configuration files.
+
+**REQ-TASKMANAGER-024**: When a directory does not contain a valid board structure, the TaskManager service shall return structured error information explaining the specific validation failures.
+
+**REQ-TASKMANAGER-025**: When board validation succeeds, the TaskManager service shall return confirmation with basic board structure information.
+
+### 3.9 Board Metadata Requirements
+
+**REQ-TASKMANAGER-026**: When a board metadata request is received for a validated directory, the TaskManager service shall extract and return structured board information including title, description, type, and modification dates.
+
+**REQ-TASKMANAGER-027**: When board configuration files are missing or corrupted, the TaskManager service shall return appropriate error information without failing catastrophically.
+
+**REQ-TASKMANAGER-028**: When board schema is incompatible with current version, the TaskManager service shall provide version compatibility information in the response.
+
+### 3.10 Board Lifecycle Requirements
+
+**REQ-TASKMANAGER-029**: When a board creation request is received, the TaskManager service shall validate the target directory and initialize a complete board structure with git repository and configuration files.
+
+**REQ-TASKMANAGER-030**: When a board update request is received, the TaskManager service shall validate the existing board structure before applying metadata changes.
+
+**REQ-TASKMANAGER-031**: When a board deletion request is received, the TaskManager service shall validate board existence and perform cleanup operations according to the configured deletion policy.
+
+**REQ-TASKMANAGER-032**: When board operations involve git repository changes, the TaskManager service shall ensure atomic operations and maintain repository integrity.
+
 ## 4. Quality Attributes
 
 ### 4.1 Performance Requirements
@@ -202,6 +279,13 @@ The TaskManager service shall provide the following behavioral operations:
 - **Load Context**: Accept context type specification and return UI context data including window states, user preferences, view configurations, and session data from git-based JSON storage
 - **Store Context**: Accept context data with type specification, validate content, and persist to git-based JSON storage with atomic operations and versioning
 
+#### Board Management Operations
+- **Validate Board Directory**: Accept directory path and return structured validation result indicating board structure validity and specific error details
+- **Get Board Metadata**: Accept validated directory path and return structured board information including title, description, type, and modification dates
+- **Create Board**: Accept directory path and board configuration, initialize complete board structure with git repository and configuration files
+- **Update Board Metadata**: Accept directory path and metadata changes, validate existing board structure, and apply updates with version control
+- **Delete Board**: Accept directory path, validate board existence, and perform cleanup operations according to deletion policy
+
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
 
@@ -221,10 +305,33 @@ The service shall work with these conceptual data entities:
 
 **Context Response Entity**: Contains context operation results, context data payload, version information from git storage, and operation confirmation details for client consumption.
 
+#### Board Management Data Contracts
+
+**Board Validation Request Entity**: Contains directory path for board validation and optional validation criteria.
+
+**Board Validation Response Entity**: Provides structured validation results including validity status, error details for failed validation, and basic board structure information for successful validation.
+
+**Board Metadata Request Entity**: Contains validated directory path and optional metadata fields to retrieve.
+
+**Board Metadata Response Entity**: Provides structured board information including title, description, board type, creation date, last modified date, and version compatibility information.
+
+**Board Creation Request Entity**: Contains target directory path, board configuration (title, description, type), and initialization options.
+
+**Board Creation Response Entity**: Provides board creation confirmation, structured board metadata, and git repository initialization details.
+
+**Board Update Request Entity**: Contains directory path, metadata changes, and update options for existing board modification.
+
+**Board Update Response Entity**: Provides update confirmation, refreshed board metadata, and version control information.
+
+**Board Deletion Request Entity**: Contains directory path and deletion policy options (archive, remove, etc.).
+
+**Board Deletion Response Entity**: Provides deletion confirmation and cleanup operation details.
+
 ### 5.3 Error Handling
 All errors shall include:
 - Business rule violation details
 - Workflow validation failure information
+- Board structure validation failure information
 - Technical error codes and messages
 - Suggested corrective actions for common failures
 
@@ -249,9 +356,10 @@ All errors shall include:
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All requirements REQ-TASKMANAGER-001 through REQ-TASKMANAGER-021 are met
-- All operations OP-1 through OP-6 are fully supported
+- All requirements REQ-TASKMANAGER-001 through REQ-TASKMANAGER-032 are met
+- All operations OP-1 through OP-13 are fully supported
 - Priority promotion functionality works correctly for Eisenhower matrix escalation
+- Board discovery, validation, and lifecycle operations work correctly
 - Workflow orchestration operates correctly with proper validation and error handling
 - Business rule enforcement functions correctly with RuleEngine integration
 
@@ -268,7 +376,7 @@ All errors shall include:
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1
 **Created**: 2025-09-13
-**Updated**: 2025-09-17
+**Updated**: 2025-09-20
 **Status**: Accepted
