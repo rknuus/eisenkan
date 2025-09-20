@@ -11,6 +11,19 @@
   - Create abstraction layer for cross-platform recent documents management
 - **Dependencies**: BoardSelectionView implementation completion
 
+## EisenKan settings
+- **Status**: TODO
+- **Priority**: Medium
+- **Description**: Support customization of EisenKan settings like the number of entries in the recent list etc.
+- **Current Status**: Not supported
+- **Required Work**:
+  - Storage of configuration in OS-specific application data directory
+  - Change recent board limit
+  - Change keyboard shortcuts
+  - Change board theme and styling
+  - Optionally enable screen reader and keyboard navigation
+- **Dependencies**: UX improvements
+
 ## Filter board repos
 - **Status**: TODO
 - **Priority**: Low
