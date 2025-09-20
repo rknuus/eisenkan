@@ -8,5 +8,4 @@ CreateTaskDialog + ColumnWidget + TaskWidget + WorkflowManager +
 FormattingEngine
 
 ### Application
-- Implement Application Root - Depends on BoardSelectionView + BoardView
 - Implement service EisenKan Admin Client
