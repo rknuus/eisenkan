@@ -5,7 +5,10 @@ package ui
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -43,20 +46,20 @@ const (
 
 // BoardSelectionState represents the current state of the BoardSelectionView
 type BoardSelectionState struct {
-	boards          []BoardInfo
-	filteredBoards  []BoardInfo
-	selectedBoard   *BoardInfo
-	searchFilter    string
-	sortOrder       SortOrder
-	isLoading       bool
-	lastError       error
+	boards         []BoardInfo
+	filteredBoards []BoardInfo
+	selectedBoard  *BoardInfo
+	searchFilter   string
+	sortOrder      SortOrder
+	isLoading      bool
+	lastError      error
 }
 
 // BoardCreationRequest represents board creation request for UI
 type BoardCreationRequest struct {
-	Path        string
-	Title       string
-	Description string
+	Path          string
+	Title         string
+	Description   string
 	InitializeGit bool
 }
 
@@ -97,9 +100,9 @@ type boardSelectionView struct {
 	stateChannel chan *BoardSelectionState
 
 	// Dependencies
-	taskManager   task_manager.TaskManager
-	formatter     *engines.FormattingEngine
-	layoutEngine  *engines.LayoutEngine
+	taskManager  task_manager.TaskManager
+	formatter    *engines.FormattingEngine
+	layoutEngine *engines.LayoutEngine
 
 	// Callbacks
 	onBoardSelected func(string)
@@ -140,6 +143,19 @@ func NewBoardSelectionView(
 	bsv.startStateManager()
 
 	return bsv
+}
+
+// runOnMain schedules fn on the Fyne main/UI thread when available.
+func runOnMain(fn func()) {
+	if app := fyne.CurrentApp(); app != nil {
+		if drv := app.Driver(); drv != nil {
+			if runner, ok := drv.(interface{ RunOnMain(func()) }); ok {
+				runner.RunOnMain(fn)
+				return
+			}
+		}
+	}
+	fn()
 }
 
 // initializeUI sets up the UI components
@@ -253,27 +269,22 @@ func (bsv *boardSelectionView) RefreshBoards() error {
 	bsv.currentState.lastError = nil
 	bsv.stateMu.Unlock()
 
-	// Update UI to show loading state
-	bsv.Refresh()
+	// Update UI to show loading state on main
+	runOnMain(func() { bsv.Refresh() })
 
 	go func() {
-		defer func() {
+		// Load in background
+		boards := bsv.loadRecentBoards()
+
+		// Apply updates on main/UI thread, avoid holding lock during Refresh
+		runOnMain(func() {
 			bsv.stateMu.Lock()
+			bsv.currentState.boards = boards
+			bsv.applyFiltersAndSort()
 			bsv.currentState.isLoading = false
 			bsv.stateMu.Unlock()
 			bsv.Refresh()
-		}()
-
-		// Get recent boards from OS mechanisms (simplified for now)
-		// In a real implementation, this would use OS-specific recent document APIs
-		boards := bsv.loadRecentBoards()
-
-		bsv.stateMu.Lock()
-		bsv.currentState.boards = boards
-		bsv.applyFiltersAndSort()
-		bsv.stateMu.Unlock()
-
-		bsv.Refresh()
+		})
 	}()
 
 	return nil
@@ -305,7 +316,7 @@ func (bsv *boardSelectionView) validateAndAddBoard(directoryPath string) {
 		// Use TaskManager to validate the board directory
 		response, err := bsv.taskManager.ValidateBoardDirectory(directoryPath)
 		if err != nil {
-			dialog.ShowError(fmt.Errorf("Failed to validate board directory: %w", err), bsv.window)
+			runOnMain(func() { dialog.ShowError(fmt.Errorf("failed to validate board directory: %w", err), bsv.window) })
 			return
 		}
 
@@ -313,14 +324,14 @@ func (bsv *boardSelectionView) validateAndAddBoard(directoryPath string) {
 			// Show detailed error message
 			issues := strings.Join(response.Issues, "\n")
 			errorMsg := fmt.Sprintf("Selected directory is not a valid board:\n\n%s", issues)
-			dialog.ShowInformation("Invalid Board Directory", errorMsg, bsv.window)
+			runOnMain(func() { dialog.ShowInformation("Invalid Board Directory", errorMsg, bsv.window) })
 			return
 		}
 
 		// Get board metadata
 		metadata, err := bsv.taskManager.GetBoardMetadata(directoryPath)
 		if err != nil {
-			dialog.ShowError(fmt.Errorf("Failed to get board metadata: %w", err), bsv.window)
+			runOnMain(func() { dialog.ShowError(fmt.Errorf("failed to get board metadata: %w", err), bsv.window) })
 			return
 		}
 
@@ -335,12 +346,14 @@ func (bsv *boardSelectionView) validateAndAddBoard(directoryPath string) {
 			Metadata:     metadata.Metadata,
 		}
 
-		// Add to recent boards and refresh
+		// Add to recent boards and refresh (safe to call; it schedules UI updates)
 		bsv.addToRecentBoards(boardInfo)
-		bsv.RefreshBoards()
+		_ = bsv.RefreshBoards()
 
 		// Show success message
-		dialog.ShowInformation("Board Added", fmt.Sprintf("Board '%s' has been added to your recent boards.", metadata.Title), bsv.window)
+		runOnMain(func() {
+			dialog.ShowInformation("Board Added", fmt.Sprintf("Board '%s' has been added to your recent boards.", metadata.Title), bsv.window)
+		})
 	}()
 }
 
@@ -404,27 +417,18 @@ func (bsv *boardSelectionView) GetSelectedBoard() (*BoardInfo, error) {
 // SetSelectedBoard sets the selected board by path
 func (bsv *boardSelectionView) SetSelectedBoard(boardPath string) error {
 	bsv.stateMu.Lock()
-	defer bsv.stateMu.Unlock()
-
+	var idx = -1
 	for i, board := range bsv.currentState.filteredBoards {
 		if board.Path == boardPath {
 			bsv.currentState.selectedBoard = &board
-			// Only call UI widget selection if we have a valid board list and not in test mode
-			// In test environments, avoid calling Fyne widget methods that can hang
-			if bsv.boardList != nil {
-				// Use go routine to avoid blocking in test environments
-				go func(index int) {
-					defer func() {
-						// Recover from any panics in UI operations during tests
-						if r := recover(); r != nil {
-							// Silently ignore UI operation failures in tests
-						}
-					}()
-					bsv.boardList.Select(index)
-				}(i)
-			}
-			return nil
+			idx = i
+			break
 		}
+	}
+	bsv.stateMu.Unlock()
+	if idx >= 0 && bsv.boardList != nil {
+		runOnMain(func() { bsv.boardList.Select(idx) })
+		return nil
 	}
 
 	return fmt.Errorf("board not found: %s", boardPath)
@@ -458,9 +462,9 @@ func (bsv *boardSelectionView) applyFiltersAndSort() {
 
 	for _, board := range bsv.currentState.boards {
 		if searchLower == "" ||
-		   strings.Contains(strings.ToLower(board.Title), searchLower) ||
-		   strings.Contains(strings.ToLower(board.Path), searchLower) ||
-		   strings.Contains(strings.ToLower(board.Description), searchLower) {
+			strings.Contains(strings.ToLower(board.Title), searchLower) ||
+			strings.Contains(strings.ToLower(board.Path), searchLower) ||
+			strings.Contains(strings.ToLower(board.Description), searchLower) {
 			filtered = append(filtered, board)
 		}
 	}
@@ -538,9 +542,9 @@ func (bsv *boardSelectionView) showCreateBoardDialog() {
 
 		// Create the board
 		request := BoardCreationRequest{
-			Path:        pathEntry.Text,
-			Title:       titleEntry.Text,
-			Description: descriptionEntry.Text,
+			Path:          pathEntry.Text,
+			Title:         titleEntry.Text,
+			Description:   descriptionEntry.Text,
 			InitializeGit: gitCheckbox.Checked,
 		}
 
@@ -593,33 +597,80 @@ func (bsv *boardSelectionView) formatRelativeTime(t time.Time) string {
 
 // loadRecentBoards loads recent boards from storage (simplified implementation)
 func (bsv *boardSelectionView) loadRecentBoards() []BoardInfo {
-	// In a real implementation, this would use OS-specific recent document APIs
-	// or TaskManager context storage. For now, return empty list.
-	return make([]BoardInfo, 0)
+	// Test seam: if EISENKAN_RECENT_STORE points to a JSON file containing
+	// an array of board paths, load from there for deterministic tests.
+	storePath := os.Getenv("EISENKAN_RECENT_STORE")
+	if storePath == "" {
+		return make([]BoardInfo, 0)
+	}
+	b, err := os.ReadFile(storePath)
+	if err != nil {
+		return make([]BoardInfo, 0)
+	}
+	var paths []string
+	if err := json.Unmarshal(b, &paths); err != nil {
+		return make([]BoardInfo, 0)
+	}
+	var boards []BoardInfo
+	now := time.Now()
+	for _, p := range paths {
+		title := filepath.Base(p)
+		if title == "." || title == "" || title == string(os.PathSeparator) {
+			title = p
+		}
+		boards = append(boards, BoardInfo{
+			Path:         p,
+			Title:        title,
+			Description:  "",
+			LastModified: now,
+			TaskCount:    0,
+			IsValid:      true,
+			Metadata:     map[string]string{},
+		})
+	}
+	return boards
 }
 
 // addToRecentBoards adds a board to the recent boards list
 func (bsv *boardSelectionView) addToRecentBoards(boardInfo BoardInfo) {
-	// In a real implementation, this would store to OS recent documents
-	// or TaskManager context storage. For now, just add to memory.
+	// Update in-memory list
 	bsv.stateMu.Lock()
-	defer bsv.stateMu.Unlock()
-
 	// Check if board already exists
+	found := false
 	for i, existing := range bsv.currentState.boards {
 		if existing.Path == boardInfo.Path {
-			// Update existing entry
 			bsv.currentState.boards[i] = boardInfo
-			return
+			found = true
+			break
 		}
 	}
-
-	// Add new board to beginning of list
-	bsv.currentState.boards = append([]BoardInfo{boardInfo}, bsv.currentState.boards...)
-
-	// Limit to 10 recent boards
+	if !found {
+		bsv.currentState.boards = append([]BoardInfo{boardInfo}, bsv.currentState.boards...)
+	}
 	if len(bsv.currentState.boards) > 10 {
 		bsv.currentState.boards = bsv.currentState.boards[:10]
+	}
+	bsv.stateMu.Unlock()
+
+	// Persist to test seam if configured
+	storePath := os.Getenv("EISENKAN_RECENT_STORE")
+	if storePath == "" {
+		return
+	}
+	// Build unique path list preserving order
+	paths := make([]string, 0, len(bsv.currentState.boards))
+	seen := map[string]struct{}{}
+	for _, b := range bsv.currentState.boards {
+		if _, ok := seen[b.Path]; ok {
+			continue
+		}
+		seen[b.Path] = struct{}{}
+		paths = append(paths, b.Path)
+	}
+	// Write JSON
+	_ = os.MkdirAll(filepath.Dir(storePath), 0o755)
+	if data, err := json.MarshalIndent(paths, "", "  "); err == nil {
+		_ = os.WriteFile(storePath, data, 0o644)
 	}
 }
 
@@ -631,10 +682,12 @@ func (bsv *boardSelectionView) startStateManager() {
 			case <-bsv.ctx.Done():
 				return
 			case newState := <-bsv.stateChannel:
-				bsv.stateMu.Lock()
-				bsv.currentState = newState
-				bsv.stateMu.Unlock()
-				bsv.Refresh()
+				runOnMain(func() {
+					bsv.stateMu.Lock()
+					bsv.currentState = newState
+					bsv.stateMu.Unlock()
+					bsv.Refresh()
+				})
 			}
 		}
 	}()

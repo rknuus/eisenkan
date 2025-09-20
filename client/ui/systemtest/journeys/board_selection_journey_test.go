@@ -9,7 +9,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
+	ui "github.com/rknuus/eisenkan/client/ui"
 	h "github.com/rknuus/eisenkan/client/ui/systemtest/harness"
+	tm "github.com/rknuus/eisenkan/internal/managers/task_manager"
 )
 
 // SRS refs: BSV-REQ-001..010, 021..025 (discovery, selection basics)
@@ -24,21 +26,25 @@ func TestBoardSelectionJourney_Smoke(t *testing.T) {
 		t.Fatalf("seed fixture: %v", err)
 	}
 
-	// Build deterministic app and a trivial selection container placeholder
+	// Prepare recent store pointing to two boards
+	store := h.NewRecentStore(repoRoot)
+	_ = store.Add(filepath.Join(repoRoot, "todo"))
+
+	// Build deterministic app
 	_, win, cleanup := h.NewDeterministicApp(repoRoot, fyne.NewSize(1024, 768))
 	defer cleanup()
 
-	list := widget.NewList(
-		func() int { return 1 },
-		func() fyne.CanvasObject { return widget.NewLabel("") },
-		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText("Eisenhower Board (Minimal)")
-		},
-	)
-	root := container.NewBorder(widget.NewLabel("Boards"), nil, nil, nil, list)
-	win.SetContent(root)
+	// Set env for recent store file
+	t.Setenv("EISENKAN_RECENT_STORE", store.Path)
 
-	// Minimal assertion: content set and non-nil
+	// Instantiate real BoardSelectionView widget minimally
+	// Note: pass nil for manager/engines; only list rendering is used
+	var manager tm.TaskManager = nil
+	bsv := ui.NewBoardSelectionView(manager, nil, nil, win)
+	// Trigger refresh to load recent boards
+	_ = bsv.RefreshBoards()
+	win.SetContent(bsv.(fyne.CanvasObject))
+
 	if win.Content() == nil {
 		t.Fatal("window content is nil")
 	}
