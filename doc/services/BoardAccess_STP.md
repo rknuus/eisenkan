@@ -6,18 +6,20 @@
 This Software Test Plan defines destructive testing strategies and comprehensive requirements verification for the BoardAccess service. The plan emphasizes API boundary testing, error condition validation, and complete traceability to all EARS requirements specified in [BoardAccess_SRS.md](BoardAccess_SRS.md).
 
 ### 1.2 Scope
-Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations and task data management capabilities including hierarchical task relationships, subtask support, priority promotion date functionality, and IConfiguration facet operations for board-level configuration management.
+Testing covers destructive API testing, requirements verification, error condition handling, resource exhaustion scenarios, and graceful degradation validation for all interface operations including task data management capabilities (hierarchical task relationships, subtask support, priority promotion date functionality) and IBoard facet operations for board discovery, metadata management, lifecycle operations, and configuration management.
 
 ### 1.3 Test Environment Requirements
 - Go 1.24.3+ runtime environment with race detector support
 - File system with permission control capabilities
 - VersioningUtility service for version control testing
+- RuleEngine service for board configuration validation testing
 - LoggingUtility service for operational logging
 - Memory and resource monitoring tools
 - Concurrent execution environment (goroutine support)
 - JSON file manipulation capabilities
-- Git repository with configuration test data for IConfiguration facet testing
+- Git repository with configuration test data and multiple board structures
 - Configuration data validation tools for JSON schema testing
+- Directory structure manipulation tools for board discovery testing
 
 ## 2. Test Strategy
 
@@ -26,9 +28,9 @@ This STP emphasizes breaking the system through:
 - **Resource Exhaustion**: Memory limits, file handle exhaustion, concurrent limits
 - **External Dependency Failures**: VersioningUtility failures, file system errors, permission issues
 - **Configuration Corruption**: Invalid JSON data, corrupted task files, malformed configuration data
-- **Requirements Verification Tests**: Validate all EARS requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-029 with negative cases
+- **Requirements Verification Tests**: Validate all EARS requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-049 with negative cases
 - **Priority Promotion Data Testing**: Invalid promotion dates, date format validation, promotion date queries
-- **IConfiguration Facet Testing**: Configuration data validation, git storage failures, JSON serialization errors
+- **IBoard Facet Testing**: Board discovery failures, metadata corruption, lifecycle operation failures, configuration validation errors
 - **Error Recovery Tests**: Test graceful degradation and recovery
 - **Concurrency Stress Testing**: Test race conditions and data corruption under stress
 
@@ -190,72 +192,100 @@ This STP emphasizes breaking the system through:
   - Concurrent query/update operations maintain consistency
   - All promotion date operations integrate properly with storage layer
 
-### 3.6 IConfiguration Facet Testing
+### 3.6 IBoard Facet Destructive Testing
 
-**Test Case DT-CONFIG-001**: Configuration Data Validation Failures
-- **Objective**: Test IConfiguration facet behavior with invalid configuration data inputs
+**Test Case DT-BOARD-001**: Board Discovery with Invalid Directory Structures
+- **Objective**: Test board discovery operations under extreme and invalid conditions
 - **Destructive Inputs**:
-  - Null configuration data objects
-  - Malformed JSON configuration data
-  - Configuration data exceeding size limits (>10MB)
-  - Configuration data with invalid type specifications
+  - Non-existent directory paths
+  - Directory paths with insufficient permissions
+  - Directory paths containing only files (no subdirectories)
+  - Directory paths with circular symbolic links
+  - Directory paths exceeding OS path length limits
+  - Directory paths with invalid unicode characters
+  - Directory paths with mixed valid/invalid board structures
+  - Directories with 10,000+ subdirectories to scan
+  - Directories with corrupted git repositories
+  - Directories with git repositories missing essential files
+  - Concurrent discovery operations on same directory structures
+  - Discovery operations on directories being modified during scan
+- **Expected Results**:
+  - Invalid paths rejected with appropriate error messages
+  - Permission failures handled gracefully
+  - Symbolic link loops detected and prevented
+  - Path length limits respected
+  - Unicode handling is correct
+  - Large directory scans complete or are limited appropriately
+  - Corrupted repositories identified and skipped
+  - Concurrent operations maintain consistency
+  - Partial results returned when some boards are invalid
+
+**Test Case DT-BOARD-002**: Board Metadata Extraction Under Corruption
+- **Objective**: Test metadata extraction with corrupted or extreme board data
+- **Destructive Inputs**:
+  - Board configurations with malformed JSON
+  - Board configurations exceeding size limits (>10MB)
+  - Board configurations with invalid metadata fields
+  - Board configurations with missing required fields
+  - Board data files with corruption (truncated, binary data)
+  - Board directories with missing configuration files
+  - Board directories with multiple conflicting configuration files
+  - Boards with task data containing 100,000+ tasks
+  - Boards with extremely nested task hierarchies
+  - Concurrent metadata extraction on same board
+  - Metadata extraction during board modification
+- **Expected Results**:
+  - Corrupted configurations detected and reported
+  - Large configurations handled or limited appropriately
+  - Missing required fields identified clearly
+  - File corruption detected with appropriate error reporting
+  - Missing files handled gracefully with defaults where appropriate
+  - Conflicting configurations resolved consistently
+  - Large task datasets processed efficiently or limited
+  - Concurrent operations maintain data consistency
+  - Extraction continues safely during board modifications
+
+**Test Case DT-BOARD-003**: Board Lifecycle Operations Under Extreme Conditions
+- **Objective**: Test board creation and deletion under stress and failure conditions
+- **Destructive Inputs**:
+  - Board creation in directories without write permissions
+  - Board creation with invalid configuration data from RuleEngine
+  - Board creation in non-existent parent directories
+  - Board creation with extremely long titles (>1000 characters)
+  - Board creation with invalid characters in configuration
+  - Board deletion of non-existent boards
+  - Board deletion with insufficient permissions
+  - Board deletion on busy file systems (high I/O load)
+  - Concurrent board operations (create/delete simultaneously)
+- **Expected Results**:
+  - Permission failures handled gracefully
+  - RuleEngine validation errors propagated correctly
+  - Invalid configurations rejected before file creation
+  - Path validation prevents invalid operations
+  - Non-existent board deletions handled idempotently
+  - Concurrent operations maintain atomicity
+
+**Test Case DT-BOARD-004**: Board Configuration Management Failures
+- **Objective**: Test board configuration operations with validation and storage failures
+- **Destructive Inputs**:
+  - Configuration data rejected by RuleEngine validation
+  - Configuration data exceeding RuleEngine size limits
+  - Configuration store operations during git repository conflicts
+  - Configuration load operations on corrupted git repositories
+  - Configuration operations during VersioningUtility failures
+  - Configuration data with invalid JSON serialization
+  - Concurrent configuration operations on same board
   - Configuration data with circular references
-  - Configuration data with non-serializable objects
-  - Configuration requests with invalid configuration types
-  - Configuration requests with malformed identifiers
-  - Configuration data with unsupported nested structures (>100 levels)
-  - Configuration data with extremely large arrays (>10,000 elements)
-  - Configuration data containing binary data or control characters
-  - Configuration data with invalid unicode sequences
+  - Configuration data incompatible with board schema versions
 - **Expected Results**:
-  - Invalid inputs rejected with detailed error messages
-  - No partial configuration data corruption
-  - Service remains operational after validation failures
-  - Error messages include validation failure specifics
-  - Large configuration data is handled or limited appropriately
-  - Memory usage remains bounded during validation
-
-**Test Case DT-CONFIG-002**: Git Storage Failure Scenarios
-- **Objective**: Test IConfiguration facet behavior when git storage operations fail
-- **Failure Scenarios**:
-  - Git repository unavailable during configuration operations
-  - Git storage running out of disk space
-  - Git commit failures during configuration store operations
-  - Git fetch failures during configuration load operations
-  - Repository corruption scenarios
-  - Concurrent git operations from multiple configuration requests
-  - Version control conflicts during configuration updates
-  - Git repository access permission failures
-  - Network failures during remote git operations
-  - Git repository lock conflicts during concurrent access
-- **Expected Results**:
-  - Storage failures handled gracefully without service crashes
-  - Appropriate error messages returned to callers
-  - Configuration operations fail atomically (no partial stores)
-  - Service continues functioning after storage recovery
-  - Concurrent operations maintain data integrity
-  - Version control consistency maintained across failures
-
-**Test Case DT-CONFIG-003**: Configuration Type and JSON Serialization Edge Cases
-- **Objective**: Test configuration operations with problematic data types and serialization scenarios
-- **Edge Case Scenarios**:
-  - Configuration data with unsupported data types
-  - JSON serialization failures during store operations
-  - JSON deserialization failures during load operations
-  - Configuration data with encoding issues (non-UTF8)
-  - Configuration data with deeply nested structures (>100 levels)
-  - Configuration data with extremely large arrays (>10,000 elements)
-  - Configuration data with special characters that break JSON parsing
-  - Configuration data with invalid configuration type specifications
-  - Concurrent serialization operations on same configuration data
-  - Configuration data with mixed data types in unexpected combinations
-- **Expected Results**:
-  - Serialization failures detected and reported clearly
-  - Default configuration data provided when load operations fail
-  - Service maintains stability during serialization errors
-  - Memory usage remains bounded during large data processing
-  - Invalid configuration types are validated and rejected
-  - Concurrent serialization operations maintain data consistency
+  - RuleEngine validation failures properly reported
+  - Size limit violations handled gracefully
+  - Git conflicts resolved or reported appropriately
+  - Repository corruption detected and handled
+  - VersioningUtility failures propagated correctly
+  - JSON serialization errors detected and reported
+  - Concurrent operations maintain data consistency
+  - Schema version incompatibilities detected and handled
 
 ### 3.2 Resource Exhaustion and Performance Testing
 
@@ -270,6 +300,9 @@ This STP emphasizes breaking the system through:
   - Individual tasks with 10KB+ descriptions
   - Parent tasks with 1,000+ subtasks each
   - Hierarchical queries across 10,000+ parent-child relationships
+  - Board discovery operations across 10,000+ directories
+  - Metadata extraction for 1,000+ boards simultaneously
+  - Board creation operations with large configuration data (>1MB)
   - Query operations across large datasets
   - Monitor memory usage, garbage collection, operation times and resource usage
   - Verify graceful degradation
@@ -308,7 +341,20 @@ This STP emphasizes breaking the system through:
   - Commit failures during task storage
   - Version history retrieval failures
   - Merge conflicts in task data files
+  - Git repository failures during board creation
+  - Version control conflicts during board configuration storage
+  - Repository corruption during board operations
 - **Expected**: Structured error responses, graceful degradation, data consistency maintained
+
+**Test Case DT-ERROR-004**: RuleEngine Integration Failures
+- **Objective**: Test resilience to board configuration validation failures
+- **Failure Scenarios**:
+  - RuleEngine service unavailable during board operations
+  - Configuration validation failures during board creation
+  - RuleEngine timeout during large configuration validation
+  - Invalid board configuration rejection scenarios
+  - RuleEngine service degradation during board operations
+- **Expected**: Validation failures properly reported, board operations fail safely, service remains operational
 
 **Test Case DT-ERROR-002**: File System Failures
 - **Objective**: Test resilience to file system issues
@@ -317,7 +363,12 @@ This STP emphasizes breaking the system through:
   - Directory permissions removed
   - JSON file corruption
   - Disk I/O errors during read/write
-- **Expected**: Error detection, structured error reporting, data recovery where possible
+  - Board configuration files deleted during operations
+  - Board directories removed during discovery operations
+  - File monitoring failures due to OS resource limits
+  - Disk space exhaustion during board creation
+  - Permission changes during active file monitoring
+- **Expected**: Error detection, structured error reporting, data recovery where possible, file monitoring gracefully handles failures
 
 **Test Case DT-ERROR-003**: JSON Format Corruption
 - **Objective**: Test handling of corrupted task data files
@@ -382,19 +433,21 @@ This STP emphasizes breaking the system through:
 - VersioningUtility service test doubles for failure simulation
 
 ### 6.2 Success Criteria
-- **100% Requirements Coverage**: Every EARS requirement REQ-BOARDACCESS-001 through REQ-BOARDACCESS-029 has corresponding destructive tests
+- **100% Requirements Coverage**: Every EARS requirement REQ-BOARDACCESS-001 through REQ-BOARDACCESS-049 has corresponding destructive tests
 - **Zero Critical Failures**: No crashes, memory leaks, or data corruption
 - **Race Detector Clean**: No race conditions detected under any scenario
 - **Graceful Error Handling**: All error conditions handled without caller failures
 - **Performance Under Stress**: 2-second performance requirement maintained under adverse conditions
 - **Priority Promotion Data Integrity**: All promotion date storage, retrieval, and query operations maintain data consistency
-- **IConfiguration Facet Integrity**: All configuration operations maintain data consistency and git storage integrity
+- **IBoard Facet Integrity**: All board operations maintain data consistency across discovery, metadata, lifecycle, and configuration management
+- **External Integration Stability**: All integrations with VersioningUtility and RuleEngine remain stable under failure conditions
 - **Complete Recovery**: Service recovers from all testable failure conditions
-- **Data Integrity**: Task data and configuration data remain consistent across all failure and recovery scenarios
+- **Data Integrity**: Task data, board data, and configuration data remain consistent across all failure and recovery scenarios
 
 ---
 
-**Document Version**: 1.0  
-**Created**: 2025-09-09  
-**Updated**: 2025-09-17
+**Document Version**: 1.1
+**Created**: 2025-09-09
+**Updated**: 2025-09-20
+**Changes**: Cover board management operations
 **Status**: Accepted

@@ -3,15 +3,17 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This Software Requirements Specification defines the requirements for the BoardAccess service, a ResourceAccess layer component that provides persistent storage and retrieval capabilities for EisenKan tasks. The service encapsulates task data management and provides atomic business operations for task manipulation.
+This Software Requirements Specification defines the requirements for the BoardAccess service, a ResourceAccess layer component that provides persistent storage and retrieval capabilities for EisenKan tasks and board management operations. The service encapsulates task data management, board lifecycle operations, and provides atomic business operations for task and board manipulation.
 
 ### 1.2 Scope
 BoardAccess is responsible for:
 - Persistent storage and retrieval of task data including hierarchical task relationships
-- Version control integration for task history and change tracking  
+- Version control integration for task history and change tracking
 - Atomic operations for task lifecycle management with subtask support
 - Data consistency and integrity enforcement for parent-child task relationships
-- Resource access abstraction for task-related operations
+- Board discovery, metadata extraction, and lifecycle management through IBoard facet
+- Board validation and configuration management with RuleEngine integration
+- Resource access abstraction for task-related and board-related operations
 
 ### 1.3 System Context
 BoardAccess operates in the ResourceAccess layer of the EisenKan architecture, sitting between the business logic layers (Engines/Managers) and the resource layer (file system via VersioningUtility). It provides a stable API for task data operations while encapsulating the volatility of data storage mechanisms.
@@ -65,7 +67,37 @@ The following operations define the required behavior for BoardAccess:
 2. Search task storage using criteria including hierarchical filters
 3. Return matching task identifiers and data with optional hierarchical information
 
-#### OP-6: Load Configuration (IConfiguration Facet)
+#### OP-6: Discover Boards (IBoard Facet)
+**Actors**: TaskManager
+**Trigger**: When the system needs to identify available boards in a directory structure
+**Flow**:
+1. Receive directory path for board discovery
+2. Validate directory existence and access permissions
+3. Check for git repository presence and validity
+4. Identify board configuration files and validate structure
+5. Return list of discovered board locations with basic metadata
+
+#### OP-7: Extract Board Metadata (IBoard Facet)
+**Actors**: TaskManager
+**Trigger**: When board information is needed for display or processing
+**Flow**:
+1. Receive board directory path
+2. Access board configuration and data files
+3. Extract metadata (title, description, creation date, last modified)
+4. Calculate board statistics (task counts, column distributions)
+5. Return comprehensive board metadata with caching optimization
+
+#### OP-8: Validate Board Structure (IBoard Facet)
+**Actors**: TaskManager
+**Trigger**: When board integrity needs verification
+**Flow**:
+1. Receive board directory path
+2. Validate git repository structure and accessibility
+3. Verify board configuration file presence and format
+4. Check data file integrity and schema version compatibility
+5. Return validation result with detailed error information if issues found
+
+#### OP-9: Load Board Configuration (IBoard Facet)
 **Actors**: TaskManager
 **Trigger**: When board-level configuration data needs to be retrieved
 **Flow**:
@@ -74,7 +106,7 @@ The following operations define the required behavior for BoardAccess:
 3. Parse and validate configuration data structure
 4. Return configuration data including board settings, column definitions, and workflow rules
 
-#### OP-7: Store Configuration (IConfiguration Facet)
+#### OP-10: Store Board Configuration (IBoard Facet)
 **Actors**: TaskManager
 **Trigger**: When board-level configuration data needs to be persisted
 **Flow**:
@@ -83,6 +115,26 @@ The following operations define the required behavior for BoardAccess:
 3. Serialize configuration to JSON format
 4. Store configuration through git-based storage with atomic operations and versioning
 5. Return configuration storage confirmation
+
+#### OP-11: Create Board (IBoard Facet)
+**Actors**: TaskManager
+**Trigger**: When a new board needs to be initialized
+**Flow**:
+1. Receive board creation parameters (path, title, description, initial configuration)
+2. Validate board configuration using RuleEngine
+3. Initialize git repository structure if needed
+4. Create board configuration and data files with proper schema
+5. Return board creation confirmation with generated board identifier
+
+#### OP-12: Delete Board (IBoard Facet)
+**Actors**: TaskManager
+**Trigger**: When a board needs to be removed from the system
+**Flow**:
+1. Receive board identifier and deletion parameters (trash vs permanent)
+2. Validate deletion prerequisites and dependencies
+3. Create backup of board data before deletion
+4. If OS supports trash and user chooses trash option, move board to trash; otherwise permanently delete board files and directory structure
+5. Return deletion confirmation with backup location and deletion method information
 
 ## 3. Functional Requirements
 
@@ -144,17 +196,57 @@ The following operations define the required behavior for BoardAccess:
 
 **REQ-BOARDACCESS-021**: When a parent task is archived or deleted, the BoardAccess service shall handle cascade operations for all its subtasks according to configured cascade policy (archive subtasks, delete subtasks, or promote subtasks to top-level).
 
-### 3.6 Configuration Management Requirements (IConfiguration Facet)
+### 3.6 Board Management Requirements (IBoard Facet)
 
-**REQ-BOARDACCESS-025**: When a configuration load request is received, the BoardAccess service shall retrieve configuration data from git-based JSON storage and return parsed configuration information.
+**REQ-BOARDACCESS-025**: When a board configuration load request is received, the BoardAccess service shall retrieve configuration data from git-based JSON storage and return parsed configuration information.
 
-**REQ-BOARDACCESS-026**: When configuration data is not found, the BoardAccess service shall return appropriate default configuration data without errors.
+**REQ-BOARDACCESS-026**: When board configuration data is not found, the BoardAccess service shall return appropriate default configuration data without errors.
 
-**REQ-BOARDACCESS-027**: When a configuration store request is received with valid data, the BoardAccess service shall serialize the configuration to JSON format and persist it through git-based storage with atomic operations.
+**REQ-BOARDACCESS-027**: When a board configuration store request is received with valid data, the BoardAccess service shall serialize the configuration to JSON format and persist it through git-based storage with atomic operations.
 
-**REQ-BOARDACCESS-028**: When configuration data validation fails, the BoardAccess service shall return detailed validation error information without persisting invalid data.
+**REQ-BOARDACCESS-028**: When board configuration data validation fails, the BoardAccess service shall return detailed validation error information without persisting invalid data.
 
-**REQ-BOARDACCESS-029**: When storing configuration data, the BoardAccess service shall ensure atomic operations and leverage git versioning for data integrity and rollback capabilities.
+**REQ-BOARDACCESS-029**: When storing board configuration data, the BoardAccess service shall ensure atomic operations and leverage git versioning for data integrity and rollback capabilities.
+
+**REQ-BOARDACCESS-030**: When a directory path is provided, the BoardAccess service shall validate the directory exists and is accessible for board operations.
+
+**REQ-BOARDACCESS-031**: When discovering boards, the BoardAccess service shall identify git repositories and verify their validity for board storage.
+
+**REQ-BOARDACCESS-032**: When a directory contains board configuration files, the BoardAccess service shall validate the configuration file format and structure.
+
+**REQ-BOARDACCESS-033**: When discovering boards in a directory, the BoardAccess service shall return a list of valid board locations with basic identification metadata.
+
+**REQ-BOARDACCESS-034**: When board discovery encounters invalid or corrupted board structures, the BoardAccess service shall continue processing other boards and report issues without failing completely.
+
+**REQ-BOARDACCESS-035**: When a board path is provided, the BoardAccess service shall extract and return board metadata including title, description, creation date, and last modified timestamp.
+
+**REQ-BOARDACCESS-036**: When extracting board statistics, the BoardAccess service shall calculate task counts, column distributions, and board activity metrics.
+
+**REQ-BOARDACCESS-037**: When board configuration data is accessed, the BoardAccess service shall extract and return board settings, column definitions, and workflow configurations.
+
+**REQ-BOARDACCESS-038**: When metadata extraction fails due to missing or corrupted files, the BoardAccess service shall return appropriate error information with recovery suggestions.
+
+**REQ-BOARDACCESS-039**: When validating board structure, the BoardAccess service shall verify git repository integrity and accessibility.
+
+**REQ-BOARDACCESS-040**: When validating boards, the BoardAccess service shall check configuration file presence, format validity, and schema version compatibility.
+
+**REQ-BOARDACCESS-041**: When validation identifies issues, the BoardAccess service shall provide detailed diagnostic information including specific problems and recommended fixes.
+
+**REQ-BOARDACCESS-042**: The BoardAccess service shall support validation of board data file integrity and consistency with configuration settings.
+
+**REQ-BOARDACCESS-043**: When creating a new board, the BoardAccess service shall validate the board configuration using the RuleEngine before initialization.
+
+**REQ-BOARDACCESS-044**: When creating a board, the BoardAccess service shall initialize the git repository structure and create proper board configuration and data files.
+
+**REQ-BOARDACCESS-045**: When deleting a board, the BoardAccess service shall create a backup of board data and remove files safely with confirmation.
+
+**REQ-BOARDACCESS-046**: When the operating system supports a trash/recycle bin, the BoardAccess service shall offer the user a choice between moving the board to trash (recoverable deletion) or permanent deletion, defaulting to trash for safety.
+
+**REQ-BOARDACCESS-047**: When board lifecycle operations fail, the BoardAccess service shall maintain data integrity and provide rollback capabilities where possible.
+
+**REQ-BOARDACCESS-048**: When performing git operations for board management, the BoardAccess service shall use the VersioningUtility service for all repository interactions.
+
+**REQ-BOARDACCESS-049**: When validating board configurations, the BoardAccess service shall use the RuleEngine service for all validation operations.
 
 ## 4. Quality Attributes
 
@@ -197,9 +289,15 @@ The BoardAccess service shall provide the following behavioral operations:
 - **Find Tasks**: Accept search criteria including parent task filters and priority promotion date filters and return matching tasks
 - **Get Task History**: Accept task identifier and return version history information
 
-#### IConfiguration Facet Operations
-- **Load Configuration**: Accept configuration type and identifier, return board-level configuration data including board settings, column definitions, and workflow rules from git-based JSON storage
-- **Store Configuration**: Accept configuration data with type specification, validate content, and persist to git-based JSON storage with atomic operations and versioning
+#### IBoard Facet Operations
+- **Discover Boards**: Accept directory path and return list of valid board locations with basic metadata
+- **Extract Board Metadata**: Accept board path and return comprehensive board information including statistics
+- **Validate Board Structure**: Accept board path and return validation results with detailed diagnostics
+- **Load Board Configuration**: Accept configuration type and identifier, return board-level configuration data including board settings, column definitions, and workflow rules from git-based JSON storage
+- **Store Board Configuration**: Accept configuration data with type specification, validate content, and persist to git-based JSON storage with atomic operations and versioning
+- **Create Board**: Accept board parameters and configuration, initialize board structure with confirmation
+- **Delete Board**: Accept board identifier and deletion parameters, create backup, and remove board to trash or permanently with confirmation
+- **Get Board Statistics**: Accept board path and return calculated metrics for task distribution and activity
 
 ### 5.2 Data Contracts
 The service shall work with these conceptual data entities:
@@ -212,13 +310,25 @@ The service shall work with these conceptual data entities:
 
 **Query Criteria**: Defines search parameters including priority filters, status constraints, tag selections, temporal range specifications, priority promotion date filters, parent task identifiers, and hierarchical level filters for task retrieval operations.
 
-#### IConfiguration Facet Data Contracts
+#### IBoard Facet Data Contracts
 
-**Configuration Request Entity**: Contains configuration type specification (board, columns, workflows, rules), optional configuration identifier, and operation metadata for configuration load/store operations.
+**Board Discovery Result Entity**: Contains discovered board paths, basic identification information, validation status, and git repository information for board location enumeration.
 
-**Configuration Data Entity**: Provides structured board-level configuration including board settings (name, description, ownership), column definitions (names, ordering, workflow mappings), workflow rules (transition constraints, validation rules), and visual settings (themes, layouts) in JSON-serializable format.
+**Board Metadata Entity**: Provides comprehensive board information including title, description, creation and modification timestamps, task statistics, column distributions, configuration settings, and version information.
 
-**Configuration Response Entity**: Contains configuration operation results, configuration data payload, version information from git storage, validation status, and operation confirmation details for service consumption.
+**Board Configuration Entity**: Contains board settings (title, description, ownership), column definitions (names, ordering, workflow mappings), workflow rules (transition constraints, validation rules), and schema version information.
+
+**Board Statistics Entity**: Provides calculated metrics including task counts by status, column distributions, activity levels, last modification dates, and board health indicators.
+
+**Board Validation Result Entity**: Contains validation status, detailed diagnostic information, identified issues with severity levels, recommended fixes, and structural integrity assessment.
+
+**Board Configuration Request Entity**: Contains configuration type specification (board, columns, workflows, rules), optional configuration identifier, and operation metadata for configuration load/store operations.
+
+**Board Configuration Data Entity**: Provides structured board-level configuration including board settings (name, description, ownership), column definitions (names, ordering, workflow mappings), workflow rules (transition constraints, validation rules), and visual settings (themes, layouts) in JSON-serializable format.
+
+**Board Configuration Response Entity**: Contains configuration operation results, configuration data payload, version information from git storage, validation status, and operation confirmation details for service consumption.
+
+**Board Deletion Request Entity**: Contains deletion parameters including board identifier, deletion method preference (trash/permanent), OS trash capability detection, user confirmation status, and backup requirements for safe board removal operations.
 
 ### 5.3 Error Handling
 All errors shall include:
@@ -248,9 +358,10 @@ All errors shall include:
 ## 7. Acceptance Criteria
 
 ### 7.1 Functional Acceptance
-- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-024 are met
-- All operations OP-1 through OP-5 are fully supported
+- All requirements REQ-BOARDACCESS-001 through REQ-BOARDACCESS-049 are met
+- All operations OP-1 through OP-12 are fully supported
 - Priority promotion date functionality is fully supported for storage, retrieval, and querying
+- Board management functionality through IBoard facet is fully operational including configuration management
 - Service operations complete within performance requirements
 - Error conditions are handled gracefully with appropriate messaging
 
@@ -261,11 +372,14 @@ All errors shall include:
 ### 7.3 Integration Acceptance
 - Service integrates successfully with VersioningUtility for storage operations
 - Service integrates successfully with LoggingUtility for operational visibility
+- Service integrates successfully with RuleEngine for board configuration validation
 - Service can be consumed by business logic layers (Engines/Managers) without coupling
+- IBoard facet supports TaskManager board operations (OP-9 to OP-13) from PROJECT_PLAN.md
 
 ---
 
-**Document Version**: 1.0  
-**Created**: 2025-09-07  
-**Updated**: 2025-09-17
+**Document Version**: 1.1
+**Created**: 2025-09-07
+**Updated**: 2025-09-20
+**Changes**: Moved IConfiguration to IBoard, added operations to support board management
 **Status**: Accepted
