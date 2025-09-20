@@ -1,5 +1,63 @@
 # Design Decision Records (DDR)
 
+## [2025-09-20] - RuleEngine: Board Configuration Validation Extension Design
+
+**Decision**: Extend RuleEngine with new `EvaluateBoardConfigurationChange` operation using dedicated event type and reusing existing rule evaluation infrastructure for board validation rules
+
+**Context**: RuleEngine requires extension to support board configuration validation operations for TaskManager board operations. The extension must maintain consistency with existing rule evaluation patterns while adding specialized validation for board metadata (title, description, format) without knowledge of directory structure.
+
+**Options Considered**:
+
+### Design Decision 1: Operation Integration Approach
+**Options**:
+A. **Unified Operation**: Extend existing `EvaluateTaskChange` with board configuration event types
+B. **Separate Operation**: Create dedicated `EvaluateBoardConfigurationChange` operation
+C. **Rule Category Extension**: Add board validation as new rule category within existing operation
+
+**Chosen**: Option B - Separate Operation (`EvaluateBoardConfigurationChange`) to maintain clear operation boundaries, provide type-safe event handling, and support distinct validation contexts while reusing rule evaluation infrastructure
+
+### Design Decision 2: Event Structure Design
+**Options**:
+A. **Reuse TaskEvent**: Extend TaskEvent with board configuration fields
+B. **New Event Type**: Create `BoardConfigurationEvent` with board-specific fields
+C. **Generic Event**: Use generic `ValidationEvent` for both task and board validation
+
+**Chosen**: Option B - New Event Type to provide type safety, clear separation of concerns, and dedicated validation context while avoiding pollution of task-focused data structures
+
+### Design Decision 3: Rule Evaluation Reuse Strategy
+**Options**:
+A. **Complete Duplication**: Separate board rule evaluation pipeline
+B. **Infrastructure Reuse**: Reuse `evaluateRules()`, `filterApplicableRules()` with board rules
+C. **Hybrid Approach**: Board-specific evaluation with shared violation aggregation
+
+**Chosen**: Option B - Infrastructure Reuse to leverage existing rule filtering, evaluation sequencing, violation aggregation, and priority sorting while maintaining consistency
+
+### Design Decision 4: Board Rule Category Integration
+**Options**:
+A. **New Rule Category**: Add "board_configuration" rule category
+B. **Existing Categories**: Use "validation" category with board-specific conditions
+C. **Separate Rule System**: Independent board rule definitions
+
+**Chosen**: Option A - New Rule Category to provide clear separation, specialized board validation logic, and distinct rule identification while integrating with existing rule infrastructure
+
+### Design Decision 5: Context Enrichment Approach
+**Options**:
+A. **No Context Enrichment**: Board validation uses event data only
+B. **Minimal Context**: Board metadata only from BoardAccess
+C. **Full Context Reuse**: Reuse EnrichedContext with board metadata
+
+**Chosen**: Option A - No Context Enrichment since board configuration validation operates on submitted data without requiring existing board state, avoiding unnecessary BoardAccess integration
+
+**Rationale**:
+- Maintains clear operation boundaries and type safety
+- Reuses proven rule evaluation infrastructure for consistency
+- Provides specialized board validation without task context pollution
+- Integrates seamlessly with existing rule category system
+- Avoids BoardAccess dependency for configuration validation
+- Supports future board validation rule expansion
+
+**User Approval**: Approved (with consistent naming: `EvaluateBoardConfigurationChange`)
+
 ## [2025-09-20] - VersioningUtility: Repository Validation Extension Design
 
 **Decision**: Extend VersioningUtility with single combined repository validation operation using optional path lists and unified validation result structure
