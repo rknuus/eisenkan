@@ -246,6 +246,74 @@ This design combines simple state management with event-driven navigation to pro
 
 ---
 
+## DDR-2025-09-20-003: System Testing Architecture
+
+**Date**: 2025-09-20
+**Component**: System Testing Suite (Client/UI)
+**Context**: Define the architecture and approach for UI system testing aligned with SRS and project constraints
+
+### Decision
+Adopt in‑process deterministic UI testing using Fyne’s test harness with repository‑level assertions as durable verification, organized into harness, fixtures, journeys, and DnD acceptance suites.
+
+### Options Considered
+
+**Option A: In‑process Fyne testing (chosen)**
+- Deterministic, fast feedback, operates within process.
+- Direct widget interactions via Fyne’s testing APIs; minimal external dependencies.
+
+**Option B: Full end‑to‑end (external app + UI driver)**
+- Launch built app and drive via GUI automation (e.g., robot frameworks).
+- Pros: High fidelity; Cons: Flaky, slower, infra heavy.
+
+**Option C: Pure headless state testing**
+- Exercise managers/engines without UI; verify only repository state.
+- Pros: Very fast; Cons: Misses UI behavior and integration.
+
+### Rationale
+In‑process tests provide the best balance of determinism, speed, and coverage for a desktop Fyne app. Repository assertions complement UI checks by verifying durable state transitions central to EisenKan’s workflow semantics. The suite structure (harness, fixtures, journeys, DnD) supports incremental evolution from smoke scaffolds to full behavior coverage.
+
+### Consequences
+- Requires careful handling of Fyne’s single‑app constraint (no parallel tests).
+- Harness needs utilities for gestures, waiting, and repo assertions.
+- Some platform behaviors (e.g., recent documents) must be shimmed.
+
+### User Approval
+Status: Pending
+
+---
+
+## DDR-2025-09-20-004: DnD Verification via Repo Evidence
+
+**Date**: 2025-09-20
+**Component**: DnD Acceptance Tests (Client/UI)
+**Context**: Validate drag‑and‑drop operations for tasks/subtasks across quadrants and sections
+
+### Decision
+Phase 1 uses repository‑level move/commit assertions to simulate DnD outcomes; Phase 2 upgrades to UI‑level drag with Fyne test APIs while retaining repo assertions as STR evidence.
+
+### Options Considered
+
+**Option A: Repo‑only simulation (initial)**
+- Shell `mv` + `git commit`; assert moves and order by filename prefix.
+
+**Option B: UI drag without repo checks**
+- Higher UI fidelity but no durable audit; relies on UI state only.
+
+**Option C: Hybrid (chosen final)**
+- UI drag interactions plus repo assertions to confirm persisted effects.
+
+### Rationale
+The hybrid model provides confidence in both UI behavior and persisted outcomes, aligning with acceptance and STR documentation. Repo simulation enables immediate smoke coverage while UI wiring matures.
+
+### Consequences
+- Requires gesture helpers and stable fixtures.
+- CI timing may need tolerance windows to avoid flakiness on drag feedback.
+
+### User Approval
+Status: Pending
+
+---
+
 ## DDR-2025-09-20-001: BoardSelectionView Component Design
 
 **Date**: 2025-09-20
