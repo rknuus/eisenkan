@@ -41,17 +41,38 @@ run: build ## Build and run the application
 .PHONY: test
 test: build ## Run fast unit tests only
 	@echo "Running unit tests for $(APP_NAME)..."
+ifeq ($(shell uname),Darwin)
+	CGO_LDFLAGS="$(CGO_LDFLAGS) -Wl,-no_warn_duplicate_libraries" go test -short -run "TestUnit_" ./...
+else
 	go test -short -run "TestUnit_" ./...
+endif
 
 .PHONY: test-integration
 test-integration: build ## Run unit and integration tests (medium speed)
 	@echo "Running unit and integration tests for $(APP_NAME)..."
+ifeq ($(shell uname),Darwin)
+	CGO_LDFLAGS="$(CGO_LDFLAGS) -Wl,-no_warn_duplicate_libraries" go test -short -run "Test(Unit_|Integration_)" ./...
+else
 	go test -short -run "Test(Unit_|Integration_)" ./...
+endif
 
 .PHONY: test-acceptance
 test-acceptance: build ## Run all tests including slow acceptance tests
 	@echo "Running all tests for $(APP_NAME) (this may take several minutes)..."
+ifeq ($(shell uname),Darwin)
+	CGO_LDFLAGS="$(CGO_LDFLAGS) -Wl,-no_warn_duplicate_libraries" go test -run "Test(Unit_|Integration_|Acceptance_)" ./...
+else
 	go test -run "Test(Unit_|Integration_|Acceptance_)" ./...
+endif
+
+.PHONY: test-system
+test-system: ## Run UI system tests only (headless, Fyne test harness)
+	@echo "Running UI system tests..."
+ifeq ($(shell uname),Darwin)
+	CGO_LDFLAGS="$(CGO_LDFLAGS) -Wl,-no_warn_duplicate_libraries" go test ./client/ui/systemtest/...
+else
+	go test ./client/ui/systemtest/...
+endif
 
 .PHONY: test-all
 test-all: test-acceptance ## Run all tests (same as test-acceptance)

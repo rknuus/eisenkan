@@ -1,0 +1,19 @@
+{
+  "name": "Eisenhower Board (Large)",
+  "columns": [
+    {
+      "id": "todo",
+      "name": "To Do",
+      "sections": [
+        "urgent-important",
+        "urgent-not-important",
+        "not-urgent-important",
+        "not-urgent-not-important"
+      ]
+    },
+    { "id": "doing", "name": "Doing" },
+    { "id": "done", "name": "Done" }
+  ]
+}
+
+
