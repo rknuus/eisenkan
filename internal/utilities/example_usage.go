@@ -41,7 +41,7 @@ func ExampleLoggingUsage() {
 		"retries":  3,
 		"timeout":  "5s",
 	}
-	logger.LogError("TasksAccess", simulatedError, errorData)
+	logger.LogError("BoardAccess", simulatedError, errorData)
 
 	// Example 4: Performance optimization using level checking
 	if logger.IsLevelEnabled(Debug) {
@@ -57,14 +57,14 @@ func ExampleLoggingUsage() {
 	// Example 5: Different map types
 	intMapData := map[int]interface{}{
 		1: "first priority",
-		2: "second priority", 
+		2: "second priority",
 		3: "third priority",
 	}
 	logger.Log(Info, "PriorityManager", "Priority mapping updated", intMapData)
 
 	// Example 6: Generic map with mixed key types
 	mixedMapData := map[interface{}]interface{}{
-		42:        "answer to everything",
+		42:       "answer to everything",
 		"status": "active",
 		true:     "enabled flag",
 	}

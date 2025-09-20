@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-
-
 // TestVersioningUtility_Integration_ArchitecturalCompliance validates architectural layer rules
 func TestIntegration_VersioningUtility_ArchitecturalCompliance(t *testing.T) {
 	// Removed old utility pattern
@@ -26,26 +24,26 @@ func TestIntegration_VersioningUtility_ArchitecturalCompliance(t *testing.T) {
 		{"Client", "EisenKanClient"},
 		{"Manager", "TaskManager"},
 		{"Engine", "ValidationEngine"},
-		{"ResourceAccess", "TasksAccess"},
+		{"ResourceAccess", "BoardAccess"},
 		{"ResourceAccess", "RulesAccess"},
 	}
 
 	tempDir := t.TempDir()
-	
+
 	for _, tc := range testCases {
 		repoPath := filepath.Join(tempDir, tc.component+"_repo")
-		
+
 		// Each layer should be able to use version control
 		handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Layer %s component %s failed to initialize repository: %v", tc.layer, tc.component, err)
 			continue
 		}
-		
+
 		// Create test file for this layer
 		testFile := filepath.Join(repoPath, tc.component+".data")
 		content := fmt.Sprintf("Data for %s layer component %s", tc.layer, tc.component)
-		
+
 		if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
 			handle.Close()
 			t.Errorf("Failed to create test file for %s: %v", tc.component, err)
@@ -60,7 +58,7 @@ func TestIntegration_VersioningUtility_ArchitecturalCompliance(t *testing.T) {
 			continue
 		}
 
-		_, err = handle.Commit("Initial data for "+tc.component)
+		_, err = handle.Commit("Initial data for " + tc.component)
 		if err != nil {
 			handle.Close()
 			t.Errorf("Component %s failed to commit: %v", tc.component, err)
@@ -85,16 +83,16 @@ func TestIntegration_VersioningUtility_PerformanceRequirements(t *testing.T) {
 
 	// Create repository with multiple commits (smaller scale for unit test)
 	const numCommits = 100 // Smaller than SRS requirement for unit test speed
-	
+
 	start := time.Now()
-	
+
 	for i := 0; i < numCommits; i++ {
 		// Create multiple files per commit
 		for j := 0; j < 5; j++ {
 			fileName := fmt.Sprintf("file_%d_%d.txt", i, j)
 			filePath := filepath.Join(repoPath, fileName)
 			content := fmt.Sprintf("Content for commit %d, file %d\nTimestamp: %s", i, j, time.Now().String())
-			
+
 			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 				t.Fatalf("Failed to create file %s: %v", fileName, err)
 			}
@@ -149,9 +147,9 @@ func TestIntegration_VersioningUtility_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			
+
 			repoPath := filepath.Join(tempDir, fmt.Sprintf("concurrent_repo_%d", id))
-			
+
 			handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 			if err != nil {
 				t.Errorf("Goroutine %d failed to initialize repository: %v", id, err)
@@ -164,7 +162,7 @@ func TestIntegration_VersioningUtility_ConcurrentAccess(t *testing.T) {
 				fileName := fmt.Sprintf("file_%d_%d.txt", id, j)
 				filePath := filepath.Join(repoPath, fileName)
 				content := fmt.Sprintf("Content from goroutine %d, operation %d", id, j)
-				
+
 				if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 					t.Errorf("Goroutine %d failed to create file: %v", id, err)
 					return
@@ -191,13 +189,13 @@ func TestIntegration_VersioningUtility_ConcurrentAccess(t *testing.T) {
 	// Verify each repository has expected commits
 	for i := 0; i < numGoroutines; i++ {
 		repoPath := filepath.Join(tempDir, fmt.Sprintf("concurrent_repo_%d", i))
-		
+
 		repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Failed to initialize repo %d for verification: %v", i, err)
 			continue
 		}
-		
+
 		history, err := repo.GetHistory(0)
 		repo.Close()
 		if err != nil {
@@ -206,7 +204,7 @@ func TestIntegration_VersioningUtility_ConcurrentAccess(t *testing.T) {
 		}
 
 		if len(history) != operationsPerGoroutine {
-			t.Errorf("Expected %d commits in concurrent repo %d, got %d", 
+			t.Errorf("Expected %d commits in concurrent repo %d, got %d",
 				operationsPerGoroutine, i, len(history))
 		}
 	}
@@ -264,7 +262,7 @@ func TestIntegration_VersioningUtility_DestructiveAPITesting(t *testing.T) {
 			operation: func() error {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "empty_message_test")
-				
+
 				handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
@@ -287,7 +285,7 @@ func TestIntegration_VersioningUtility_DestructiveAPITesting(t *testing.T) {
 			operation: func() error {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "invalid_email_test")
-				
+
 				handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
@@ -310,7 +308,7 @@ func TestIntegration_VersioningUtility_DestructiveAPITesting(t *testing.T) {
 			operation: func() error {
 				tempDir := t.TempDir()
 				repoPath := filepath.Join(tempDir, "invalid_hash_test")
-				
+
 				repo, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 				if err != nil {
 					return err
@@ -327,11 +325,11 @@ func TestIntegration_VersioningUtility_DestructiveAPITesting(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := tc.operation()
-			
+
 			if tc.expectError && err == nil {
 				t.Errorf("Expected error for %s, but got nil", tc.name)
 			}
-			
+
 			if !tc.expectError && err != nil {
 				t.Errorf("Unexpected error for %s: %v", tc.name, err)
 			}
@@ -361,19 +359,19 @@ func TestAcceptance_VersioningUtility_ResourceExhaustion(t *testing.T) {
 
 	for i := 0; i < numRepos; i++ {
 		repoPath := filepath.Join(tempDir, fmt.Sprintf("resource_repo_%d", i))
-		
+
 		handle, err := InitializeRepositoryWithConfig(repoPath, testAuthorConfig())
 		if err != nil {
 			t.Errorf("Failed to initialize repository %d: %v", i, err)
 			continue
 		}
-		
+
 		handles = append(handles, handle)
 
 		// Create a small file in each repo
 		testFile := filepath.Join(repoPath, "resource_test.txt")
 		content := fmt.Sprintf("Resource test file %d", i)
-		
+
 		if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
 			t.Errorf("Failed to create file in repo %d: %v", i, err)
 			continue
@@ -429,7 +427,7 @@ func TestAcceptance_VersioningUtility_StreamingPerformance(t *testing.T) {
 		fileName := fmt.Sprintf("stream_file_%d.txt", i)
 		filePath := filepath.Join(repoPath, fileName)
 		content := fmt.Sprintf("Streaming test content %d", i)
-		
+
 		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
 			t.Fatalf("Failed to create file %s: %v", fileName, err)
 		}
@@ -448,7 +446,7 @@ func TestAcceptance_VersioningUtility_StreamingPerformance(t *testing.T) {
 	// Test streaming history
 	start := time.Now()
 	commitChan := handle.GetHistoryStream()
-	
+
 	var receivedCommits []CommitInfo
 	for commit := range commitChan {
 		receivedCommits = append(receivedCommits, commit)
@@ -478,7 +476,7 @@ func TestAcceptance_VersioningUtility_StreamingPerformance(t *testing.T) {
 		if i >= len(syncCommits) {
 			break
 		}
-		
+
 		syncCommit := syncCommits[i]
 		if streamCommit.ID != syncCommit.ID {
 			t.Errorf("Commit %d ID mismatch: stream=%s, sync=%s", i, streamCommit.ID, syncCommit.ID)

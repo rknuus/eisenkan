@@ -27,7 +27,7 @@ func TestIntegration_LoggingUtility_ArchitecturalCompliance(t *testing.T) {
 		{"Client", "EisenKanClient"},
 		{"Manager", "TaskManager"},
 		{"Engine", "ValidationEngine"},
-		{"ResourceAccess", "TasksAccess"},
+		{"ResourceAccess", "BoardAccess"},
 	}
 
 	for _, tc := range testCases {
@@ -227,7 +227,7 @@ func TestIntegration_LoggingUtility_ConcurrentUsage(t *testing.T) {
 	components := []string{
 		"TaskManager",
 		"ValidationEngine",
-		"TasksAccess",
+		"BoardAccess",
 		"EisenKanClient",
 		"RuleEngine",
 	}
