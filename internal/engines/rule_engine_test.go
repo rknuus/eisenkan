@@ -2,6 +2,7 @@ package engines
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -809,5 +810,306 @@ func TestClose(t *testing.T) {
 	err = engine.Close()
 	if err != nil {
 		t.Errorf("Close() error = %v, want nil", err)
+	}
+}
+
+// Board Configuration Validation Tests
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_ValidConfiguration(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       "My Project Board",
+			Description: "A valid board configuration",
+			Metadata: map[string]string{
+				"project": "test",
+				"team":    "dev",
+			},
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Errorf("EvaluateBoardConfigurationChange() Allowed = %v, want true", result.Allowed)
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateBoardConfigurationChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_ValidConfigurationWithHyphens(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title: "Project-Board 2024 Version-2",
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Errorf("EvaluateBoardConfigurationChange() Allowed = %v, want true", result.Allowed)
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateBoardConfigurationChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_NilConfiguration(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType:     "board_create",
+		Configuration: nil,
+		Timestamp:     time.Now(),
+	}
+
+	_, err = engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err == nil {
+		t.Error("EvaluateBoardConfigurationChange() with nil configuration should return error")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_EmptyTitle(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       "",
+			Description: "Board with empty title",
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow empty title")
+	}
+	if len(result.Violations) == 0 {
+		t.Error("EvaluateBoardConfigurationChange() should have violations for empty title")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_WhitespaceOnlyTitle(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title: "   \t\n  ", // only whitespace
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow whitespace-only title")
+	}
+	if len(result.Violations) == 0 {
+		t.Error("EvaluateBoardConfigurationChange() should have violations for whitespace-only title")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_TitleTooLong(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Create 101-character title (exceeds limit)
+	longTitle := strings.Repeat("A", 101)
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       longTitle,
+			Description: "Board with title exceeding 100 character limit",
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow title exceeding 100 characters")
+	}
+	if len(result.Violations) == 0 {
+		t.Error("EvaluateBoardConfigurationChange() should have violations for long title")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_TitleBoundary100Characters(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Test exactly 100 characters (should pass)
+	exactly100 := strings.Repeat("A", 100)
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title: exactly100,
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if !result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should allow title with exactly 100 characters")
+	}
+	if len(result.Violations) != 0 {
+		t.Errorf("EvaluateBoardConfigurationChange() violations = %d, want 0", len(result.Violations))
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_InvalidCharacters(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       "Board@#$%Title",
+			Description: "Board with invalid characters in title",
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow title with invalid characters")
+	}
+	if len(result.Violations) == 0 {
+		t.Error("EvaluateBoardConfigurationChange() should have violations for invalid characters")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_DescriptionTooLong(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Create 501-character description (exceeds limit)
+	longDescription := strings.Repeat("A", 501)
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       "Valid Title",
+			Description: longDescription,
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow description exceeding 500 characters")
+	}
+	if len(result.Violations) == 0 {
+		t.Error("EvaluateBoardConfigurationChange() should have violations for long description")
+	}
+}
+
+func TestUnit_RuleEngine_EvaluateBoardConfigurationChange_MultipleViolations(t *testing.T) {
+	rulesAccess := &mockRulesAccess{}
+	boardAccess := &mockBoardAccess{}
+
+	engine, err := NewRuleEngine(rulesAccess, boardAccess)
+	if err != nil {
+		t.Fatalf("NewRuleEngine() error = %v", err)
+	}
+
+	// Configuration with multiple violations
+	event := BoardConfigurationEvent{
+		EventType: "board_create",
+		Configuration: &BoardConfiguration{
+			Title:       "Board@#$", // Invalid characters
+			Description: strings.Repeat("A", 501), // Too long
+		},
+		Timestamp: time.Now(),
+	}
+
+	result, err := engine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		t.Errorf("EvaluateBoardConfigurationChange() error = %v, want nil", err)
+	}
+	if result.Allowed {
+		t.Error("EvaluateBoardConfigurationChange() should not allow configuration with multiple violations")
+	}
+	if len(result.Violations) < 2 {
+		t.Errorf("EvaluateBoardConfigurationChange() violations = %d, want at least 2", len(result.Violations))
 	}
 }
