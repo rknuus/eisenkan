@@ -117,6 +117,9 @@ type IBoardAccess interface {
 	// Configuration management operations facet
 	IConfiguration
 
+	// Board management operations facet
+	IBoard
+
 	// Utility Operations
 	Close() error
 }
@@ -129,6 +132,7 @@ type boardAccess struct {
 	ITask          // embedded task facet
 	IRules         // embedded rules facet
 	IConfiguration // embedded configuration facet
+	IBoard         // embedded board facet
 }
 
 // NewBoardAccess creates a new BoardAccess instance
@@ -191,6 +195,7 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 		ITask:          taskFacetImpl,
 		IRules:         newRulesFacet(taskFacetImpl, logger, mutex),
 		IConfiguration: newConfigurationFacet(repository, logger),
+		IBoard:         newBoardFacet(repository, logger, mutex, nil),
 	}
 
 	logger.LogMessage(utilities.Info, "BoardAccess", "BoardAccess initialized successfully")
