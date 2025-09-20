@@ -239,18 +239,18 @@ func (m *mockBoardAccess) ChangeTask(taskID string, task *board_access.Task, pri
 }
 
 // IBoard facet mock methods
-func (m *mockBoardAccess) DiscoverBoards(ctx context.Context, directoryPath string) ([]board_access.BoardDiscoveryResult, error) {
+func (m *mockBoardAccess) Discover(ctx context.Context, directoryPath string) ([]board_access.BoardDiscoveryResult, error) {
 	return []board_access.BoardDiscoveryResult{}, nil
 }
 
-func (m *mockBoardAccess) ExtractBoardMetadata(ctx context.Context, boardPath string) (*board_access.BoardMetadata, error) {
+func (m *mockBoardAccess) ExtractMetadata(ctx context.Context, boardPath string) (*board_access.BoardMetadata, error) {
 	return &board_access.BoardMetadata{
 		Title:     "Mock Board",
 		TaskCount: len(m.tasks),
 	}, nil
 }
 
-func (m *mockBoardAccess) GetBoardStatistics(ctx context.Context, boardPath string) (*board_access.BoardStatistics, error) {
+func (m *mockBoardAccess) GetStatistics(ctx context.Context, boardPath string) (*board_access.BoardStatistics, error) {
 	return &board_access.BoardStatistics{
 		TotalTasks:    len(m.tasks),
 		ActiveTasks:   len(m.tasks),
@@ -258,7 +258,7 @@ func (m *mockBoardAccess) GetBoardStatistics(ctx context.Context, boardPath stri
 	}, nil
 }
 
-func (m *mockBoardAccess) ValidateBoardStructure(ctx context.Context, boardPath string) (*board_access.BoardValidationResult, error) {
+func (m *mockBoardAccess) ValidateStructure(ctx context.Context, boardPath string) (*board_access.BoardValidationResult, error) {
 	return &board_access.BoardValidationResult{
 		IsValid:       true,
 		GitRepoValid:  true,
@@ -267,18 +267,18 @@ func (m *mockBoardAccess) ValidateBoardStructure(ctx context.Context, boardPath 
 	}, nil
 }
 
-func (m *mockBoardAccess) LoadBoardConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error) {
+func (m *mockBoardAccess) LoadConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"name":    "Mock Board",
 		"columns": []string{"todo", "doing", "done"},
 	}, nil
 }
 
-func (m *mockBoardAccess) StoreBoardConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error {
+func (m *mockBoardAccess) StoreConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error {
 	return nil
 }
 
-func (m *mockBoardAccess) CreateBoard(ctx context.Context, request *board_access.BoardCreationRequest) (*board_access.BoardCreationResult, error) {
+func (m *mockBoardAccess) Create(ctx context.Context, request *board_access.BoardCreationRequest) (*board_access.BoardCreationResult, error) {
 	return &board_access.BoardCreationResult{
 		Success:        true,
 		BoardPath:      request.BoardPath,
@@ -286,7 +286,7 @@ func (m *mockBoardAccess) CreateBoard(ctx context.Context, request *board_access
 	}, nil
 }
 
-func (m *mockBoardAccess) DeleteBoard(ctx context.Context, request *board_access.BoardDeletionRequest) (*board_access.BoardDeletionResult, error) {
+func (m *mockBoardAccess) Delete(ctx context.Context, request *board_access.BoardDeletionRequest) (*board_access.BoardDeletionResult, error) {
 	return &board_access.BoardDeletionResult{
 		Success: true,
 		Method:  "permanent",

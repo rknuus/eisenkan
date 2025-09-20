@@ -114,9 +114,6 @@ type IBoardAccess interface {
 	// Rule engine helper operations facet
 	IRules
 
-	// Configuration management operations facet
-	IConfiguration
-
 	// Board management operations facet
 	IBoard
 
@@ -131,7 +128,6 @@ type boardAccess struct {
 	mutex      *sync.RWMutex
 	ITask          // embedded task facet
 	IRules         // embedded rules facet
-	IConfiguration // embedded configuration facet
 	IBoard         // embedded board facet
 }
 
@@ -189,13 +185,12 @@ func NewBoardAccess(repositoryPath string) (IBoardAccess, error) {
 	taskFacetImpl := newTaskFacet(repository, logger, mutex)
 
 	boardAccess := &boardAccess{
-		repository:     repository,
-		logger:         logger,
-		mutex:          mutex,
-		ITask:          taskFacetImpl,
-		IRules:         newRulesFacet(taskFacetImpl, logger, mutex),
-		IConfiguration: newConfigurationFacet(repository, logger),
-		IBoard:         newBoardFacet(repository, logger, mutex, nil),
+		repository: repository,
+		logger:     logger,
+		mutex:      mutex,
+		ITask:      taskFacetImpl,
+		IRules:     newRulesFacet(taskFacetImpl, logger, mutex),
+		IBoard:     newBoardFacet(repository, logger, mutex, nil),
 	}
 
 	logger.LogMessage(utilities.Info, "BoardAccess", "BoardAccess initialized successfully")

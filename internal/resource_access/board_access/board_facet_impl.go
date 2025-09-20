@@ -26,20 +26,22 @@ type boardFacet struct {
 	logger       utilities.ILoggingUtility
 	mutex        *sync.RWMutex
 	ruleEngine   BoardConfigurationValidator  // For board configuration validation
+	configFacet  IConfiguration              // For board configuration operations
 }
 
 // newBoardFacet creates a new board facet implementation
 func newBoardFacet(repository utilities.Repository, logger utilities.ILoggingUtility, mutex *sync.RWMutex, ruleEngine BoardConfigurationValidator) IBoard {
 	return &boardFacet{
-		repository: repository,
-		logger:     logger,
-		mutex:      mutex,
-		ruleEngine: ruleEngine,
+		repository:  repository,
+		logger:      logger,
+		mutex:       mutex,
+		ruleEngine:  ruleEngine,
+		configFacet: newConfigurationFacet(repository, logger),
 	}
 }
 
-// DiscoverBoards finds and validates board structures in a directory
-func (bf *boardFacet) DiscoverBoards(ctx context.Context, directoryPath string) ([]BoardDiscoveryResult, error) {
+// Discover finds and validates board structures in a directory
+func (bf *boardFacet) Discover(ctx context.Context, directoryPath string) ([]BoardDiscoveryResult, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Discovering boards in directory: %s", directoryPath))
 
 	// Validate directory exists and is accessible
@@ -140,7 +142,7 @@ func (bf *boardFacet) evaluatePotentialBoard(dirPath string) *BoardDiscoveryResu
 }
 
 // ExtractBoardMetadata retrieves comprehensive board information
-func (bf *boardFacet) ExtractBoardMetadata(ctx context.Context, boardPath string) (*BoardMetadata, error) {
+func (bf *boardFacet) ExtractMetadata(ctx context.Context, boardPath string) (*BoardMetadata, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Extracting metadata for board: %s", boardPath))
 
 	if boardPath == "" {
@@ -202,7 +204,7 @@ func (bf *boardFacet) ExtractBoardMetadata(ctx context.Context, boardPath string
 }
 
 // GetBoardStatistics calculates comprehensive board metrics
-func (bf *boardFacet) GetBoardStatistics(ctx context.Context, boardPath string) (*BoardStatistics, error) {
+func (bf *boardFacet) GetStatistics(ctx context.Context, boardPath string) (*BoardStatistics, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Calculating statistics for board: %s", boardPath))
 
 	if boardPath == "" {
@@ -311,7 +313,7 @@ func (bf *boardFacet) calculateHealthScore(stats *BoardStatistics) float64 {
 }
 
 // ValidateBoardStructure verifies board integrity and structure
-func (bf *boardFacet) ValidateBoardStructure(ctx context.Context, boardPath string) (*BoardValidationResult, error) {
+func (bf *boardFacet) ValidateStructure(ctx context.Context, boardPath string) (*BoardValidationResult, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Validating board structure: %s", boardPath))
 
 	if boardPath == "" {
@@ -461,7 +463,7 @@ func (bf *boardFacet) validateDataFiles(boardPath string, result *BoardValidatio
 }
 
 // LoadBoardConfiguration loads board configuration data
-func (bf *boardFacet) LoadBoardConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error) {
+func (bf *boardFacet) LoadConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Loading configuration for board: %s, type: %s", boardPath, configType))
 
 	if boardPath == "" {
@@ -488,7 +490,7 @@ func (bf *boardFacet) LoadBoardConfiguration(ctx context.Context, boardPath stri
 }
 
 // StoreBoardConfiguration stores board configuration data
-func (bf *boardFacet) StoreBoardConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error {
+func (bf *boardFacet) StoreConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Storing configuration for board: %s, type: %s", boardPath, configType))
 
 	if boardPath == "" {
@@ -562,7 +564,7 @@ func (bf *boardFacet) getDefaultConfiguration(configType string) map[string]inte
 }
 
 // CreateBoard initializes a new board structure
-func (bf *boardFacet) CreateBoard(ctx context.Context, request *BoardCreationRequest) (*BoardCreationResult, error) {
+func (bf *boardFacet) Create(ctx context.Context, request *BoardCreationRequest) (*BoardCreationResult, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Creating board: %s", request.BoardPath))
 
 	if request == nil {
@@ -653,7 +655,7 @@ func (bf *boardFacet) CreateBoard(ctx context.Context, request *BoardCreationReq
 }
 
 // DeleteBoard removes a board structure
-func (bf *boardFacet) DeleteBoard(ctx context.Context, request *BoardDeletionRequest) (*BoardDeletionResult, error) {
+func (bf *boardFacet) Delete(ctx context.Context, request *BoardDeletionRequest) (*BoardDeletionResult, error) {
 	bf.logger.LogMessage(utilities.Debug, "BoardFacet", fmt.Sprintf("Deleting board: %s", request.BoardPath))
 
 	if request == nil {
@@ -771,4 +773,16 @@ func (bf *boardFacet) moveToTrash(path string) error {
 	// This is a simplified implementation
 	// Real implementation would use OS-specific trash APIs
 	return fmt.Errorf("OS trash functionality not implemented")
+}
+
+// GetBoardConfiguration retrieves the board configuration (integrated from IConfiguration)
+func (bf *boardFacet) GetBoardConfiguration() (*BoardConfiguration, error) {
+	bf.logger.LogMessage(utilities.Debug, "BoardFacet", "Getting board configuration")
+	return bf.configFacet.GetBoardConfiguration()
+}
+
+// UpdateBoardConfiguration updates the board configuration (integrated from IConfiguration)
+func (bf *boardFacet) UpdateBoardConfiguration(config *BoardConfiguration) error {
+	bf.logger.LogMessage(utilities.Debug, "BoardFacet", "Updating board configuration")
+	return bf.configFacet.UpdateBoardConfiguration(config)
 }

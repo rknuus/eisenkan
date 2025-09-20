@@ -104,21 +104,25 @@ type BoardCreationResult struct {
 
 // IBoard defines the interface for board management operations
 type IBoard interface {
-	// Board Discovery Operations
-	DiscoverBoards(ctx context.Context, directoryPath string) ([]BoardDiscoveryResult, error)
+	// Discovery Operations
+	Discover(ctx context.Context, directoryPath string) ([]BoardDiscoveryResult, error)
 
-	// Board Metadata Operations
-	ExtractBoardMetadata(ctx context.Context, boardPath string) (*BoardMetadata, error)
-	GetBoardStatistics(ctx context.Context, boardPath string) (*BoardStatistics, error)
+	// Metadata Operations
+	ExtractMetadata(ctx context.Context, boardPath string) (*BoardMetadata, error)
+	GetStatistics(ctx context.Context, boardPath string) (*BoardStatistics, error)
 
-	// Board Validation Operations
-	ValidateBoardStructure(ctx context.Context, boardPath string) (*BoardValidationResult, error)
+	// Validation Operations
+	ValidateStructure(ctx context.Context, boardPath string) (*BoardValidationResult, error)
 
-	// Board Configuration Operations
-	LoadBoardConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error)
-	StoreBoardConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error
+	// Configuration Operations
+	LoadConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error)
+	StoreConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error
 
-	// Board Lifecycle Operations
-	CreateBoard(ctx context.Context, request *BoardCreationRequest) (*BoardCreationResult, error)
-	DeleteBoard(ctx context.Context, request *BoardDeletionRequest) (*BoardDeletionResult, error)
+	// Board-Specific Configuration Operations (integrated from IConfiguration)
+	GetBoardConfiguration() (*BoardConfiguration, error)
+	UpdateBoardConfiguration(config *BoardConfiguration) error
+
+	// Lifecycle Operations
+	Create(ctx context.Context, request *BoardCreationRequest) (*BoardCreationResult, error)
+	Delete(ctx context.Context, request *BoardDeletionRequest) (*BoardDeletionResult, error)
 }
