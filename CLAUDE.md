@@ -123,6 +123,11 @@ Optionally, directory `.claude.d` contains project specific Claude instruction f
 - **MUST** mark STR document as "Accepted" with final status upon successful completion
 
 ## Documentation Standards
+### Documentation Requirements
+- **MUST** when creating a document, add current date as creation date to the footer and set version to 1.0
+- **MUST** when changing a document, add current date as updated date to the footer and increase the version to the next minor or major version depending on the severity of the change
+- **MUST** after approval of a document, the item IDs (e.g. requirement IDs or test IDs) must remain stable
+- **MUST** after approval of a document, IDs of removed items must be listed as reseved with a comment "former <item>"
 
 ### File Locations and Formats
 | Document Type | Location | Required Sections |
