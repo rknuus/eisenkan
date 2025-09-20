@@ -265,3 +265,36 @@ The graphical diagram is colorized:
     Legend:
     - Solid lines (│, ─): Direct dependencies/calls
 ```
+
+## System Testing Architecture
+
+### Determinism and Isolation
+- In‑process UI testing with `fyne.io/fyne/v2/test` to maximize determinism.
+- Single app instance per test run; never use parallel execution for system tests.
+- Fixed environment: Light theme, scale 1.0, window size 1024×768.
+- Each test operates in an isolated temporary directory seeded from fixtures; git repository initialized for verifiable state transitions.
+
+### Suite Structure
+- `client/ui/systemtest/` contains the system testing suite:
+  - `harness/`: deterministic app/window setup, widget traversal/finders, wait utilities, basic DnD gestures, and repository assertions (go‑git).
+  - `fixtures/`: seedable board repositories (minimal, populated, large, invalid/corrupt) and optional JSON schemas for documentation.
+  - `journeys/`: end‑to‑end user journeys for `BoardSelectionView`, `BoardView`, `CreateTaskDialog`, and `ApplicationRoot`.
+  - `dnd/`: drag‑and‑drop acceptance scenarios for tasks and parent‑anchored subtasks.
+
+### Verification Strategy
+- UI‑level assertions for presence, counts, and basic invariants where applicable.
+- Repository‑level assertions as durable evidence of workflow operations:
+  - Commit advancement, file presence/absence, path moves, order by filename prefix, and clean working tree checks.
+- Performance guardrails are measured with lightweight timing utilities to surface regressions without flakiness.
+
+### Drag‑and‑Drop Testing Approach
+- Initial phase uses repository‑level simulations to validate persistence semantics.
+- Target state replaces simulations with UI‑level drag gestures using Fyne’s test APIs and validates both UI feedback and repository changes.
+
+### Fixtures Strategy
+- Minimal fixture for fast journeys; populated and large fixtures for coverage and performance; invalid and corrupt fixtures for negative cases (discovery/validation).
+- Optional OS “recent boards” behavior is emulated by a shim used only in tests to avoid platform dependencies.
+
+### Build and Execution
+- `make test-system` runs the systemtest packages with linker flags adjusted for macOS to suppress duplicate Objective‑C warnings.
+- CI integration is staged: system tests run on PRs; heavier load/performance scenarios can be scheduled for nightly runs.
