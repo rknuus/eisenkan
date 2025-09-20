@@ -73,6 +73,32 @@ func (m *MockTaskManager) Store(contextType string, data task_manager.ContextDat
 	return args.Error(0)
 }
 
+// Board Management Operations mock methods
+func (m *MockTaskManager) ValidateBoardDirectory(directoryPath string) (task_manager.BoardValidationResponse, error) {
+	args := m.Called(directoryPath)
+	return args.Get(0).(task_manager.BoardValidationResponse), args.Error(1)
+}
+
+func (m *MockTaskManager) GetBoardMetadata(boardPath string) (task_manager.BoardMetadataResponse, error) {
+	args := m.Called(boardPath)
+	return args.Get(0).(task_manager.BoardMetadataResponse), args.Error(1)
+}
+
+func (m *MockTaskManager) CreateBoard(request task_manager.BoardCreationRequest) (task_manager.BoardCreationResponse, error) {
+	args := m.Called(request)
+	return args.Get(0).(task_manager.BoardCreationResponse), args.Error(1)
+}
+
+func (m *MockTaskManager) UpdateBoardMetadata(boardPath string, metadata task_manager.BoardMetadataRequest) (task_manager.BoardMetadataResponse, error) {
+	args := m.Called(boardPath, metadata)
+	return args.Get(0).(task_manager.BoardMetadataResponse), args.Error(1)
+}
+
+func (m *MockTaskManager) DeleteBoard(request task_manager.BoardDeletionRequest) (task_manager.BoardDeletionResponse, error) {
+	args := m.Called(request)
+	return args.Get(0).(task_manager.BoardDeletionResponse), args.Error(1)
+}
+
 // MockCacheUtility is a mock implementation of ICacheUtility
 type MockCacheUtility struct {
 	mock.Mock

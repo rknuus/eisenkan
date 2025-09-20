@@ -67,6 +67,73 @@ type ValidationResult struct {
 	Violations []engines.RuleViolation `json:"violations,omitempty"`
 }
 
+// Board Management Types
+
+// BoardValidationResponse represents the result of board directory validation
+type BoardValidationResponse struct {
+	IsValid       bool     `json:"is_valid"`
+	GitRepoValid  bool     `json:"git_repo_valid"`
+	ConfigValid   bool     `json:"config_valid"`
+	DataIntegrity bool     `json:"data_integrity"`
+	Issues        []string `json:"issues,omitempty"`
+	Warnings      []string `json:"warnings,omitempty"`
+}
+
+// BoardMetadataResponse represents board metadata for UI display
+type BoardMetadataResponse struct {
+	Title         string            `json:"title"`
+	Description   string            `json:"description,omitempty"`
+	TaskCount     int               `json:"task_count"`
+	ColumnCounts  map[string]int    `json:"column_counts"`
+	SchemaVersion string            `json:"schema_version,omitempty"`
+	CreatedAt     *time.Time        `json:"created_at,omitempty"`
+	ModifiedAt    *time.Time        `json:"modified_at,omitempty"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
+}
+
+// BoardMetadataRequest represents board metadata update request
+type BoardMetadataRequest struct {
+	Title       string            `json:"title"`
+	Description string            `json:"description,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+// BoardCreationRequest represents board creation request
+type BoardCreationRequest struct {
+	BoardPath     string            `json:"board_path"`
+	Title         string            `json:"title"`
+	Description   string            `json:"description,omitempty"`
+	InitializeGit bool              `json:"initialize_git"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
+}
+
+// BoardCreationResponse represents board creation result
+type BoardCreationResponse struct {
+	Success        bool   `json:"success"`
+	BoardPath      string `json:"board_path"`
+	ConfigPath     string `json:"config_path"`
+	GitInitialized bool   `json:"git_initialized"`
+	Message        string `json:"message,omitempty"`
+}
+
+// BoardDeletionRequest represents board deletion request
+type BoardDeletionRequest struct {
+	BoardPath      string `json:"board_path"`
+	UseTrash       bool   `json:"use_trash"`
+	CreateBackup   bool   `json:"create_backup"`
+	BackupLocation string `json:"backup_location,omitempty"`
+	ForceDelete    bool   `json:"force_delete"`
+}
+
+// BoardDeletionResponse represents board deletion result
+type BoardDeletionResponse struct {
+	Success        bool   `json:"success"`
+	Method         string `json:"method"`
+	BackupCreated  bool   `json:"backup_created"`
+	BackupLocation string `json:"backup_location,omitempty"`
+	Message        string `json:"message,omitempty"`
+}
+
 // TaskManager defines the interface for task workflow orchestration
 type TaskManager interface {
 	// Task CRUD Operations
@@ -86,6 +153,13 @@ type TaskManager interface {
 
 	// Priority Promotion Operations
 	ProcessPriorityPromotions() ([]TaskResponse, error)
+
+	// Board Management Operations
+	ValidateBoardDirectory(directoryPath string) (BoardValidationResponse, error)
+	GetBoardMetadata(boardPath string) (BoardMetadataResponse, error)
+	CreateBoard(request BoardCreationRequest) (BoardCreationResponse, error)
+	UpdateBoardMetadata(boardPath string, metadata BoardMetadataRequest) (BoardMetadataResponse, error)
+	DeleteBoard(request BoardDeletionRequest) (BoardDeletionResponse, error)
 
 	// IContext facet operations for UI context management
 	IContext
@@ -374,6 +448,209 @@ func (tm *taskManager) ProcessPriorityPromotions() ([]TaskResponse, error) {
 	return promotedTasks, nil
 }
 
+// Board Management Operations
+
+// ValidateBoardDirectory validates that a directory can be used as a board (OP-9)
+func (tm *taskManager) ValidateBoardDirectory(directoryPath string) (BoardValidationResponse, error) {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Validating board directory: %s", directoryPath))
+
+	// Delegate to BoardAccess for validation
+	ctx := context.Background()
+	validationResult, err := tm.boardAccess.ValidateStructure(ctx, directoryPath)
+	if err != nil {
+		return BoardValidationResponse{}, fmt.Errorf("board directory validation failed: %w", err)
+	}
+
+	// Convert to TaskManager response format
+	response := BoardValidationResponse{
+		IsValid:       validationResult.IsValid,
+		GitRepoValid:  validationResult.GitRepoValid,
+		ConfigValid:   validationResult.ConfigValid,
+		DataIntegrity: validationResult.DataIntegrity,
+		Issues:        make([]string, 0),
+		Warnings:      make([]string, 0),
+	}
+
+	// Convert issues and warnings
+	for _, issue := range validationResult.Issues {
+		response.Issues = append(response.Issues, issue.Message)
+	}
+	for _, warning := range validationResult.Warnings {
+		response.Warnings = append(response.Warnings, warning.Message)
+	}
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Board directory validation completed: %s (valid: %v)", directoryPath, response.IsValid))
+
+	return response, nil
+}
+
+// GetBoardMetadata extracts board metadata for display (OP-10)
+func (tm *taskManager) GetBoardMetadata(boardPath string) (BoardMetadataResponse, error) {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Extracting board metadata: %s", boardPath))
+
+	// Delegate to BoardAccess for metadata extraction
+	ctx := context.Background()
+	metadata, err := tm.boardAccess.ExtractMetadata(ctx, boardPath)
+	if err != nil {
+		return BoardMetadataResponse{}, fmt.Errorf("board metadata extraction failed: %w", err)
+	}
+
+	// Convert to TaskManager response format
+	response := BoardMetadataResponse{
+		Title:         metadata.Title,
+		Description:   metadata.Description,
+		TaskCount:     metadata.TaskCount,
+		ColumnCounts:  metadata.ColumnCounts,
+		SchemaVersion: metadata.SchemaVersion,
+		CreatedAt:     metadata.CreatedAt,
+		ModifiedAt:    metadata.ModifiedAt,
+		Metadata:      metadata.Metadata,
+	}
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Board metadata extracted: %s (title: %s)", boardPath, response.Title))
+
+	return response, nil
+}
+
+// CreateBoard creates a new board with validation (OP-11)
+func (tm *taskManager) CreateBoard(request BoardCreationRequest) (BoardCreationResponse, error) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Creating board: %s", request.BoardPath))
+
+	// Validate board creation request with RuleEngine
+	if err := tm.validateBoardCreation(request); err != nil {
+		return BoardCreationResponse{}, fmt.Errorf("board creation validation failed: %w", err)
+	}
+
+	// Convert to BoardAccess format
+	boardRequest := &board_access.BoardCreationRequest{
+		BoardPath:     request.BoardPath,
+		Title:         request.Title,
+		Description:   request.Description,
+		InitializeGit: request.InitializeGit,
+		Metadata:      request.Metadata,
+	}
+
+	// Delegate to BoardAccess for creation
+	ctx := context.Background()
+	creationResult, err := tm.boardAccess.Create(ctx, boardRequest)
+	if err != nil {
+		return BoardCreationResponse{}, fmt.Errorf("board creation failed: %w", err)
+	}
+
+	// Convert to TaskManager response format
+	response := BoardCreationResponse{
+		Success:        creationResult.Success,
+		BoardPath:      creationResult.BoardPath,
+		ConfigPath:     creationResult.ConfigPath,
+		GitInitialized: creationResult.GitInitialized,
+		Message:        creationResult.Message,
+	}
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Board created successfully: %s", request.BoardPath))
+
+	return response, nil
+}
+
+// UpdateBoardMetadata updates board metadata with validation (OP-12)
+func (tm *taskManager) UpdateBoardMetadata(boardPath string, metadata BoardMetadataRequest) (BoardMetadataResponse, error) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Updating board metadata: %s", boardPath))
+
+	// Validate board metadata update with RuleEngine
+	if err := tm.validateBoardMetadataUpdate(boardPath, metadata); err != nil {
+		return BoardMetadataResponse{}, fmt.Errorf("board metadata update validation failed: %w", err)
+	}
+
+	// Get current board configuration
+	currentConfig, err := tm.boardAccess.GetBoardConfiguration()
+	if err != nil {
+		return BoardMetadataResponse{}, fmt.Errorf("failed to get current board configuration: %w", err)
+	}
+
+	// Update configuration with new metadata
+	updatedConfig := *currentConfig
+	updatedConfig.Name = metadata.Title
+	// Note: Description is not part of BoardConfiguration, handled differently
+
+	// Store updated configuration
+	err = tm.boardAccess.UpdateBoardConfiguration(&updatedConfig)
+	if err != nil {
+		return BoardMetadataResponse{}, fmt.Errorf("failed to update board configuration: %w", err)
+	}
+
+	// Return updated metadata (call internal method to avoid deadlock)
+	ctx := context.Background()
+	updatedMetadata, err := tm.boardAccess.ExtractMetadata(ctx, boardPath)
+	if err != nil {
+		return BoardMetadataResponse{}, fmt.Errorf("failed to extract updated metadata: %w", err)
+	}
+
+	// Convert to TaskManager response format
+	return BoardMetadataResponse{
+		Title:         updatedMetadata.Title,
+		Description:   updatedMetadata.Description,
+		TaskCount:     updatedMetadata.TaskCount,
+		ColumnCounts:  updatedMetadata.ColumnCounts,
+		SchemaVersion: updatedMetadata.SchemaVersion,
+		CreatedAt:     updatedMetadata.CreatedAt,
+		ModifiedAt:    updatedMetadata.ModifiedAt,
+		Metadata:      updatedMetadata.Metadata,
+	}, nil
+}
+
+// DeleteBoard deletes a board with validation (OP-13)
+func (tm *taskManager) DeleteBoard(request BoardDeletionRequest) (BoardDeletionResponse, error) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Deleting board: %s", request.BoardPath))
+
+	// Validate board deletion request
+	if err := tm.validateBoardDeletion(request); err != nil {
+		return BoardDeletionResponse{}, fmt.Errorf("board deletion validation failed: %w", err)
+	}
+
+	// Convert to BoardAccess format
+	deletionRequest := &board_access.BoardDeletionRequest{
+		BoardPath:       request.BoardPath,
+		UseTrash:        request.UseTrash,
+		CreateBackup:    request.CreateBackup,
+		BackupLocation:  request.BackupLocation,
+		ForceDelete:     request.ForceDelete,
+	}
+
+	// Delegate to BoardAccess for deletion
+	ctx := context.Background()
+	deletionResult, err := tm.boardAccess.Delete(ctx, deletionRequest)
+	if err != nil {
+		return BoardDeletionResponse{}, fmt.Errorf("board deletion failed: %w", err)
+	}
+
+	// Convert to TaskManager response format
+	response := BoardDeletionResponse{
+		Success:        deletionResult.Success,
+		Method:         deletionResult.Method,
+		BackupCreated:  deletionResult.BackupCreated,
+		BackupLocation: deletionResult.BackupLocation,
+		Message:        deletionResult.Message,
+	}
+
+	tm.logger.LogMessage(utilities.Info, "TaskManager", fmt.Sprintf("Board deleted successfully: %s", request.BoardPath))
+
+	return response, nil
+}
+
 // Helper methods
 
 // validateTaskRequest validates a task request using the RuleEngine
@@ -570,4 +847,75 @@ func mapWorkflowStatusWithPriority(status WorkflowStatus, priority board_access.
 // mapFromBoardStatus converts BoardAccess WorkflowStatus to TaskManager WorkflowStatus
 func mapFromBoardStatus(status board_access.WorkflowStatus) WorkflowStatus {
 	return WorkflowStatus(status.Column)
+}
+
+// Board validation helper methods
+
+// validateBoardCreation validates board creation request using RuleEngine
+func (tm *taskManager) validateBoardCreation(request BoardCreationRequest) error {
+	// Create BoardConfigurationEvent for rule validation
+	config := &engines.BoardConfiguration{
+		Title:       request.Title,
+		Description: request.Description,
+		Metadata:    request.Metadata,
+	}
+
+	event := engines.BoardConfigurationEvent{
+		EventType:     "board_create",
+		Configuration: config,
+		Timestamp:     time.Now(),
+	}
+
+	// Validate with RuleEngine
+	result, err := tm.ruleEngine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		return fmt.Errorf("board creation rule validation failed: %w", err)
+	}
+
+	if !result.Allowed {
+		return fmt.Errorf("board creation violates business rules: %v", result.Violations)
+	}
+
+	return nil
+}
+
+// validateBoardMetadataUpdate validates board metadata update using RuleEngine
+func (tm *taskManager) validateBoardMetadataUpdate(boardPath string, metadata BoardMetadataRequest) error {
+	// Create engines configuration for validation
+	config := &engines.BoardConfiguration{
+		Title:       metadata.Title,
+		Description: metadata.Description,
+		Metadata:    metadata.Metadata,
+	}
+
+	event := engines.BoardConfigurationEvent{
+		EventType:     "board_update",
+		Configuration: config,
+		Timestamp:     time.Now(),
+	}
+
+	// Validate with RuleEngine
+	result, err := tm.ruleEngine.EvaluateBoardConfigurationChange(context.Background(), event)
+	if err != nil {
+		return fmt.Errorf("board metadata update rule validation failed: %w", err)
+	}
+
+	if !result.Allowed {
+		return fmt.Errorf("board metadata update violates business rules: %v", result.Violations)
+	}
+
+	return nil
+}
+
+// validateBoardDeletion validates board deletion request
+func (tm *taskManager) validateBoardDeletion(request BoardDeletionRequest) error {
+	// Basic validation - ensure board path is not empty
+	if request.BoardPath == "" {
+		return fmt.Errorf("board path cannot be empty")
+	}
+
+	// Additional validation could include checking for active tasks, etc.
+	// For now, delegate validation to BoardAccess layer
+
+	return nil
 }
