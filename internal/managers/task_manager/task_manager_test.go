@@ -105,6 +105,61 @@ func (m *MockBoardAccess) Store(configType string, identifier string, data board
 	return nil
 }
 
+// IBoard facet mock methods
+func (m *MockBoardAccess) DiscoverBoards(ctx context.Context, directoryPath string) ([]board_access.BoardDiscoveryResult, error) {
+	return []board_access.BoardDiscoveryResult{}, nil
+}
+
+func (m *MockBoardAccess) ExtractBoardMetadata(ctx context.Context, boardPath string) (*board_access.BoardMetadata, error) {
+	return &board_access.BoardMetadata{
+		Title:     "Mock Board",
+		TaskCount: 0,
+	}, nil
+}
+
+func (m *MockBoardAccess) GetBoardStatistics(ctx context.Context, boardPath string) (*board_access.BoardStatistics, error) {
+	return &board_access.BoardStatistics{
+		TotalTasks:    0,
+		ActiveTasks:   0,
+		TasksByColumn: make(map[string]int),
+	}, nil
+}
+
+func (m *MockBoardAccess) ValidateBoardStructure(ctx context.Context, boardPath string) (*board_access.BoardValidationResult, error) {
+	return &board_access.BoardValidationResult{
+		IsValid:       true,
+		GitRepoValid:  true,
+		ConfigValid:   true,
+		DataIntegrity: true,
+	}, nil
+}
+
+func (m *MockBoardAccess) LoadBoardConfiguration(ctx context.Context, boardPath string, configType string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"name":    "Mock Board",
+		"columns": []string{"todo", "doing", "done"},
+	}, nil
+}
+
+func (m *MockBoardAccess) StoreBoardConfiguration(ctx context.Context, boardPath string, configType string, configData map[string]interface{}) error {
+	return nil
+}
+
+func (m *MockBoardAccess) CreateBoard(ctx context.Context, request *board_access.BoardCreationRequest) (*board_access.BoardCreationResult, error) {
+	return &board_access.BoardCreationResult{
+		Success:        true,
+		BoardPath:      request.BoardPath,
+		GitInitialized: request.InitializeGit,
+	}, nil
+}
+
+func (m *MockBoardAccess) DeleteBoard(ctx context.Context, request *board_access.BoardDeletionRequest) (*board_access.BoardDeletionResult, error) {
+	return &board_access.BoardDeletionResult{
+		Success: true,
+		Method:  "permanent",
+	}, nil
+}
+
 // MockRepository implements Repository for testing
 type MockRepository struct{}
 
@@ -148,6 +203,14 @@ func (m *MockRepository) GetFileDifferences(hash1, hash2 string) ([]byte, error)
 	return []byte{}, nil
 }
 
+func (m *MockRepository) ValidateRepositoryAndPaths(request utilities.RepositoryValidationRequest) (*utilities.RepositoryValidationResult, error) {
+	return &utilities.RepositoryValidationResult{
+		RepositoryValid: true,
+		ExistingPaths:   []string{},
+		MissingPaths:    []string{},
+	}, nil
+}
+
 func (m *MockRepository) Close() error {
 	return nil
 }
@@ -156,6 +219,13 @@ func (m *MockRepository) Close() error {
 type MockRuleEngine struct{}
 
 func (m *MockRuleEngine) EvaluateTaskChange(ctx context.Context, event engines.TaskEvent, boardPath string) (*engines.RuleEvaluationResult, error) {
+	return &engines.RuleEvaluationResult{
+		Allowed:    true,
+		Violations: []engines.RuleViolation{},
+	}, nil
+}
+
+func (m *MockRuleEngine) EvaluateBoardConfigurationChange(ctx context.Context, event engines.BoardConfigurationEvent) (*engines.RuleEvaluationResult, error) {
 	return &engines.RuleEvaluationResult{
 		Allowed:    true,
 		Violations: []engines.RuleViolation{},
