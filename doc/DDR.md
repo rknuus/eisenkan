@@ -1,5 +1,176 @@
 # Design Decision Records (DDR)
 
+This document tracks detailed design decisions for the EisenKan project, ordered by date (most recent first).
+
+---
+
+## DDR-2025-09-20-001: BoardSelectionView Component Design
+
+**Date**: 2025-09-20
+**Component**: BoardSelectionView (Client UI)
+**Context**: Design UI component for board discovery, selection, and management
+
+### Decision
+Implement BoardSelectionView as a composite Fyne widget following the established UI component pattern with:
+
+1. **Architecture Pattern**:
+   - Main widget container with embedded sub-widgets
+   - Dedicated state management struct
+   - Separate interface for external integration
+   - Mock-friendly design for testing
+
+2. **Component Structure**:
+   ```go
+   type BoardSelectionView interface {
+       // Core Operations
+       RefreshBoards() error
+       BrowseForBoards() error
+       CreateBoard(request BoardCreationRequest) error
+
+       // Selection Management
+       GetSelectedBoard() (*BoardInfo, error)
+       SetSelectedBoard(boardPath string) error
+
+       // Event Handling
+       SetBoardSelectedCallback(callback func(boardPath string))
+       SetBoardCreatedCallback(callback func(boardPath string))
+   }
+
+   type boardSelectionView struct {
+       // UI Components
+       container     *container.VBox
+       boardList     *widget.List
+       searchEntry   *widget.Entry
+       createButton  *widget.Button
+       browseButton  *widget.Button
+       refreshButton *widget.Button
+
+       // State Management
+       state         *BoardSelectionState
+
+       // Dependencies
+       taskManager   task_manager.TaskManager
+       formatter     formatting_engine.FormattingEngine
+       layoutEngine  layout_engine.LayoutEngine
+
+       // Callbacks
+       onBoardSelected func(string)
+       onBoardCreated  func(string)
+   }
+   ```
+
+3. **State Management**:
+   ```go
+   type BoardSelectionState struct {
+       boards          []BoardInfo
+       filteredBoards  []BoardInfo
+       selectedBoard   *BoardInfo
+       searchFilter    string
+       sortOrder       SortOrder
+       isLoading       bool
+       lastError       error
+   }
+   ```
+
+4. **Data Structures**:
+   ```go
+   type BoardInfo struct {
+       Path         string
+       Title        string
+       Description  string
+       LastModified time.Time
+       TaskCount    int
+       IsValid      bool
+       Metadata     map[string]string
+   }
+   ```
+
+### Options Considered
+
+**Option A: Single Monolithic Widget**
+- Pros: Simple structure, direct control
+- Cons: Difficult to test, poor separation of concerns
+- **Rejected**: Violates established UI component patterns
+
+**Option B: Composite Widget with State Management** ⭐ **Selected**
+- Pros: Testable, follows established patterns, clear separation
+- Cons: More complex structure
+- **Selected**: Aligns with TaskWidget and other UI components
+
+**Option C: Multiple Separate Widgets**
+- Pros: Maximum modularity
+- Cons: Complex coordination, integration overhead
+- **Rejected**: Over-engineering for this use case
+
+### Integration Design
+
+1. **TaskManager Integration**:
+   - Use TaskManager board operations (OP-9 to OP-13) for all board management
+   - Implement error handling and retry logic for TaskManager operations
+   - Cache board metadata to reduce TaskManager calls
+
+2. **FormattingEngine Integration**:
+   - Use Text facet for search highlighting and truncation
+   - Use DateTime facet for consistent date formatting
+   - Use Metadata facet for board metadata display
+
+3. **LayoutEngine Integration**:
+   - Use layout management for responsive board list display
+   - Handle different screen sizes and orientations
+   - Implement consistent spacing and alignment
+
+### UI Layout Design
+
+```
+┌─────────────────────────────────────────┐
+│ BoardSelectionView                      │
+├─────────────────────────────────────────┤
+│ [Search: _______________] [Refresh]     │
+├─────────────────────────────────────────┤
+│ ┌─ Recent Boards ─────────────────────┐ │
+│ │ • Project Alpha      (2 days ago)  │ │
+│ │ • Mobile App Sprint  (1 week ago)  │ │
+│ │ • EisenKan Development (yesterday) │ │
+│ │ • Personal Tasks     (3 days ago) │ │
+│ │ • Team Project      (1 week ago)  │ │
+│ └────────────────────────────────────┘ │
+├─────────────────────────────────────────┤
+│ [Browse for Boards] [Create New Board] │
+└─────────────────────────────────────────┘
+```
+
+### Error Handling Strategy
+
+1. **TaskManager Operation Failures**:
+   - Display inline error messages
+   - Provide retry buttons for failed operations
+   - Cache last successful state for fallback
+
+2. **Invalid Board Detection**:
+   - Show validation status indicators
+   - Provide detailed error tooltips
+   - Allow manual refresh of validation status
+
+3. **File System Errors**:
+   - Handle permission denied gracefully
+   - Show appropriate error dialogs
+   - Provide alternative access methods when possible
+
+### Performance Considerations
+
+1. **Lazy Loading**: Load board metadata on-demand
+2. **Caching**: Cache TaskManager results with TTL
+3. **Virtual Scrolling**: Support large board collections
+4. **Debounced Search**: Prevent excessive filtering operations
+
+### Rationale
+This design follows established UI component patterns in the codebase, provides clean separation of concerns, integrates properly with TaskManager board operations, and supports comprehensive testing through dependency injection.
+
+### User Approval
+**Status**: Pending Review
+
+---
+
 ## [2025-09-20] - BoardAccess: IBoard Facet Implementation Design
 
 **Decision**: Implement IBoard as single comprehensive interface with fail-fast error handling and direct service integration
